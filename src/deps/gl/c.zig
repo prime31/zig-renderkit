@@ -28,6 +28,7 @@ pub const GLdouble = f64;
 const Funcs = struct {
     glEnable: fn (GLenum) void,
     glBlendFunc: fn (GLenum, GLenum) void,
+    glPolygonMode: fn (GLenum, GLenum) void,
 
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
     glGetString: fn (GLenum) [*c]const GLubyte,
@@ -97,6 +98,10 @@ pub fn glEnable(state: GLenum) void {
 
 pub fn glBlendFunc(src: GLenum, dst: GLenum) void {
     gl.glBlendFunc(src, dst);
+}
+
+pub fn glPolygonMode(face: GLenum, mode: GLenum) void {
+    gl.glPolygonMode(face, mode);
 }
 
 pub fn glViewport(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {

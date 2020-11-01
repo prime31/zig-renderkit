@@ -123,6 +123,7 @@ fn render() !void {
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
 
     while (!runner.pollEvents()) {
         fps.update();

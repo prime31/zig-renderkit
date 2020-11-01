@@ -344,9 +344,9 @@ pub const Batcher = struct {
             indices[i * 3 * 2 + 0] = @intCast(u32, i) * 4 + 0;
             indices[i * 3 * 2 + 1] = @intCast(u32, i) * 4 + 1;
             indices[i * 3 * 2 + 2] = @intCast(u32, i) * 4 + 2;
-            indices[i * 3 * 2 + 3] = @intCast(u32, i) * 4 + 0;
-            indices[i * 3 * 2 + 4] = @intCast(u32, i) * 4 + 2;
-            indices[i * 3 * 2 + 5] = @intCast(u32, i) * 4 + 3;
+            indices[i * 3 * 2 + 3] = @intCast(u32, i) * 4 + 2;
+            indices[i * 3 * 2 + 4] = @intCast(u32, i) * 4 + 3;
+            indices[i * 3 * 2 + 5] = @intCast(u32, i) * 4 + 0;
         }
 
         return .{
@@ -392,16 +392,16 @@ pub const Batcher = struct {
 
     pub fn drawRect(self: *Batcher) void {
         var verts = self.verts[self.vert_index .. self.vert_index + 4];
-        verts[0].pos = .{ .x = -0.5, .y = 0.5 };
+        verts[0].pos = .{ .x = -0.5, .y = 0.5 }; // tl
         verts[0].uv = .{ .x = 0, .y = 1 };
 
-        verts[1].pos = .{ .x = 0.5, .y = 0.5 };
+        verts[1].pos = .{ .x = 0.5, .y = 0.5 }; // tr
         verts[1].uv = .{ .x = 1, .y = 1 };
 
-        verts[2].pos = .{ .x = 0.5, .y = -0.5 };
+        verts[2].pos = .{ .x = 0.5, .y = -0.5 }; // br
         verts[2].uv = .{ .x = 1, .y = 0 };
 
-        verts[3].pos = .{ .x = -0.5, .y = -0.5 };
+        verts[3].pos = .{ .x = -0.5, .y = -0.5 }; // bl
         verts[3].uv = .{ .x = 0, .y = 0 };
 
         self.vert_index += 4;
