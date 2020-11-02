@@ -27,12 +27,15 @@ pub const GLdouble = f64;
 
 const Funcs = struct {
     glEnable: fn (GLenum) void,
+    glDisable: fn (GLenum) void,
     glBlendFunc: fn (GLenum, GLenum) void,
     glPolygonMode: fn (GLenum, GLenum) void,
 
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
     glGetString: fn (GLenum) [*c]const GLubyte,
     glClearColor: fn (GLfloat, GLfloat, GLfloat, GLfloat) void,
+    glClearStencil: fn (GLint) void,
+    glClearDepth: fn (GLdouble) void,
     glClear: fn (GLbitfield) void,
     glGenBuffers: fn (n: GLsizei, buffers: [*c]GLuint) void,
     glDeleteVertexArrays: fn (n: GLsizei, arrays: [*c]GLuint) void,
@@ -100,6 +103,25 @@ const Funcs = struct {
 
 var gl: Funcs = undefined;
 
+pub fn loadFunctionsZig() void {
+    const lib = switch (std.builtin.os.tag) {
+        .linux, .freebsd, .openbsd => "libOpenGL.so.0",
+        .windows => "OPENGL32",
+        .macos, .tvos, .watchos, .ios => "/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL",
+        else => unreachable,
+    };
+
+    var dynlib = std.DynLib.openZ(lib) catch |err| {
+        std.debug.print("could not open gl dylib: {}\n", .{err});
+        unreachable;
+    };
+    defer dynlib.close();
+
+    inline for (@typeInfo(Funcs).Struct.fields) |field, i| {
+        @field(gl, field.name) = dynlib.lookup(field.field_type, field.name ++ &[_:0]u8{0}).?;
+    }
+}
+
 pub fn loadFunctions(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
     inline for (@typeInfo(Funcs).Struct.fields) |field, i| {
         @field(gl, field.name) = @ptrCast(field.field_type, loader(field.name ++ &[_]u8{0}));
@@ -108,6 +130,10 @@ pub fn loadFunctions(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
 
 pub fn glEnable(state: GLenum) void {
     gl.glEnable(state);
+}
+
+pub fn glDisable(state: GLenum) void {
+    gl.glDisable(state);
 }
 
 pub fn glBlendFunc(src: GLenum, dst: GLenum) void {
@@ -128,6 +154,14 @@ pub fn glGetString(which: GLenum) [*c]const GLubyte {
 
 pub fn glClearColor(r: GLfloat, g: GLfloat, b: GLfloat, a: GLfloat) void {
     gl.glClearColor(r, g, b, a);
+}
+
+pub fn glClearStencil(stencil: GLint) void {
+    gl.glClearStencil(stencil);
+}
+
+pub fn glClearDepth(depth: GLdouble) void {
+    gl.glClearDepth(depth);
 }
 
 pub fn glClear(which: GLbitfield) void {

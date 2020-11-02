@@ -31,7 +31,8 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     var gl_ctx = sdl.SDL_GL_CreateContext(window);
     defer sdl.SDL_GL_DeleteContext(gl_ctx);
 
-    gl.loadFunctions(sdl.SDL_GL_GetProcAddress);
+    // gl.loadFunctions(sdl.SDL_GL_GetProcAddress);
+    gl.loadFunctionsZig();
 
     if (init) |init_fn| {
         try init_fn();

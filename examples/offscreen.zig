@@ -18,9 +18,9 @@ pub fn range(comptime T: type, at_least: T, less_than: T) T {
 }
 
 pub fn randomColor() u32 {
-    const r = range(u8, 0, 255);
-    const g = range(u8, 0, 255);
-    const b = range(u8, 0, 255);
+    const r = 200 + range(u8, 0, 55);
+    const g = 200 + range(u8, 0, 55);
+    const b = 200 + range(u8, 0, 55);
     return (r) | (@as(u32, g) << 8) | (@as(u32, b) << 16) | (@as(u32, 255) << 24);
 }
 
@@ -35,11 +35,11 @@ const Thing = struct {
             .texture = texture,
             .pos = .{
                 .x = range(f32, 0, 750),
-                .y = range(f32, 0, 550),
+                .y = range(f32, 0, 50),
             },
             .vel = .{
-                .x = range(f32, -50, 50),
-                .y = range(f32, -50, 50),
+                .x = range(f32, 0, 0),
+                .y = range(f32, 0, 50),
             },
             .col = randomColor(),
         };
@@ -58,6 +58,8 @@ fn render() !void {
     defer batcher.deinit();
 
     var texture = loadTexture("assets/textures/bee-8.png");
+    var checker_tex = loadCheckerTexture();
+    var white_tex = loadWhiteTexture();
     var things = makeThings(total_objects, texture);
 
     shader.bind();
@@ -79,26 +81,43 @@ fn render() !void {
 
     shader.setMat3x2("TransformMatrix", Mat32.initOrthoInverted(300, 200));
     batcher.begin();
-    batcher.drawTex(.{ .x = 10, .y = 10 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 50, .y = 50 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 90, .y = 90 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 130, .y = 130 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 90 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
     batcher.end();
     rt.unbind();
+
+    var rt_pos: Vec2 = .{};
 
     shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
 
     while (!runner.pollEvents()) {
+        for (things) |*thing| {
+            thing.pos.x += thing.vel.x * 0.016;
+            thing.pos.y += thing.vel.y * 0.016;
+        }
+
         glClearColor(0.2, 0.3, 0.3, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // render
         batcher.begin();
-        batcher.drawTex(.{ .x = 0, .y = 0 }, 0xFFFFFFFF, rt.texture);
+        batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.texture);
+        rt_pos.x += 0.5;
+        rt_pos.y += 0.5;
 
         for (things) |thing| {
             batcher.drawTex(thing.pos, thing.col, thing.texture);
         }
+
+        // batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
+
+        batcher.drawPoint(white_tex, .{.x = 400, .y = 300}, 20, 0xFF0099FF);
+        batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
+        batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
+        batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
+        batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
 
         batcher.end();
 
@@ -119,6 +138,31 @@ fn loadTexture(name: []const u8) Texture {
         texture.setData(width, height, data);
     }
 
+    return texture;
+}
+
+fn loadWhiteTexture() Texture {
+    var pixels = [_]u32{
+        0xFFFFFFFF, 0xFFFFFFFF,
+        0xFFFFFFFF, 0xFFFFFFFF,
+    };
+
+    var texture = Texture.init();
+    texture.setColorData(2, 2, &pixels);
+    return texture;
+}
+
+fn loadCheckerTexture() Texture {
+    var pixels = [_]u32{
+        0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
+        0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
+        0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
+        0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
+        // 0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
+    };
+
+    var texture = Texture.init();
+    texture.setColorData(4, 4, &pixels);
     return texture;
 }
 

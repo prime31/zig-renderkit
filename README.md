@@ -10,3 +10,7 @@ The main premise of the testing was to see if 2D batcher could be improved by bi
 [Oxid](https://github.com/dbandstra/oxid/blob/master/lib/gl.zig)
 [didot](https://github.com/zenith391/didot)
 [learnopengl](https://github.com/cshenton/learnopengl)
+
+
+Can grab DX/Metal setup from here eventually for Metal backends
+[minifb](https://github.com/emoon/rust_minifb)

@@ -6,10 +6,17 @@ const FixedList = @import("fixed_list.zig").FixedList;
 
 pub usingnamespace @import("textures.zig");
 
+// 3 row, 2 col 2D matrix
+//  m[0] m[2] m[4]
+//  m[1] m[3] m[5]
+//
+//  0: scaleX    2: sin       4: transX
+//  1: cos       3: scaleY    5: transY
+//
 pub const Mat32 = struct {
     data: [6]f32 = undefined,
 
-    pub fn initOrtho(width: f32, height: f32) Mat32 {
+    pub fn initOrthoInverted(width: f32, height: f32) Mat32 {
         var result = Mat32{};
         result.data[0] = 2 / width;
         result.data[3] = -2 / height;
@@ -18,7 +25,7 @@ pub const Mat32 = struct {
         return result;
     }
 
-    pub fn initOrthoInverted(width: f32, height: f32) Mat32 {
+    pub fn initOrtho(width: f32, height: f32) Mat32 {
         var result = Mat32{};
         result.data[0] = 2 / width;
         result.data[3] = 2 / height;
@@ -68,7 +75,7 @@ pub const ShaderProgram = struct {
         try frag_file.reader().readAllArrayList(&frag_array_list, std.math.maxInt(u64));
         try frag_array_list.append(0);
 
-        return try ShaderProgram.create(vert_array_list.items[0..vert_array_list.items.len - 1 :0], frag_array_list.items[0..frag_array_list.items.len - 1 :0]);
+        return try ShaderProgram.create(vert_array_list.items[0 .. vert_array_list.items.len - 1 :0], frag_array_list.items[0 .. frag_array_list.items.len - 1 :0]);
     }
 
     pub fn create(vert: [:0]const u8, frag: [:0]const u8) !ShaderProgram {
@@ -364,19 +371,58 @@ pub const Batcher = struct {
         self.vert_index = 0;
     }
 
-    pub fn drawRect(self: *Batcher) void {
+    pub fn drawPoint(self: *Batcher, texture: Texture, pos: Vec2, size: f32, col: u32) void {
+        if (self.vert_index >= self.verts.len or self.texture != texture.id) {
+            self.flush();
+        }
+
+        self.texture = texture.id;
+        const offset = if (size == 1) 0 else size * 0.5;
+        const tl: Vec2 = .{ .x = pos.x - offset, .y = pos.y - offset };
+
         var verts = self.verts[self.vert_index .. self.vert_index + 4];
-        verts[0].pos = .{ .x = -0.5, .y = 0.5 }; // tl
+        verts[0].pos = tl; // bl
         verts[0].uv = .{ .x = 0, .y = 1 };
+        verts[0].col = col;
 
-        verts[1].pos = .{ .x = 0.5, .y = 0.5 }; // tr
+        verts[1].pos = .{ .x = tl.x + size, .y = tl.y }; // br
         verts[1].uv = .{ .x = 1, .y = 1 };
+        verts[1].col = col;
 
-        verts[2].pos = .{ .x = 0.5, .y = -0.5 }; // br
+        verts[2].pos = .{ .x = tl.x + size, .y = tl.y + size }; // tr
         verts[2].uv = .{ .x = 1, .y = 0 };
+        verts[2].col = 0xFFFFFFFF;
 
-        verts[3].pos = .{ .x = -0.5, .y = -0.5 }; // bl
+        verts[3].pos = .{ .x = tl.x, .y = tl.y + size }; // tl
         verts[3].uv = .{ .x = 0, .y = 0 };
+        verts[3].col = 0xFFFFFFFF;
+
+        self.vert_index += 4;
+    }
+
+    pub fn drawRect(self: *Batcher, texture: Texture, pos: Vec2, size: Vec2) void {
+        if (self.vert_index >= self.verts.len or self.texture != texture.id) {
+            self.flush();
+        }
+
+        self.texture = texture.id;
+
+        var verts = self.verts[self.vert_index .. self.vert_index + 4];
+        verts[0].pos = pos; // bl
+        verts[0].uv = .{ .x = 0, .y = 1 };
+        verts[0].col = 0xFFFFFFFF;
+
+        verts[1].pos = .{ .x = pos.x + size.x, .y = pos.y }; // br
+        verts[1].uv = .{ .x = 1, .y = 1 };
+        verts[1].col = 0xFFFFFFFF;
+
+        verts[2].pos = .{ .x = pos.x + size.x, .y = pos.y + size.y }; // tr
+        verts[2].uv = .{ .x = 1, .y = 0 };
+        verts[2].col = 0xFFFFFFFF;
+
+        verts[3].pos = .{ .x = pos.x, .y = pos.y + size.y }; // tl
+        verts[3].uv = .{ .x = 0, .y = 0 };
+        verts[3].col = 0xFFFFFFFF;
 
         self.vert_index += 4;
     }
@@ -406,19 +452,19 @@ pub const Batcher = struct {
         self.texture = texture.id;
 
         var verts = self.verts[self.vert_index .. self.vert_index + 4];
-        verts[0].pos = .{ .x = pos.x, .y = pos.y + texture.height };
+        verts[0].pos = pos; // bl
         verts[0].uv = .{ .x = 0, .y = 1 };
         verts[0].col = col;
 
-        verts[1].pos = .{ .x = pos.x + texture.width, .y = pos.y + texture.height };
+        verts[1].pos = .{ .x = pos.x + texture.width, .y = pos.y }; // br
         verts[1].uv = .{ .x = 1, .y = 1 };
         verts[1].col = col;
 
-        verts[2].pos = .{ .x = pos.x + texture.width, .y = pos.y };
+        verts[2].pos = .{ .x = pos.x + texture.width, .y = pos.y + texture.height }; // tr
         verts[2].uv = .{ .x = 1, .y = 0 };
         verts[2].col = col;
 
-        verts[3].pos = .{ .x = pos.x, .y = pos.y };
+        verts[3].pos = .{ .x = pos.x, .y = pos.y + texture.height }; // tl
         verts[3].uv = .{ .x = 0, .y = 0 };
         verts[3].col = col;
 
@@ -524,28 +570,23 @@ pub const MultiBatcher = struct {
         }
 
         const tid = self.submitTexture(texture.id);
-        // std.debug.print("tid: {d}, orig: {d}\n", .{tid, texture.id});
 
         var verts = self.verts[self.vert_index .. self.vert_index + 4];
-        verts[0].pos = .{ .x = pos.x, .y = pos.y + texture.height };
+        verts[0].pos = pos; // bl
         verts[0].uv = .{ .x = 0, .y = 1 };
         verts[0].col = col;
-        verts[0].tid = tid;
 
-        verts[1].pos = .{ .x = pos.x + texture.width, .y = pos.y + texture.height };
+        verts[1].pos = .{ .x = pos.x + texture.width, .y = pos.y }; // br
         verts[1].uv = .{ .x = 1, .y = 1 };
         verts[1].col = col;
-        verts[1].tid = tid;
 
-        verts[2].pos = .{ .x = pos.x + texture.width, .y = pos.y };
+        verts[2].pos = .{ .x = pos.x + texture.width, .y = pos.y + texture.height }; // tr
         verts[2].uv = .{ .x = 1, .y = 0 };
         verts[2].col = col;
-        verts[2].tid = tid;
 
-        verts[3].pos = .{ .x = pos.x, .y = pos.y };
+        verts[3].pos = .{ .x = pos.x, .y = pos.y + texture.height }; // tl
         verts[3].uv = .{ .x = 0, .y = 0 };
         verts[3].col = col;
-        verts[3].tid = tid;
 
         self.vert_index += 4;
     }

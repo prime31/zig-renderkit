@@ -39,6 +39,12 @@ pub const Texture = struct {
         self.height = @intToFloat(f32, height);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     }
+
+    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: [*c]const u32) void {
+        self.width = @intToFloat(f32, width);
+        self.height = @intToFloat(f32, height);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
 };
 
 pub const RenderTexture = struct {
@@ -109,7 +115,7 @@ pub const RenderTexture = struct {
 
     pub fn unbind(self: *const RenderTexture) void {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // TODO: fix viewport?
+        // TODO: set viewport to screen size!
         glViewport(0, 0, 800, 600);
     }
 };

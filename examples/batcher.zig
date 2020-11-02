@@ -39,11 +39,11 @@ const Thing = struct {
             .texture = texture,
             .pos = .{
                 .x = range(f32, 0, 750),
-                .y = range(f32, 0, 550),
+                .y = range(f32, 0, 50),
             },
             .vel = .{
                 .x = range(f32, -50, 50),
-                .y = range(f32, -50, 50),
+                .y = range(f32, 0, 50),
             },
             .col = randomColor(),
         };
