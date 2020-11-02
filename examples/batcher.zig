@@ -7,10 +7,10 @@ usingnamespace @import("gl");
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
 const total_textures: usize = 8;
-const max_sprites_per_batch: usize = 10000;
+const max_sprites_per_batch: usize = 1000;
 const total_objects = 5000;
-const draws_per_tex_swap = 250;
-const use_multi_texture_batcher = false;
+const draws_per_tex_swap = 20;
+const use_multi_texture_batcher = true;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {

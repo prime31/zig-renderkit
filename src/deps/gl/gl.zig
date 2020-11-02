@@ -204,15 +204,30 @@ pub const IndexBuffer = struct {
     }
 };
 
-pub const VertexBuffer = struct {
-    id: GLuint,
+pub const VertexBufferUsage = enum(u2) {
+    static,
+    dynamic,
+    stream,
 
-    pub fn init(comptime T: type, verts: []const T, dynamic: bool) VertexBuffer {
+    pub fn glUsage(self: VertexBufferUsage) GLenum {
+        return switch (self) {
+            .static => GL_STATIC_DRAW,
+            .dynamic => GL_DYNAMIC_DRAW,
+            .stream => GL_STREAM_DRAW,
+        };
+    }
+};
+
+pub const VertexBuffer = struct {
+    vbo: GLuint,
+    stream: bool,
+
+    pub fn init(comptime T: type, verts: []const T, usage: VertexBufferUsage) VertexBuffer {
         var vbo: GLuint = undefined;
         glGenBuffers(1, &vbo);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), if (dynamic) null else verts.ptr, if (dynamic) GL_DYNAMIC_DRAW else GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), if (usage == .static) verts.ptr else null, usage.glUsage());
 
         inline for (@typeInfo(T).Struct.fields) |field, i| {
             const offset: ?usize = if (i == 0) null else @byteOffsetOf(T, field.name);
@@ -256,15 +271,15 @@ pub const VertexBuffer = struct {
             }
         }
 
-        return .{ .id = vbo };
+        return .{ .vbo = vbo, .stream = usage == .stream };
     }
 
     pub fn deinit(self: *VertexBuffer) void {
-        glDeleteBuffers(1, &self.id);
+        glDeleteBuffers(1, &self.vbo);
     }
 
     pub fn bind(self: VertexBuffer) void {
-        glBindBuffer(GL_ARRAY_BUFFER, self.id);
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo);
     }
 
     pub fn unbind(self: VertexBuffer) void {
@@ -272,7 +287,10 @@ pub const VertexBuffer = struct {
     }
 
     pub fn setData(self: VertexBuffer, comptime T: type, verts: []const T) void {
-        glBindBuffer(GL_ARRAY_BUFFER, self.id);
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo);
+
+        // orphan the buffer for streamed
+        if (self.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
     }
 };
@@ -308,7 +326,7 @@ pub const Batcher = struct {
         return .{
             .vao = vao,
             .index_buffer = IndexBuffer.init(indices),
-            .vertex_buffer = VertexBuffer.init(Vertex, verts, true),
+            .vertex_buffer = VertexBuffer.init(Vertex, verts, .stream),
             .verts = verts,
         };
     }
@@ -440,7 +458,7 @@ pub const MultiBatcher = struct {
         return .{
             .vao = vao,
             .index_buffer = IndexBuffer.init(indices),
-            .vertex_buffer = VertexBuffer.init(MultiVertex, verts, true),
+            .vertex_buffer = VertexBuffer.init(MultiVertex, verts, .stream),
             .verts = verts,
             .textures = FixedList(GLuint, 8).init(),
         };
@@ -481,8 +499,8 @@ pub const MultiBatcher = struct {
         glDrawElements(GL_TRIANGLES, @intCast(c_int, quads * 6), GL_UNSIGNED_INT, null);
 
         // reset state
-        var iter = self.textures.iter();
-        var i: c_uint = 0;
+        iter = self.textures.iter();
+        i = 0;
         while (iter.next()) |tid| {
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, 0);
