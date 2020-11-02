@@ -9,3 +9,4 @@ The main premise of the testing was to see if 2D batcher could be improved by bi
 [ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)
 [Oxid](https://github.com/dbandstra/oxid/blob/master/lib/gl.zig)
 [didot](https://github.com/zenith391/didot)
+[learnopengl](https://github.com/cshenton/learnopengl)
