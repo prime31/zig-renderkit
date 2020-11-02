@@ -74,7 +74,21 @@ const Funcs = struct {
     glDrawElements: fn (GLenum, GLsizei, GLenum, ?*const c_void) void,
     glDrawArrays: fn (GLenum, GLint, GLsizei) void,
 
+    glGenFramebuffers: fn (GLsizei, [*c]GLuint) void,
+    glDeleteFramebuffers: fn (GLsizei, [*c]const GLuint) void,
+    glBindFramebuffer: fn (GLenum, GLuint) void,
+    glFramebufferTexture: fn (GLenum, GLenum, GLuint, GLint) void,
+    glDrawBuffers: fn (GLsizei, [*c]const GLenum) void,
+    glCheckFramebufferStatus: fn (GLenum) GLenum,
+
+    glGenRenderbuffers: fn (GLsizei, [*c]GLuint) void,
+    glDeleteRenderbuffers: fn (GLsizei, [*c]const GLuint) void,
+    glBindRenderbuffer: fn (GLenum, GLuint) void,
+    glRenderbufferStorage: fn (GLenum, GLenum, GLsizei, GLsizei) void,
+    glFramebufferRenderbuffer: fn (GLenum, GLenum, GLenum, GLuint) void,
+
     glGenTextures: fn (GLsizei, [*c]GLuint) void,
+    glDeleteTextures: fn (GLsizei, [*c]const GLuint) void,
     glBindTexture: fn (GLenum, GLuint) void,
     glTexParameteri: fn (GLenum, GLenum, GLint) void,
     glTexParameteriv: fn (GLenum, GLenum, [*c]const GLint) void,
@@ -151,7 +165,6 @@ pub fn glBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data:
 pub fn glCreateShader(shader: GLenum) GLuint {
     return gl.glCreateShader(shader);
 }
-
 
 pub fn glShaderSource(shader: GLuint, count: GLsizei, string: *[:0]const GLchar, length: ?*c_int) void {
     gl.glShaderSource(shader, count, string, length);
@@ -258,8 +271,56 @@ pub fn glDrawArrays(mode: GLenum, first: GLint, count: GLsizei) void {
     gl.glDrawArrays(mode, first, count);
 }
 
+pub fn glGenFramebuffers(n: GLsizei, framebuffers: [*c]GLuint) void {
+    gl.glGenFramebuffers(n, framebuffers);
+}
+
+pub fn glDeleteFramebuffers(n: GLsizei, framebuffers: [*c]GLuint) void {
+    gl.glDeleteFramebuffers(n, framebuffers);
+}
+
+pub fn glBindFramebuffer(target: GLenum, framebuffer: GLuint) void {
+    gl.glBindFramebuffer(target, framebuffer);
+}
+
+pub fn glCheckFramebufferStatus(target: GLenum) GLenum {
+    return gl.glCheckFramebufferStatus(target);
+}
+
+pub fn glGenRenderbuffers(n: GLsizei, buffers: [*c]GLuint) void {
+    gl.glGenRenderbuffers(n, buffers);
+}
+
+pub fn glDeleteRenderbuffers(n: GLsizei, buffers: [*c]const GLuint) void {
+    gl.glDeleteRenderbuffers(n, buffers);
+}
+
+pub fn glBindRenderbuffer(target: GLenum, buffer: GLuint) void {
+    gl.glBindRenderbuffer(target, buffer);
+}
+
+pub fn glRenderbufferStorage(target: GLenum, format: GLenum, width: GLsizei, height: GLsizei) void {
+    gl.glRenderbufferStorage(target, format, width, height);
+}
+
+pub fn glFramebufferRenderbuffer(target: GLenum, attachment: GLenum, render_buffer_target: GLenum, buffer: GLuint) void {
+    gl.glFramebufferRenderbuffer(target, attachment, render_buffer_target, buffer);
+}
+
+pub fn glFramebufferTexture(target: GLenum, attachment: GLenum, texture: GLuint, level: GLint) void {
+    gl.glFramebufferTexture(target, attachment, texture, level);
+}
+
+pub fn glDrawBuffers(n: GLsizei, bufs: [*c]const GLenum) void {
+    gl.glDrawBuffers(n, bufs);
+}
+
 pub fn glGenTextures(n: GLsizei, textures: [*c]GLuint) void {
     gl.glGenTextures(n, textures);
+}
+
+pub fn glDeleteTextures(n: GLsizei, textures: [*c]const GLuint) void {
+    gl.glDeleteTextures(n, textures);
 }
 
 pub fn glBindTexture(target: GLenum, texture: GLuint) void {

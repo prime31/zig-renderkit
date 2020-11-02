@@ -6,11 +6,15 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
+        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "1_4", "examples/1_4.zig" },
         [_][]const u8{ "1_3", "examples/1_3.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
     };
+
+    const examples_step = b.step("examples", "build all examples");
+    b.default_step.dependOn(examples_step);
 
     for (examples) |example, i| {
         const name = example[0];
@@ -19,9 +23,10 @@ pub fn build(b: *Builder) void {
         var exe = b.addExecutable(name, source);
         exe.setBuildMode(b.standardReleaseOptions());
         exe.setOutputDir("zig-cache/bin");
+        examples_step.dependOn(&exe.step);
 
         @import("src/deps/gl/build.zig").linkArtifact(b, exe, target);
-        @import("src/deps/sdl/build.zig").linkArtifact(exe);
+        @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
 
         exe.addPackage(.{

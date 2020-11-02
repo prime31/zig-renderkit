@@ -4,73 +4,100 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const FixedList = @import("fixed_list.zig").FixedList;
 
-pub const ShaderError = error{ ShaderCompileError, InvalidGLContextError };
+pub usingnamespace @import("textures.zig");
+
+pub const Mat32 = struct {
+    data: [6]f32 = undefined,
+
+    pub fn initOrtho(width: f32, height: f32) Mat32 {
+        var result = Mat32{};
+        result.data[0] = 2 / width;
+        result.data[3] = -2 / height;
+        result.data[4] = -1;
+        result.data[5] = 1;
+        return result;
+    }
+
+    pub fn initOrthoInverted(width: f32, height: f32) Mat32 {
+        var result = Mat32{};
+        result.data[0] = 2 / width;
+        result.data[3] = 2 / height;
+        result.data[4] = -1;
+        result.data[5] = -1;
+        return result;
+    }
+};
+
+pub const Vec2 = extern struct {
+    x: f32 = 0,
+    y: f32 = 0,
+};
+
+pub const Vertex = extern struct {
+    pos: Vec2,
+    uv: Vec2 = .{ .x = 0, .y = 0 },
+    col: u32 = 0xFFFFFFFF,
+};
+
+pub const MultiVertex = extern struct {
+    pos: Vec2,
+    uv: Vec2 = .{ .x = 0, .y = 0 },
+    col: u32 = 0xFFFFFFFF,
+    tid: f32 = 1,
+};
 
 pub const ShaderProgram = struct {
     id: GLuint,
     vertex: GLuint,
     fragment: GLuint,
 
-    pub fn createFromFile(allocator: *Allocator, vertPath: []const u8, fragPath: []const u8) !ShaderProgram {
-        const vertFile = try std.fs.cwd().openFile(vertPath, .{ .read = true });
-        const vert = try vertFile.reader().readAllAlloc(allocator, std.math.maxInt(u64));
-        const nullVert = try allocator.dupeZ(u8, vert); // null-terminated string
-        allocator.free(vert);
-        defer allocator.free(nullVert);
-        vertFile.close();
+    pub fn createFromFile(allocator: *Allocator, vert_path: []const u8, frag_path: []const u8) !ShaderProgram {
+        const vert_file = try std.fs.cwd().openFile(vert_path, .{ .read = true });
+        defer vert_file.close();
 
-        const fragFile = try std.fs.cwd().openFile(fragPath, .{ .read = true });
-        const frag = try fragFile.reader().readAllAlloc(allocator, std.math.maxInt(u64));
-        const nullFrag = try allocator.dupeZ(u8, frag);
-        allocator.free(frag);
-        defer allocator.free(nullFrag);
-        fragFile.close();
+        var vert_array_list = std.ArrayList(u8).init(allocator);
+        defer vert_array_list.deinit();
+        try vert_file.reader().readAllArrayList(&vert_array_list, std.math.maxInt(u64));
+        try vert_array_list.append(0);
 
-        return try ShaderProgram.create(nullVert, nullFrag);
+        const frag_file = try std.fs.cwd().openFile(frag_path, .{ .read = true });
+        defer frag_file.close();
+
+        var frag_array_list = std.ArrayList(u8).init(allocator);
+        defer frag_array_list.deinit();
+        try frag_file.reader().readAllArrayList(&frag_array_list, std.math.maxInt(u64));
+        try frag_array_list.append(0);
+
+        return try ShaderProgram.create(vert_array_list.items[0..vert_array_list.items.len - 1 :0], frag_array_list.items[0..frag_array_list.items.len - 1 :0]);
     }
 
     pub fn create(vert: [:0]const u8, frag: [:0]const u8) !ShaderProgram {
-        const vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        const vertex_shader = glCreateShader(GL_VERTEX_SHADER);
         var v = vert;
-        glShaderSource(vertexShader, 1, &v, null);
-        glCompileShader(vertexShader);
-        errdefer glDeleteShader(vertexShader);
-        try checkError(vertexShader);
+        glShaderSource(vertex_shader, 1, &v, null);
+        glCompileShader(vertex_shader);
+        errdefer glDeleteShader(vertex_shader);
+        try checkError(vertex_shader);
 
-        const fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        const frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
         var f = frag;
-        glShaderSource(fragmentShader, 1, &f, null);
-        glCompileShader(fragmentShader);
-        errdefer glDeleteShader(fragmentShader);
-        try checkError(fragmentShader);
+        glShaderSource(frag_shader, 1, &f, null);
+        glCompileShader(frag_shader);
+        errdefer glDeleteShader(frag_shader);
+        try checkError(frag_shader);
 
         const shaderProgramId = glCreateProgram();
-        glAttachShader(shaderProgramId, vertexShader);
-        glAttachShader(shaderProgramId, fragmentShader);
-        // glBindFragDataLocation(shaderProgramId, 0, "outColor");
+        glAttachShader(shaderProgramId, vertex_shader);
+        glAttachShader(shaderProgramId, frag_shader);
+
         glLinkProgram(shaderProgramId);
         errdefer glDeleteProgram(shaderProgramId);
         try checkProgramError(shaderProgramId);
 
-        // glUseProgram(shaderProgramId);
-
-        // var vao: GLuint = 0;
-        // glGenVertexArrays(1, &vao);
-        // glBindVertexArray(vao);
-
-        // const stride = 5 * @sizeOf(f32);
-        // const posAttrib = glGetAttribLocation(shaderProgramId, "position");
-        // glVertexAttribPointer(@bitCast(GLuint, posAttrib), 3, GL_FLOAT, GL_FALSE, stride, null);
-        // glEnableVertexAttribArray(@bitCast(GLuint, posAttrib));
-
-        // const texAttrib = glGetAttribLocation(shaderProgramId, "texcoord");
-        // glVertexAttribPointer(@bitCast(GLuint, texAttrib), 2, GL_FLOAT, GL_FALSE, stride, 3 * @sizeOf(f32));
-        // glEnableVertexAttribArray(@bitCast(GLuint, texAttrib));
-
         return ShaderProgram{
             .id = shaderProgramId,
-            .vertex = vertexShader,
-            .fragment = fragmentShader,
+            .vertex = vertex_shader,
+            .fragment = frag_shader,
         };
     }
 
@@ -114,7 +141,7 @@ pub const ShaderProgram = struct {
         glUniform1iv(glGetUniformLocation(self.id, name), @intCast(c_int, value.len), value.ptr);
     }
 
-    pub fn checkError(shader: GLuint) ShaderError!void {
+    pub fn checkError(shader: GLuint) !void {
         var status: GLint = undefined;
         glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
         if (status != GL_TRUE) {
@@ -123,12 +150,12 @@ pub const ShaderProgram = struct {
             glGetShaderInfoLog(shader, 2048, &totalLen, buf[0..]);
             if (totalLen == -1) {
                 // the length of the infolog seems to not be set when a GL context isn't set (so when the window isn't created)
-                return ShaderError.InvalidGLContextError;
+                return error.InvalidGLContextError;
             }
 
             var totalSize: usize = @intCast(usize, totalLen);
             std.debug.print("shader compilation errror:\n{}", .{buf[0..totalSize]});
-            return ShaderError.ShaderCompileError;
+            return error.ShaderCompileError;
         }
     }
 
@@ -148,46 +175,6 @@ pub const ShaderProgram = struct {
             std.debug.print("program link errror:\n{}", .{buf[0..totalSize]});
             return error.ProgramLinkError;
         }
-    }
-};
-
-pub const Texture = struct {
-    id: GLuint,
-    width: f32 = 0,
-    height: f32 = 0,
-
-    pub fn init() Texture {
-        var id: GLuint = undefined;
-        glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        return Texture{ .id = id };
-    }
-
-    pub fn initWithData(width: c_int, height: c_int, data: []const u8) Texture {
-        var tex = init();
-        tex.setData(width, height, data);
-        return tex;
-    }
-
-    pub fn deinit(self: *const Texture) void {
-        glDeleteTextures(1, &self.id);
-    }
-
-    pub fn bind(self: *const Texture) void {
-        glBindTexture(GL_TEXTURE_2D, self.id);
-    }
-
-    pub fn setData(self: *Texture, width: c_int, height: c_int, data: [*c]const u8) void {
-        self.width = @intToFloat(f32, width);
-        self.height = @intToFloat(f32, height);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     }
 };
 
@@ -215,37 +202,6 @@ pub const IndexBuffer = struct {
     pub fn unbind(self: IndexBuffer) void {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-};
-
-pub const Mat32 = struct {
-    data: [6]f32 = undefined,
-
-    pub fn initOrtho(width: f32, height: f32) Mat32 {
-        var result = Mat32{};
-        result.data[0] = 2 / width;
-        result.data[3] = -2 / height;
-        result.data[4] = -1;
-        result.data[5] = 1;
-        return result;
-    }
-};
-
-pub const Vec2 = extern struct {
-    x: f32 = 0,
-    y: f32 = 0,
-};
-
-pub const Vertex = extern struct {
-    pos: Vec2,
-    uv: Vec2 = .{ .x = 0, .y = 0 },
-    col: u32 = 0xFFFFFFFF,
-};
-
-pub const MultiVertex = extern struct {
-    pos: Vec2,
-    uv: Vec2 = .{ .x = 0, .y = 0 },
-    col: u32 = 0xFFFFFFFF,
-    tid: f32 = 1,
 };
 
 pub const VertexBuffer = struct {
@@ -452,7 +408,6 @@ pub const Batcher = struct {
     }
 };
 
-const single_texture_mode = true;
 pub const MultiBatcher = struct {
     vao: GLuint,
     index_buffer: IndexBuffer,
@@ -511,18 +466,13 @@ pub const MultiBatcher = struct {
         // send data to gpu
         self.vertex_buffer.setData(MultiVertex, self.verts[0..self.vert_index]);
 
-        if (single_texture_mode) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, self.textures.items[0]);
-        } else {
-            // bind textures
-            var iter = self.textures.iter();
-            var i: c_uint = 0;
-            while (iter.next()) |tid| {
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(GL_TEXTURE_2D, tid);
-                i += 1;
-            }
+        // bind textures
+        var iter = self.textures.iter();
+        var i: c_uint = 0;
+        while (iter.next()) |tid| {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, tid);
+            i += 1;
         }
 
         // draw
@@ -531,14 +481,12 @@ pub const MultiBatcher = struct {
         glDrawElements(GL_TRIANGLES, @intCast(c_int, quads * 6), GL_UNSIGNED_INT, null);
 
         // reset state
-        if (!single_texture_mode) {
-            var iter = self.textures.iter();
-            var i: c_uint = 0;
-            while (iter.next()) |tid| {
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(GL_TEXTURE_2D, 0);
-                i += 1;
-            }
+        var iter = self.textures.iter();
+        var i: c_uint = 0;
+        while (iter.next()) |tid| {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            i += 1;
         }
 
         self.vert_index = 0;
@@ -546,12 +494,6 @@ pub const MultiBatcher = struct {
     }
 
     inline fn submitTexture(self: *MultiBatcher, tid: GLuint) f32 {
-        if (single_texture_mode) {
-            self.textures.len = 1;
-            self.textures.items[0] = tid;
-            return 0;
-        }
-
         if (self.textures.indexOf(tid)) |index| return @intToFloat(f32, index);
 
         self.textures.append(tid);
