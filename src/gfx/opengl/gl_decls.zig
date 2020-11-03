@@ -1,5 +1,5 @@
 const std = @import("std");
-pub usingnamespace @import("enums.zig");
+pub usingnamespace @import("gl_enums.zig");
 
 pub const GLbyte = i8;
 pub const GLclampf = f32;

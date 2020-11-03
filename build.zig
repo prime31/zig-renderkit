@@ -7,10 +7,11 @@ pub fn build(b: *Builder) void {
 
     const examples = [_][2][]const u8{
         [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        [_][]const u8{ "multi_batcher", "examples/multi_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
-        [_][]const u8{ "1_4", "examples/1_4.zig" },
-        [_][]const u8{ "1_3", "examples/1_3.zig" },
-        [_][]const u8{ "clear", "examples/clear.zig" },
+        // [_][]const u8{ "1_4", "examples/1_4.zig" },
+        // [_][]const u8{ "1_3", "examples/1_3.zig" },
+        // [_][]const u8{ "clear", "examples/clear.zig" },
     };
 
     const examples_step = b.step("examples", "build all examples");
@@ -25,7 +26,7 @@ pub fn build(b: *Builder) void {
         exe.setOutputDir("zig-cache/bin");
         examples_step.dependOn(&exe.step);
 
-        @import("src/deps/gl/build.zig").linkArtifact(b, exe, target);
+        addOpenGlToArtifact(exe, target);
         @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
 
@@ -34,6 +35,7 @@ pub fn build(b: *Builder) void {
             .path = "src/runner.zig",
             .dependencies = exe.packages.items,
         });
+        exe.addPackagePath("gl", "src/gfx/opengl/gl_decls.zig"); // TODO: remove this when all features are accessible without direct GL calls
 
         const run_cmd = exe.run();
         const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));
@@ -44,5 +46,18 @@ pub fn build(b: *Builder) void {
             const run_exe_step = b.step("run", b.fmt("run {}.zig", .{name}));
             run_exe_step.dependOn(&run_cmd.step);
         }
+    }
+}
+
+fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
+    if (target.isDarwin()) {
+        artifact.linkFramework("OpenGL");
+    } else if (target.isWindows()) {
+        artifact.linkSystemLibrary("kernel32");
+        artifact.linkSystemLibrary("user32");
+        artifact.linkSystemLibrary("shell32");
+        artifact.linkSystemLibrary("gdi32");
+    } else if (target.isLinux()) {
+        artifact.linkSystemLibrary("GL");
     }
 }

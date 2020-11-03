@@ -3,6 +3,8 @@ const runner = @import("runner");
 const sdl = @import("sdl");
 usingnamespace @import("stb");
 usingnamespace @import("gl");
+const gfx = runner.gfx;
+const math = runner.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -25,12 +27,12 @@ pub fn randomColor() u32 {
 }
 
 const Thing = struct {
-    texture: Texture,
-    pos: Vec2,
-    vel: Vec2,
+    texture: gfx.Texture,
+    pos: math.Vec2,
+    vel: math.Vec2,
     col: u32,
 
-    pub fn init(texture: Texture) Thing {
+    pub fn init(texture: gfx.Texture) Thing {
         return .{
             .texture = texture,
             .pos = .{
@@ -51,10 +53,10 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try ShaderProgram.createFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
     shader.bind();
 
-    var batcher = Batcher.init(100);
+    var batcher = gfx.Batcher.init(100);
     defer batcher.deinit();
 
     var texture = loadTexture("assets/textures/bee-8.png");
@@ -64,14 +66,15 @@ fn render() !void {
 
     shader.bind();
     shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
+    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
     glViewport(0, 0, 800, 600);
 
-    enable(.blend);
+    gfx.enableState(.blend);
+    // enable(.blend);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
 
-    var rt = try RenderTexture.init(300, 200);
+    var rt = try gfx.RenderTexture.init(300, 200);
     defer rt.deinit();
 
     // render something to the render texture
@@ -79,7 +82,7 @@ fn render() !void {
     glClearColor(0.4, 0.5, 0.3, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    shader.setMat3x2("TransformMatrix", Mat32.initOrthoInverted(300, 200));
+    shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();
     batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
     batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
@@ -87,10 +90,11 @@ fn render() !void {
     batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
     batcher.end();
     rt.unbind();
+    glViewport(0, 0, 800, 600);
 
-    var rt_pos: Vec2 = .{};
+    var rt_pos: math.Vec2 = .{};
 
-    shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
+    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
 
     while (!runner.pollEvents()) {
         for (things) |*thing| {
@@ -125,12 +129,12 @@ fn render() !void {
     }
 }
 
-fn loadTexture(name: []const u8) Texture {
+fn loadTexture(name: []const u8) gfx.Texture {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
 
-    var texture = Texture.init();
+    var texture = gfx.Texture.init();
 
     var data = stbi_load(name.ptr, &width, &height, &channels, 4);
     defer stbi_image_free(data);
@@ -141,18 +145,18 @@ fn loadTexture(name: []const u8) Texture {
     return texture;
 }
 
-fn loadWhiteTexture() Texture {
+fn loadWhiteTexture() gfx.Texture {
     var pixels = [_]u32{
         0xFFFFFFFF, 0xFFFFFFFF,
         0xFFFFFFFF, 0xFFFFFFFF,
     };
 
-    var texture = Texture.init();
+    var texture = gfx.Texture.init();
     texture.setColorData(2, 2, &pixels);
     return texture;
 }
 
-fn loadCheckerTexture() Texture {
+fn loadCheckerTexture() gfx.Texture {
     var pixels = [_]u32{
         0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
         0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
@@ -161,12 +165,12 @@ fn loadCheckerTexture() Texture {
         // 0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
     };
 
-    var texture = Texture.init();
+    var texture = gfx.Texture.init();
     texture.setColorData(4, 4, &pixels);
     return texture;
 }
 
-fn makeThings(n: usize, texture: Texture) []Thing {
+fn makeThings(n: usize, texture: gfx.Texture) []Thing {
     var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     for (things) |*thing, i| {

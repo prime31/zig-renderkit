@@ -1,7 +1,11 @@
 const std = @import("std");
-const gl = @import("gl");
 const sdl = @import("sdl");
 const stb = @import("stb");
+
+pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
+
+pub const gfx = @import("gfx/gfx.zig");
+pub const math = @import("math/math.zig");
 
 pub var window: *sdl.SDL_Window = undefined;
 
@@ -31,8 +35,8 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     var gl_ctx = sdl.SDL_GL_CreateContext(window);
     defer sdl.SDL_GL_DeleteContext(gl_ctx);
 
+    gfx.init();
     // gl.loadFunctions(sdl.SDL_GL_GetProcAddress);
-    gl.loadFunctionsZig();
 
     if (init) |init_fn| {
         try init_fn();

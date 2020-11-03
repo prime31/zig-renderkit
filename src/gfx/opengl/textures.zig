@@ -1,25 +1,15 @@
-pub usingnamespace @import("decls.zig");
 const std = @import("std");
+usingnamespace @import("gl_decls.zig");
 
-pub const TextureParameter = enum(GLenum) {
-    min_filter = GL_TEXTURE_MIN_FILTER,
-    mag_filter = GL_TEXTURE_MAG_FILTER,
-    wrap_s = GL_TEXTURE_WRAP_S,
-    wrap_t = GL_TEXTURE_WRAP_T,
-};
-
-pub const TextureFilter = enum(GLenum) {
-    linear = GL_LINEAR,
-    nearest = GL_NEAREST,
-};
+pub const TextureId = GLuint;
 
 pub const Texture = struct {
-    id: GLuint,
+    id: TextureId,
     width: f32 = 0,
     height: f32 = 0,
 
     pub fn init() Texture {
-        var id: GLuint = undefined;
+        var id: TextureId = undefined;
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
 
@@ -32,23 +22,12 @@ pub const Texture = struct {
         return Texture{ .id = id };
     }
 
-    pub fn initWithData(width: c_int, height: c_int, data: []const u8) Texture {
-        var tex = init();
-        tex.setData(width, height, data);
-        return tex;
-    }
-
     pub fn deinit(self: *const Texture) void {
         glDeleteTextures(1, &self.id);
     }
 
     pub fn bind(self: *const Texture) void {
         glBindTexture(GL_TEXTURE_2D, self.id);
-    }
-
-    pub fn setParameter(self: Texture, param: TextureParameter, value: GLenum) void {
-        self.bind();
-        glTexParameteri(GL_TEXTURE_2D, @enumToInt(param), value);
     }
 
     pub fn setData(self: *Texture, width: c_int, height: c_int, data: [*c]const u8) void {
@@ -65,7 +44,7 @@ pub const Texture = struct {
 };
 
 pub const RenderTexture = struct {
-    id: GLuint,
+    id: TextureId,
     depth_stencil_id: GLuint = 0,
     texture: Texture,
 
@@ -73,7 +52,7 @@ pub const RenderTexture = struct {
         return initWithOptions(width, height, false, false);
     }
 
-    pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) !RenderTexture {
+pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) !RenderTexture {
         // we allow neither, both or stencil but not just depth
         std.debug.assert(!(depth and !stencil));
 
@@ -132,7 +111,5 @@ pub const RenderTexture = struct {
 
     pub fn unbind(self: *const RenderTexture) void {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // TODO: set viewport to screen size!
-        glViewport(0, 0, 800, 600);
     }
 };

@@ -4,14 +4,13 @@ const sdl = @import("sdl");
 const gfx = runner.gfx;
 usingnamespace @import("stb");
 usingnamespace @import("gl");
-usingnamespace runner.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
 const total_textures: usize = 8;
 const max_sprites_per_batch: usize = 1000;
 const total_objects = 5000;
-const draws_per_tex_swap = 50;
+const draws_per_tex_swap = 10;
 const use_multi_texture_batcher = false;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
@@ -32,8 +31,8 @@ pub fn randomColor() u32 {
 
 const Thing = struct {
     texture: gfx.Texture,
-    pos: Vec2,
-    vel: Vec2,
+    pos: runner.math.Vec2,
+    vel: runner.math.Vec2,
     col: u32,
 
     pub fn init(texture: gfx.Texture) Thing {
@@ -118,14 +117,14 @@ fn render() !void {
 
     shader.bind();
     shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
+    shader.setMat3x2("TransformMatrix", runner.math.Mat32.initOrtho(800, 600));
     glViewport(0, 0, 800, 600);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_BLEND);
+    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
 
     while (!runner.pollEvents()) {
@@ -152,7 +151,7 @@ fn render() !void {
             }
         }
 
-        glClearColor(0.5, 0.3, 0.3, 1.0);
+        glClearColor(0.2, 0.3, 0.3, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // render
