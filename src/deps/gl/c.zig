@@ -30,6 +30,13 @@ const Funcs = struct {
     glDisable: fn (GLenum) void,
     glBlendFunc: fn (GLenum, GLenum) void,
     glPolygonMode: fn (GLenum, GLenum) void,
+    glDepthFunc: fn (GLenum) void,
+    glStencilFunc: fn (GLenum, GLint, GLuint) void,
+    glStencilFuncSeparate: fn (GLenum, GLenum, GLint, GLuint) void,
+    glStencilMask: fn (GLuint) void,
+    glStencilMaskSeparate: fn (GLenum, GLuint) void,
+    glStencilOp: fn (GLenum, GLenum, GLenum) void,
+    glStencilOpSeparate: fn (GLenum, GLenum, GLenum, GLenum) void,
 
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
     glGetString: fn (GLenum) [*c]const GLubyte,
@@ -144,6 +151,35 @@ pub fn glBlendFunc(src: GLenum, dst: GLenum) void {
 pub fn glPolygonMode(face: GLenum, mode: GLenum) void {
     gl.glPolygonMode(face, mode);
 }
+
+pub fn glDepthFunc(func: GLenum) void {
+    gl.glDepthFunc(func);
+}
+
+pub fn glStencilFunc(func: GLenum, ref: GLint, mask: GLuint) void {
+    gl.glStencilFunc(func, ref, mask);
+}
+
+pub fn glStencilFuncSeparate(face: GLenum, func: GLenum, ref: GLint, mask: GLuint) void {
+    gl.glStencilFuncSeparate(face, func, ref, mask);
+}
+
+pub fn glStencilMask(mask: GLuint) void {
+    gl.glStencilMask(mask);
+}
+
+pub fn glStencilMaskSeparate(face: GLenum, mask: GLuint) void {
+    gl.glStencilMaskSeparate(face, mask);
+}
+
+pub fn glStencilOp(sfail: GLenum, dpfail: GLenum, dppass: GLenum) void {
+    gl.glStencilOp(sfail, dpfail, dppass);
+}
+
+pub fn glStencilOpSeparate(face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: GLenum) void {
+    gl.glStencilOpSeparate(face, sfail, dpfail, dppass);
+}
+
 
 pub fn glViewport(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {
     gl.glViewport(x, y, w, h);
