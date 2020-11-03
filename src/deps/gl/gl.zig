@@ -513,7 +513,7 @@ pub const MultiBatcher = struct {
         return .{
             .vao = vao,
             .index_buffer = IndexBuffer.init(indices),
-            .vertex_buffer = VertexBuffer.init(MultiVertex, verts, .stream),
+            .vertex_buffer = VertexBuffer.init(MultiVertex, verts, .stream_draw),
             .verts = verts,
             .textures = FixedList(GLuint, 8).init(),
         };
