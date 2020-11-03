@@ -1,6 +1,18 @@
 pub usingnamespace @import("c.zig");
 const std = @import("std");
 
+pub const TextureParameter = enum(GLenum) {
+    min_filter = GL_TEXTURE_MIN_FILTER,
+    mag_filter = GL_TEXTURE_MAG_FILTER,
+    wrap_s = GL_TEXTURE_WRAP_S,
+    wrap_t = GL_TEXTURE_WRAP_T,
+};
+
+pub const TextureFilter = enum(GLenum) {
+    linear = GL_LINEAR,
+    nearest = GL_NEAREST,
+};
+
 pub const Texture = struct {
     id: GLuint,
     width: f32 = 0,
@@ -32,6 +44,11 @@ pub const Texture = struct {
 
     pub fn bind(self: *const Texture) void {
         glBindTexture(GL_TEXTURE_2D, self.id);
+    }
+
+    pub fn setParameter(self: Texture, param: TextureParameter, value: GLenum) void {
+        self.bind();
+        glTexParameteri(GL_TEXTURE_2D, @enumToInt(param), value);
     }
 
     pub fn setData(self: *Texture, width: c_int, height: c_int, data: [*c]const u8) void {

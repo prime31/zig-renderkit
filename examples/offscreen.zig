@@ -67,7 +67,7 @@ fn render() !void {
     shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
     glViewport(0, 0, 800, 600);
 
-    glEnable(GL_BLEND);
+    enable(.blend);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
 

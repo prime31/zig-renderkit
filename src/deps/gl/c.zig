@@ -75,6 +75,7 @@ const Funcs = struct {
     glUniformMatrix3x2fv: fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) void,
 
     glDrawElements: fn (GLenum, GLsizei, GLenum, ?*const c_void) void,
+    glDrawElementsInstanced: fn (GLenum, GLsizei, GLenum, ?*const c_void, GLsizei) void,
     glDrawArrays: fn (GLenum, GLint, GLsizei) void,
 
     glGenFramebuffers: fn (GLsizei, [*c]GLuint) void,
@@ -299,6 +300,10 @@ pub fn glUniformMatrix3x2fv(location: GLint, count: GLsizei, transpose: GLboolea
 
 pub fn glDrawElements(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const c_void) void {
     gl.glDrawElements(mode, count, kind, indices);
+}
+
+pub fn glDrawElementsInstanced(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const c_void, instance_count: GLsizei) void {
+    gl.glDrawElementsInstanced(mode, count, kind, indices, instance_count);
 }
 
 pub fn glDrawArrays(mode: GLenum, first: GLint, count: GLsizei) void {

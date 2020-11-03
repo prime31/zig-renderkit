@@ -211,18 +211,10 @@ pub const IndexBuffer = struct {
     }
 };
 
-pub const VertexBufferUsage = enum(u2) {
-    static,
-    dynamic,
-    stream,
-
-    pub fn glUsage(self: VertexBufferUsage) GLenum {
-        return switch (self) {
-            .static => GL_STATIC_DRAW,
-            .dynamic => GL_DYNAMIC_DRAW,
-            .stream => GL_STREAM_DRAW,
-        };
-    }
+pub const VertexBufferUsage = enum(GLenum) {
+    stream_draw = GL_STREAM_DRAW,
+    static_draw = GL_STATIC_DRAW,
+    dynamic_draw = GL_DYNAMIC_DRAW,
 };
 
 pub const VertexBuffer = struct {
@@ -234,7 +226,7 @@ pub const VertexBuffer = struct {
         glGenBuffers(1, &vbo);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), if (usage == .static) verts.ptr else null, usage.glUsage());
+        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), if (usage == .static_draw) verts.ptr else null, @enumToInt(usage));
 
         inline for (@typeInfo(T).Struct.fields) |field, i| {
             const offset: ?usize = if (i == 0) null else @byteOffsetOf(T, field.name);
@@ -278,7 +270,7 @@ pub const VertexBuffer = struct {
             }
         }
 
-        return .{ .vbo = vbo, .stream = usage == .stream };
+        return .{ .vbo = vbo, .stream = usage == .stream_draw };
     }
 
     pub fn deinit(self: *VertexBuffer) void {
@@ -300,6 +292,23 @@ pub const VertexBuffer = struct {
         if (self.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
         glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
     }
+};
+
+pub const PrimitiveType = enum(GLenum) {
+    points = GL_POINTS,
+    line_strip = GL_LINE_STRIP,
+    line_loop = GL_LINE_LOOP,
+    lines = GL_LINES,
+    triangle_strip = GL_TRIANGLE_STRIP,
+    triangle_fan = GL_TRIANGLE_FAN,
+    triangles = GL_TRIANGLES,
+    patches = GL_PATCHES,
+};
+
+pub const ElementType = enum(GLenum) {
+    u8 = GL_UNSIGNED_BYTE,
+    u16 = GL_UNSIGNED_SHORT,
+    u32 = GL_UNSIGNED_INT,
 };
 
 pub const Batcher = struct {
@@ -333,7 +342,7 @@ pub const Batcher = struct {
         return .{
             .vao = vao,
             .index_buffer = IndexBuffer.init(indices),
-            .vertex_buffer = VertexBuffer.init(Vertex, verts, .stream),
+            .vertex_buffer = VertexBuffer.init(Vertex, verts, .stream_draw),
             .verts = verts,
         };
     }
@@ -365,7 +374,7 @@ pub const Batcher = struct {
         // draw
         const quads = self.vert_index / 4;
         glBindVertexArray(self.vao);
-        glDrawElements(GL_TRIANGLES, @intCast(c_int, quads * 6), GL_UNSIGNED_INT, null);
+        glDrawElements(@enumToInt(PrimitiveType.triangles), @intCast(c_int, quads * 6), @enumToInt(ElementType.u32), null);
 
         // reset
         self.vert_index = 0;
@@ -542,7 +551,7 @@ pub const MultiBatcher = struct {
         // draw
         const quads = self.vert_index / 4;
         glBindVertexArray(self.vao);
-        glDrawElements(GL_TRIANGLES, @intCast(c_int, quads * 6), GL_UNSIGNED_INT, null);
+        glDrawElements(@enumToInt(PrimitiveType.triangles), @intCast(c_int, quads * 6), @enumToInt(ElementType.u32), null);
 
         // reset state
         iter = self.textures.iter();
@@ -591,3 +600,38 @@ pub const MultiBatcher = struct {
         self.vert_index += 4;
     }
 };
+
+pub const Capabilities = enum(GLenum) {
+    blend = GL_BLEND,
+    cull_face = GL_CULL_FACE,
+    depth_test = GL_DEPTH_TEST,
+    dither = GL_DITHER,
+    polygon_offset_fill = GL_POLYGON_OFFSET_FILL,
+    sample_alpha_to_coverage = GL_SAMPLE_ALPHA_TO_COVERAGE,
+    sample_coverage = GL_SAMPLE_COVERAGE,
+    scissor_test = GL_SCISSOR_TEST,
+    stencil_test = GL_STENCIL_TEST,
+};
+
+pub fn enable(cap: Capabilities) void {
+    glEnable(@enumToInt(cap));
+}
+
+pub fn disable(cap: Capabilities) void {
+    glDisable(@enumToInt(cap));
+}
+
+pub const DepthFunc = enum(GLenum) {
+    never = GL_NEVER,
+    less = GL_LESS,
+    equal = GL_EQUAL,
+    less_or_equal = GL_LEQUAL,
+    greater = GL_GREATER,
+    not_equal = GL_NOTEQUAL,
+    greator_or_equal = GL_GEQUAL,
+    always = GL_ALWAYS,
+};
+
+pub fn depthFunc(func: DepthFunc) void {
+    glDepthFunc(@enumToInt(func));
+}
