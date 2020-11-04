@@ -11,6 +11,36 @@ fn vertexBufferUsageToGl(usage: gfx.VertexBufferUsage) GLenum {
     };
 }
 
+pub const BufferBindings = struct {
+    vao: GLuint,
+    index_buffer: IndexBuffer = undefined,
+    vertex_buffer: VertexBuffer = undefined,
+
+    pub fn init() BufferBindings {
+        var vao: GLuint = undefined;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        return .{ .vao = vao };
+    }
+
+    pub fn deinit(self: *BufferBindings) void {
+        glDeleteVertexArrays(1, &self.vao);
+        self.index_buffer.deinit();
+        self.vertex_buffer.deinit();
+    }
+
+    pub fn bindTexture(self: BufferBindings, tid: gfx.TextureId, slot: c_uint) void {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(GL_TEXTURE_2D, tid);
+    }
+
+    pub fn draw(self: BufferBindings, element_count: c_int) void {
+        glBindVertexArray(self.vao);
+        glDrawElements(GL_TRIANGLES, element_count, self.index_buffer.buffer_type, null);
+    }
+};
+
 pub const VertexBuffer = struct {
     vbo: GLuint,
     stream: bool,
@@ -90,16 +120,17 @@ pub const VertexBuffer = struct {
 
 pub const IndexBuffer = struct {
     id: GLuint,
+    buffer_type: GLenum,
 
-    pub fn init(indices: []const u32) IndexBuffer {
-        //std.debug.assert(T == u16 or T == u32);
+    pub fn init(comptime T: type, indices: []T) IndexBuffer {
+        std.debug.assert(T == u16 or T == u32);
         var ebo: GLuint = undefined;
         glGenBuffers(1, &ebo);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, @intCast(c_long, indices.len * @sizeOf(u32)), indices.ptr, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, @intCast(c_long, indices.len * @sizeOf(T)), indices.ptr, GL_STATIC_DRAW);
 
-        return .{ .id = ebo };
+        return .{ .id = ebo, .buffer_type = if (T == u16) GL_UNSIGNED_SHORT else GL_UNSIGNED_INT };
     }
 
     pub fn deinit(self: *IndexBuffer) void {

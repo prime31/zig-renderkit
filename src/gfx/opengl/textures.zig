@@ -1,4 +1,5 @@
 const std = @import("std");
+const gfx = @import("../gfx.zig");
 usingnamespace @import("gl_decls.zig");
 
 pub const TextureId = GLuint;
@@ -8,16 +9,24 @@ pub const Texture = struct {
     width: f32 = 0,
     height: f32 = 0,
 
+    usingnamespace @import("../common/mixins.zig").Texture;
+
     pub fn init() Texture {
+        return initWithOptions(.nearest, .clamp);
+    }
+
+    pub fn initWithOptions(filter: gfx.TextureFilter, wrap: gfx.TextureWrap) Texture {
         var id: TextureId = undefined;
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        const gl_wrap: GLint = if (wrap == .clamp) GL_CLAMP_TO_EDGE else GL_REPEAT;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gl_wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gl_wrap);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        const gl_filter: GLint = if (filter == .nearest) GL_NEAREST else GL_LINEAR;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter);
 
         return Texture{ .id = id };
     }

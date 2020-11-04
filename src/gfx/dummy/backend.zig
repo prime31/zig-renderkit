@@ -17,7 +17,12 @@ pub const Texture = struct {
     width: f32 = 0,
     height: f32 = 0,
 
+    usingnamespace @import("../common/mixins.zig").Texture;
+
     pub fn init() Texture {
+        return .{ .id = 0 };
+    }
+    pub fn initWithOptions(filter: gfx.TextureFilter, wrap: gfx.TextureWrap) Texture {
         return .{ .id = 0 };
     }
     pub fn deinit(self: Texture) void {}
@@ -28,6 +33,12 @@ pub const Texture = struct {
 
 pub const RenderTexture = struct {
     pub fn deinit(self: RenderTexture) void {}
+};
+
+pub const BufferBindings = struct {
+    pub fn init() BufferBindings {}
+    pub fn deinit(self: BufferBindings) void {}
+    pub fn draw(self: BufferBindings, element_count: c_int) void {}
 };
 
 pub const VertexBuffer = struct {
@@ -49,7 +60,9 @@ pub const Shader = struct {
     pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
         return Shader{};
     }
-    pub fn init(vert: [:0]const u8, frag: [:0]const u8) !Shader { return Shader{}; }
+    pub fn init(vert: [:0]const u8, frag: [:0]const u8) !Shader {
+        return Shader{};
+    }
     pub fn deinit(self: Shader) void {}
     pub fn bind(self: Shader) void {}
     pub fn setIntArray(self: *Shader, name: [:0]const u8, value: []const c_int) void {}

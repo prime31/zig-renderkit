@@ -10,9 +10,9 @@ var rng = std.rand.DefaultPrng.init(0x12345678);
 
 const total_textures: usize = 8;
 const max_sprites_per_batch: usize = 1000;
-const total_objects = 5000;
+const total_objects = 1000;
 const draws_per_tex_swap = 50;
-const use_multi_texture_batcher = false;
+const use_multi_texture_batcher = true;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {
@@ -53,7 +53,6 @@ const Thing = struct {
 };
 
 const Fps = struct {
-    start: i64,
     fps_frames: u32 = 0,
     prev_time: i64 = 0,
     curr_time: i64 = 0,
@@ -66,7 +65,6 @@ const Fps = struct {
 
     pub fn init() Fps {
         return .{
-            .start = std.time.milliTimestamp(),
             .now = sdl.SDL_GetPerformanceCounter(),
         };
     }
@@ -93,9 +91,9 @@ const Fps = struct {
 };
 
 pub fn main() !void {
+    rng.seed(@intCast(u64, std.time.milliTimestamp()));
     try runner.run(null, render);
 }
-
 
 fn render() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
@@ -119,13 +117,11 @@ fn render() !void {
     shader.bind();
     shader.setInt("MainTex", 0);
     shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
-    glViewport(0, 0, 800, 600);
 
-    glEnable(GL_BLEND);
+    glViewport(0, 0, 800, 600);
+    gfx.enableState(.blend);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, 0);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
 
     while (!runner.pollEvents()) {

@@ -1,4 +1,13 @@
 
+pub const TextureFilter = enum {
+    nearest,
+    linear
+};
+
+pub const TextureWrap = enum {
+    clamp,
+    repeat,
+};
 
 pub const VertexBufferUsage = enum {
     stream_draw,
@@ -65,6 +74,7 @@ pub const TextureId = backend.TextureId;
 pub const Texture = backend.Texture;
 pub const RenderTexture = backend.RenderTexture;
 
+pub const BufferBindings = backend.BufferBindings;
 pub const VertexBuffer = backend.VertexBuffer;
 pub const IndexBuffer = backend.IndexBuffer;
 

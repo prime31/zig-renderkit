@@ -6,9 +6,8 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        [_][]const u8{ "mesh", "examples/mesh.zig" },
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        [_][]const u8{ "multi_batcher", "examples/multi_batcher.zig" },
+        // [_][]const u8{ "meshes", "examples/meshes.zig" },
+        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
         // [_][]const u8{ "1_4", "examples/1_4.zig" },
