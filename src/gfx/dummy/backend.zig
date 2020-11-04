@@ -7,8 +7,10 @@ const gfx = aya.gfx;
 
 pub fn init() void {}
 pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {}
-pub fn enableState(state: gfx.Capabilities) void {}
-pub fn disableState(state: gfx.Capabilities) void {}
+pub fn setPipelineState(state: gfx.PipelineState) void {}
+pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {}
+pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {}
+pub fn clear(action: gfx.ClearCommand) void {}
 
 pub const TextureId = u32;
 
@@ -36,8 +38,12 @@ pub const RenderTexture = struct {
 };
 
 pub const BufferBindings = struct {
-    pub fn init() BufferBindings {}
+    index_buffer: IndexBuffer = undefined,
+    vertex_buffer: VertexBuffer = undefined,
+
+    pub fn init() BufferBindings { return .{}; }
     pub fn deinit(self: BufferBindings) void {}
+    pub fn bindTexture(self: BufferBindings, tid: gfx.TextureId, slot: c_uint) void {}
     pub fn draw(self: BufferBindings, element_count: c_int) void {}
 };
 
@@ -50,7 +56,7 @@ pub const VertexBuffer = struct {
 };
 
 pub const IndexBuffer = struct {
-    pub fn init(indices: []const u32) IndexBuffer {
+    pub fn init(comptime T: type, indices: []T) IndexBuffer {
         return .{};
     }
     pub fn deinit(self: IndexBuffer) void {}

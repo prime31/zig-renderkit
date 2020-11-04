@@ -2,8 +2,8 @@ const std = @import("std");
 const runner = @import("runner");
 const sdl = @import("sdl");
 const gfx = runner.gfx;
+const math = runner.math;
 usingnamespace @import("stb");
-usingnamespace @import("gl");
 usingnamespace runner.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
@@ -118,11 +118,7 @@ fn render() !void {
     shader.setInt("MainTex", 0);
     shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
 
-    glViewport(0, 0, 800, 600);
-    gfx.enableState(.blend);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
+    gfx.viewport(0, 0, 800, 600);
 
     while (!runner.pollEvents()) {
         fps.update();
@@ -148,8 +144,7 @@ fn render() !void {
             }
         }
 
-        glClearColor(0.5, 0.3, 0.3, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        gfx.clear(.{ .color = math.Color.beige });
 
         // render
         batcher.begin();

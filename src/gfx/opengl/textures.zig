@@ -115,7 +115,7 @@ pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) 
 
     pub fn bind(self: *const RenderTexture) void {
         glBindFramebuffer(GL_FRAMEBUFFER, self.id);
-        glViewport(0, 0, @floatToInt(c_int, self.texture.width), @floatToInt(c_int, self.texture.height));
+        gfx.viewport(0, 0, @floatToInt(c_int, self.texture.width), @floatToInt(c_int, self.texture.height));
     }
 
     pub fn unbind(self: *const RenderTexture) void {

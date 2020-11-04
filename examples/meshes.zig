@@ -1,7 +1,6 @@
 const std = @import("std");
 const runner = @import("runner");
 const sdl = @import("sdl");
-usingnamespace @import("gl");
 const gfx = runner.gfx;
 const math = runner.math;
 
@@ -38,11 +37,10 @@ fn render() !void {
     }
     dyn_mesh.updateAllVerts();
 
-    glViewport(0, 0, 800, 600);
+    gfx.viewport(0, 0, 800, 600);
 
     while (!runner.pollEvents()) {
-        glClearColor(0.4, 0.2, 0.7, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        gfx.clear(.{});
 
         shader.bind();
         tex.bind();

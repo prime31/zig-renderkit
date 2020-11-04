@@ -46,6 +46,15 @@ pub const Color = extern union {
         a: u8,
     },
 
+    pub fn asArray(self: Color) [4]f32 {
+        return [_]f32{
+            @intToFloat(f32, self.comps.r) / 255,
+            @intToFloat(f32, self.comps.g) / 255,
+            @intToFloat(f32, self.comps.b) / 255,
+            @intToFloat(f32, self.comps.a) / 255,
+        };
+    }
+
     pub const white = Color{ .value = 0xFFFFFFFF };
     pub const black = Color{ .value = 0xFF000000 };
     pub const transparent = Color{ .comps = .{ .r = 0, .g = 0, .b = 0, .a = 0 } };

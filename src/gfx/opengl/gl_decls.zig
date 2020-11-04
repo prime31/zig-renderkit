@@ -11,13 +11,13 @@ pub const GLsync = ?*opaque {};
 pub const GLint64 = i64;
 pub const GLuint64 = u64;
 pub const GLenum = c_uint;
-pub const GLuint = c_uint;
 pub const GLchar = u8;
 pub const GLfloat = f32;
 pub const GLsizeiptr = c_long;
 pub const GLintptr = c_long;
 pub const GLbitfield = c_uint;
 pub const GLint = c_int;
+pub const GLuint = c_uint;
 pub const GLboolean = u8;
 pub const GLsizei = c_int;
 pub const GLubyte = u8;
@@ -29,7 +29,11 @@ const Funcs = struct {
     glEnable: fn (GLenum) void,
     glDisable: fn (GLenum) void,
     glBlendFunc: fn (GLenum, GLenum) void,
+    glBlendFuncSeparate: fn (GLenum, GLenum, GLenum, GLenum) void,
+    glBlendEquationSeparate: fn (GLenum, GLenum) void,
+    glBlendColor: fn (GLfloat, GLfloat, GLfloat, GLfloat) void,
     glPolygonMode: fn (GLenum, GLenum) void,
+    glDepthMask: fn (GLboolean) void,
     glDepthFunc: fn (GLenum) void,
     glStencilFunc: fn (GLenum, GLint, GLuint) void,
     glStencilFuncSeparate: fn (GLenum, GLenum, GLint, GLuint) void,
@@ -37,8 +41,10 @@ const Funcs = struct {
     glStencilMaskSeparate: fn (GLenum, GLuint) void,
     glStencilOp: fn (GLenum, GLenum, GLenum) void,
     glStencilOpSeparate: fn (GLenum, GLenum, GLenum, GLenum) void,
+    glColorMask: fn (GLboolean, GLboolean, GLboolean, GLboolean) void,
 
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
+    glScissor: fn (GLint, GLint, GLsizei, GLsizei) void,
     glGetString: fn (GLenum) [*c]const GLubyte,
     glClearColor: fn (GLfloat, GLfloat, GLfloat, GLfloat) void,
     glClearStencil: fn (GLint) void,
@@ -148,8 +154,24 @@ pub fn glBlendFunc(src: GLenum, dst: GLenum) void {
     gl.glBlendFunc(src, dst);
 }
 
+pub fn glBlendFuncSeparate(src_rgb: GLenum, dst_rgb: GLenum, src_alpha: GLenum, dst_alpha: GLenum) void {
+    gl.glBlendFuncSeparate(src_rgb, dst_rgb, src_alpha, dst_alpha);
+}
+
+pub fn glBlendEquationSeparate(mode_rgb: GLenum, mode_alpha: GLenum) void {
+    gl.glBlendEquationSeparate(mode_rgb, mode_alpha);
+}
+
+pub fn glBlendColor(r: GLfloat, g: GLfloat, b: GLfloat, a: GLfloat) void {
+    gl.glBlendColor(r, g, b, a);
+}
+
 pub fn glPolygonMode(face: GLenum, mode: GLenum) void {
     gl.glPolygonMode(face, mode);
+}
+
+pub fn glDepthMask(enable: GLboolean) void {
+    gl.glDepthMask(enable);
 }
 
 pub fn glDepthFunc(func: GLenum) void {
@@ -180,9 +202,16 @@ pub fn glStencilOpSeparate(face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: 
     gl.glStencilOpSeparate(face, sfail, dpfail, dppass);
 }
 
+pub fn glColorMask(r: GLboolean, g: GLboolean, b: GLboolean, a: GLboolean) void {
+    gl.glColorMask(r, g, b, a);
+}
 
 pub fn glViewport(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {
     gl.glViewport(x, y, w, h);
+}
+
+pub fn glScissor(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {
+    gl.glScissor(x, y, w, h);
 }
 
 pub fn glGetString(which: GLenum) [*c]const GLubyte {

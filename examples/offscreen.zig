@@ -2,7 +2,6 @@ const std = @import("std");
 const runner = @import("runner");
 const sdl = @import("sdl");
 usingnamespace @import("stb");
-usingnamespace @import("gl");
 const gfx = runner.gfx;
 const math = runner.math;
 
@@ -67,20 +66,14 @@ fn render() !void {
     shader.bind();
     shader.setInt("MainTex", 0);
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
-    glViewport(0, 0, 800, 600);
-
-    gfx.enableState(.blend);
-    // enable(.blend);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_NV);
+    gfx.viewport(0, 0, 800, 600);
 
     var rt = try gfx.RenderTexture.init(300, 200);
     defer rt.deinit();
 
     // render something to the render texture
     rt.bind();
-    glClearColor(0.4, 0.5, 0.3, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
+    gfx.clear(.{ .color = math.Color{ .value = randomColor() } });
 
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();
@@ -90,7 +83,7 @@ fn render() !void {
     batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
     batcher.end();
     rt.unbind();
-    glViewport(0, 0, 800, 600);
+    gfx.viewport(0, 0, 800, 600);
 
     var rt_pos: math.Vec2 = .{};
 
@@ -102,8 +95,7 @@ fn render() !void {
             thing.pos.y += thing.vel.y * 0.016;
         }
 
-        glClearColor(0.2, 0.3, 0.3, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        gfx.clear(.{ .color = math.Color{ .value = randomColor() } });
 
         // render
         batcher.begin();
@@ -115,9 +107,9 @@ fn render() !void {
             batcher.drawTex(thing.pos, thing.col, thing.texture);
         }
 
-        // batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
+        batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
 
-        batcher.drawPoint(white_tex, .{.x = 400, .y = 300}, 20, 0xFF0099FF);
+        batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
         batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
         batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
         batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
@@ -161,8 +153,8 @@ fn loadCheckerTexture() gfx.Texture {
         0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
         0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
         0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
-        0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
-        // 0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
+        0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+        0xFFFFFFFF, // 0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
     };
 
     var texture = gfx.Texture.init();

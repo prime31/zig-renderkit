@@ -1,7 +1,7 @@
+const math = @import("../math/math.zig");
 
 pub const TextureFilter = enum {
-    nearest,
-    linear
+    nearest, linear
 };
 
 pub const TextureWrap = enum {
@@ -18,10 +18,8 @@ pub const VertexBufferUsage = enum {
 pub const PrimitiveType = enum {
     points,
     line_strip,
-    line_loop,
     lines,
     triangle_strip,
-    triangle_fan,
     triangles,
 };
 
@@ -31,16 +29,104 @@ pub const ElementType = enum {
     u32,
 };
 
-pub const Capabilities = enum {
-    blend,
-    cull_face,
-    depth_test,
-    dither,
-    polygon_offset_fill,
-    sample_alpha_to_coverage,
-    sample_coverage,
-    scissor_test,
-    stencil_test,
+pub const CompareFunc = enum {
+    never,
+    less,
+    equal,
+    less_equal,
+    greater,
+    not_equal,
+    greater_equal,
+    always,
+};
+
+pub const StencilOp = enum {
+    keep,
+    zero,
+    replace,
+    incr_clamp,
+    decr_clamp,
+    invert,
+    incr_wrap,
+    decr_wrap,
+};
+
+pub const BlendFactor = enum {
+    zero,
+    one,
+    src_color,
+    one_minus_src_color,
+    src_alpha,
+    one_minus_src_alpha,
+    dst_color,
+    one_minus_dst_color,
+    dst_alpha,
+    one_minus_dst_alpha,
+    src_alpha_saturated,
+    blend_color,
+    one_minus_blend_color,
+    blend_alpha,
+    one_minus_blend_alpha,
+};
+
+pub const BlendOp = enum {
+    add,
+    subtract,
+    reverse_subtract,
+};
+
+pub const ClearAction = enum {
+    clear,
+    dontcare,
+};
+
+pub const ColorMask = enum(u32) {
+    none,
+    r = (1 << 0),
+    g = (1 << 1),
+    b = (1 << 2),
+    a = (1 << 3),
+    rgb = 0x7,
+    rgba = 0xF,
+    force_u32 = 0x7FFFFFFF,
+};
+
+pub const PipelineState = struct {
+    depth: struct {
+        enabled: bool = false,
+        compare_func: CompareFunc = .always,
+    } = .{},
+    stencil: struct {
+        enabled: bool = false,
+        fail_op: StencilOp = .keep,
+        depth_fail_op: StencilOp = .keep,
+        pass_op: StencilOp = .keep,
+        compare_func: CompareFunc = .always,
+        read_mask: u8 = 0,
+        write_mask: u8 = 0,
+        ref: u8 = 0,
+    } = .{},
+    blend: struct {
+        enabled: bool = true,
+        src_factor_rgb: BlendFactor = .src_alpha,
+        dst_factor_rgb: BlendFactor = .one_minus_src_alpha,
+        op_rgb: BlendOp = .add,
+        src_factor_alpha: BlendFactor = .one,
+        dst_factor_alpha: BlendFactor = .one_minus_src_alpha,
+        op_alpha: BlendOp = .add,
+        color_write_mask: ColorMask = .rgba,
+        color: struct { r: f32 = 0, g: f32 = 0, b: f32 = 0, a: f32 = 0 } = .{},
+    } = .{},
+    scissor: bool = false,
+};
+
+pub const ClearCommand = struct {
+    color_action: ClearAction = .clear,
+    color: math.Color = math.Color.aya,
+    stencil_action: ClearAction = .dontcare,
+    stencil: u8 = 0,
+    depth_action: ClearAction = .dontcare,
+    depth: f64 = 0,
 };
 
 pub const Renderer = enum {
@@ -56,18 +142,28 @@ pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls c
 // the backend must provide all of the following types/funcs
 pub fn init() void {
     backend.init();
+    backend.setPipelineState(.{});
 }
 
 pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
     backend.initWithLoader(loader);
+    backend.setPipelineState(.{});
 }
 
-pub fn enableState(state: Capabilities) void {
-    backend.enableState(state);
+pub fn setPipelineState(state: PipelineState) void {
+    backend.setPipelineState(state);
 }
 
-pub fn disableState(state: Capabilities) void {
-    backend.disableState(state);
+pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    backend.viewport(x, y, width, height);
+}
+
+pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    backend.scissor(x, y, width, height);
+}
+
+pub fn clear(action: ClearCommand) void {
+    backend.clear(action);
 }
 
 pub const TextureId = backend.TextureId;
