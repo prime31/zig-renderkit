@@ -41,6 +41,7 @@ pub const Batcher = struct {
     texture: GLuint = std.math.maxInt(GLuint),
 
     pub fn init(max_sprites: usize) Batcher {
+        // if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
         var vao: GLuint = undefined;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -157,23 +158,6 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn drawBigRect(self: *Batcher) void {
-        var verts = self.verts[self.vert_index .. self.vert_index + 4];
-        verts[0].pos = .{ .x = 20, .y = 90 };
-        verts[0].uv = .{ .x = 0, .y = 1 };
-
-        verts[1].pos = .{ .x = 100, .y = 90 };
-        verts[1].uv = .{ .x = 1, .y = 1 };
-
-        verts[2].pos = .{ .x = 100, .y = 10 };
-        verts[2].uv = .{ .x = 1, .y = 0 };
-
-        verts[3].pos = .{ .x = 20, .y = 10 };
-        verts[3].uv = .{ .x = 0, .y = 0 };
-
-        self.vert_index += 4;
-    }
-
     pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: gfx.Texture) void {
         if (self.vert_index >= self.verts.len or self.texture != texture.id) {
             self.flush();
@@ -212,6 +196,7 @@ pub const MultiBatcher = struct {
     textures: FixedList(gfx.TextureId, 8),
 
     pub fn init(max_sprites: usize) MultiBatcher {
+        // if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
         var vao: GLuint = undefined;
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);

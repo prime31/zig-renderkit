@@ -2,6 +2,9 @@ const aya = @import("../runner.zig");
 const math = @import("../math/math.zig");
 usingnamespace @import("backend.zig");
 
+pub const Mesh = @import("mesh.zig").Mesh;
+pub const DynamicMesh = @import("mesh.zig").DynamicMesh;
+
 pub const Batcher = @import("batcher.zig").Batcher;
 pub const MultiBatcher = @import("batcher.zig").MultiBatcher;
 

@@ -92,6 +92,7 @@ pub const IndexBuffer = struct {
     id: GLuint,
 
     pub fn init(indices: []const u32) IndexBuffer {
+        //std.debug.assert(T == u16 or T == u32);
         var ebo: GLuint = undefined;
         glGenBuffers(1, &ebo);
 

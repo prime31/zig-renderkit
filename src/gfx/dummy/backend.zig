@@ -45,10 +45,6 @@ pub const IndexBuffer = struct {
     pub fn deinit(self: IndexBuffer) void {}
 };
 
-pub const Mesh = struct {};
-
-pub const DynamicMesh = struct {};
-
 pub const Shader = struct {
     pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
         return Shader{};

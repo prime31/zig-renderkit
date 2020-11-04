@@ -68,7 +68,4 @@ pub const RenderTexture = backend.RenderTexture;
 pub const VertexBuffer = backend.VertexBuffer;
 pub const IndexBuffer = backend.IndexBuffer;
 
-pub const Mesh = backend.Mesh;
-pub const DynamicMesh = backend.DynamicMesh;
-
 pub const Shader = backend.Shader;

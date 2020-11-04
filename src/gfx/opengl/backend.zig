@@ -4,7 +4,6 @@ const gfx = aya.gfx;
 usingnamespace @import("gl_decls.zig");
 
 usingnamespace @import("buffers.zig");
-usingnamespace @import("mesh.zig");
 usingnamespace @import("shader.zig");
 usingnamespace @import("textures.zig");
 
