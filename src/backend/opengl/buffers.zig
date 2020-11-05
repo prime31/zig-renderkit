@@ -29,7 +29,7 @@ pub const BufferBindings = struct {
         self.vertex_buffer.deinit();
     }
 
-    pub fn bindTexture(self: BufferBindings, tid: gfx.TextureId, slot: c_uint) void {
+    pub fn bindTexture(self: BufferBindings, tid: c_uint, slot: c_uint) void {
         glActiveTexture(GL_TEXTURE0 + slot);
         glBindTexture(GL_TEXTURE_2D, tid);
     }

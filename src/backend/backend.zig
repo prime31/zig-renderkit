@@ -29,6 +29,10 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
+pub fn bindImage(image: Image, slot: c_uint) void {
+    backend.bindImage(image, slot);
+}
+
 // sg_image sg_make_image(const sg_image_desc* desc);
 // void sg_destroy_image(sg_image img);
 // void sg_update_image(sg_image img, const sg_image_content* data);
@@ -90,10 +94,6 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
 pub fn clear(action: gfx_types.ClearCommand) void {
     backend.clear(action);
 }
-
-pub const TextureId = backend.TextureId;
-pub const Texture = backend.Texture;
-pub const RenderTexture = backend.RenderTexture;
 
 pub const BufferBindings = backend.BufferBindings;
 pub const VertexBuffer = backend.VertexBuffer;

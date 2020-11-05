@@ -11,36 +11,6 @@ pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn clear(action: gfx.ClearCommand) void {}
 
-pub const TextureId = u32;
-
-pub const Texture = struct {
-    id: TextureId,
-    width: f32 = 0,
-    height: f32 = 0,
-
-    usingnamespace @import("../common/mixins.zig").Texture;
-
-    pub fn init() Texture {
-        return .{ .id = 0 };
-    }
-    pub fn initWithOptions(filter: gfx.TextureFilter, wrap: gfx.TextureWrap) Texture {
-        return .{ .id = 0 };
-    }
-    pub fn deinit(self: Texture) void {}
-    pub fn bind(self: Texture) void {}
-    pub fn setData(self: *Texture, width: c_int, height: c_int, data: []const u8) void {}
-    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: []const u32) void {}
-};
-
-pub const RenderTexture = struct {
-    texture: Texture = undefined,
-
-    pub fn init(width: c_int, height: c_int) !RenderTexture { return RenderTexture{}; }
-    pub fn deinit(self: RenderTexture) void {}
-    pub fn bind(self: *const RenderTexture) void {}
-    pub fn unbind(self: *const RenderTexture) void {}
-};
-
 pub const BufferBindings = struct {
     index_buffer: IndexBuffer = undefined,
     vertex_buffer: VertexBuffer = undefined,

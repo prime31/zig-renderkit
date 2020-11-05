@@ -3,6 +3,8 @@ pub usingnamespace @import("backend/types.zig");
 pub const math = @import("math/math.zig");
 pub const fs = @import("fs.zig");
 
+pub const Texture = @import("gfx/texture.zig").Texture;
+
 pub const Mesh = @import("mesh.zig").Mesh;
 pub const DynamicMesh = @import("mesh.zig").DynamicMesh;
 

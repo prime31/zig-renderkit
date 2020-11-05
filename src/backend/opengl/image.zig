@@ -60,5 +60,82 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     std.debug.assert(@sizeOf(T) == image.width * image.height);
     glBindTexture(GL_TEXTURE_2D, image.tid);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content.ptr);
-    // glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+pub fn bindImage(image: Image, slot: c_uint) void {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, image.tid);
+}
+
+// reference for Pass
+// pub const RenderTexture = struct {
+//     id: TextureId,
+//     depth_stencil_id: GLuint = 0,
+//     texture: Texture,
+
+//     pub fn init(width: c_int, height: c_int) !RenderTexture {
+//         return initWithOptions(width, height, false, false);
+//     }
+
+//     pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) !RenderTexture {
+//         // we allow neither, both or stencil but not just depth
+//         std.debug.assert(!(depth and !stencil));
+
+//         var id: GLuint = undefined;
+//         glGenFramebuffers(1, &id);
+//         glBindFramebuffer(GL_FRAMEBUFFER, id);
+//         errdefer glDeleteFramebuffers(1, &id);
+//         defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+//         var texture = Texture.init();
+//         texture.setData(width, height, &[_]u8{});
+//         errdefer texture.deinit();
+
+//         // The depth/stencil or stencil buffer
+//         var depth_stencil_id: GLuint = 0;
+//         if (depth or stencil) {
+//             glGenRenderbuffers(1, &depth_stencil_id);
+//             glBindRenderbuffer(GL_RENDERBUFFER, depth_stencil_id);
+//             if (depth and stencil) {
+//                 glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, width, height);
+//             } else {
+//                 glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, width, height);
+//             }
+//             glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+//             if (depth) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_stencil_id);
+//             if (stencil) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depth_stencil_id);
+//         }
+
+//         // Set "render texture" as our colour attachement #0
+//         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture.id, 0);
+
+//         // Set the list of draw buffers.
+//         var draw_buffers: [1]GLenum = [_]GLenum{GL_COLOR_ATTACHMENT0};
+//         glDrawBuffers(1, &draw_buffers);
+
+//         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) return error.FrameBufferFailed;
+
+//         return RenderTexture{
+//             .id = id,
+//             .depth_stencil_id = depth_stencil_id,
+//             .texture = texture,
+//         };
+//     }
+
+//     pub fn deinit(self: *RenderTexture) void {
+//         self.texture.deinit();
+//         glDeleteFramebuffers(1, &self.id);
+//         if (self.depth_stencil_id > 0) glDeleteRenderbuffers(1, &self.depth_stencil_id);
+//     }
+
+//     pub fn bind(self: *const RenderTexture) void {
+//         glBindFramebuffer(GL_FRAMEBUFFER, self.id);
+//         gfx.viewport(0, 0, @floatToInt(c_int, self.texture.width), @floatToInt(c_int, self.texture.height));
+//     }
+
+//     pub fn unbind(self: *const RenderTexture) void {
+//         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//     }
+// };
