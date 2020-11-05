@@ -1,9 +1,10 @@
 const std = @import("std");
 const Builder = @import("std").build.Builder;
 
-/// rel_path is the path to gfx relative to your build.zig. Must end with a slash.
-pub fn addGfxToArtifact(artifact: *LibExeObjStep, rel_path: []const u8) void {
-    try @import(rel_path ++ "/build.zig").build(step);
+/// rel_path is the path to the gfx build.zig file relative to your build.zig.
+/// rel_path is used to add package paths. It should be the the same path used to include this build file
+pub fn linkArtifact(b: *Builder, artifact: *std.build.LibExeObjStep, target: std.build.Target, comptime rel_path: []const u8) void {
+    artifact.addPackagePath("gfx", rel_path ++ "src/gfx.zig");
 }
 
 pub fn build(b: *Builder) void {
