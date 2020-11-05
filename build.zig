@@ -37,7 +37,7 @@ pub fn build(b: *Builder) void {
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
         exe.addPackage(.{
             .name = "gfx",
-            .path = "src/gfx/gfx.zig",
+            .path = "src/gfx.zig",
             .dependencies = exe.packages.items,
         });
 
