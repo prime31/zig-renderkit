@@ -10,5 +10,4 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     exe.addCSourceFile("src/deps/stb/src/stb_impl.c", lib_cflags);
 
     exe.addPackagePath("stb", "src/deps/stb/stb.zig");
-    exe.addPackagePath("stb_image", "src/deps/stb/stb_image.zig");
 }

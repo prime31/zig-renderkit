@@ -2,20 +2,20 @@ const std = @import("std");
 const Builder = @import("std").build.Builder;
 
 /// rel_path is the path to gfx relative to your build.zig. Must end with a slash.
-pub fn addGfxToArtifact(artifact: *LibExeObjStep, rel_path: []const u8) void {}
+pub fn addGfxToArtifact(artifact: *LibExeObjStep, rel_path: []const u8) void {
+    try @import(rel_path ++ "/build.zig").build(step);
+}
 
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
+        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        // [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
-        [_][]const u8{ "meshes", "examples/meshes.zig" },
-        [_][]const u8{ "clear", "examples/clear.zig" },
-        [_][]const u8{ "1_4", "examples/1_4.zig" },
-        [_][]const u8{ "1_3", "examples/1_3.zig" },
+        // [_][]const u8{ "meshes", "examples/meshes.zig" },
+        // [_][]const u8{ "clear", "examples/clear.zig" },
     };
 
     const examples_step = b.step("examples", "build all examples");
@@ -35,13 +35,17 @@ pub fn build(b: *Builder) void {
         addOpenGlToArtifact(exe, target);
         @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
+        exe.addPackage(.{
+            .name = "gfx",
+            .path = "src/gfx/gfx.zig",
+            .dependencies = exe.packages.items,
+        });
 
         exe.addPackage(.{
             .name = "aya",
-            .path = "src/aya.zig",
+            .path = "examples/core/aya.zig",
             .dependencies = exe.packages.items,
         });
-        exe.addPackagePath("gl", "src/gfx/opengl/gl_decls.zig"); // TODO: remove this when all features are accessible without direct GL calls
 
         const run_cmd = exe.run();
         const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));

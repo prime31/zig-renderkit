@@ -1,10 +1,8 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const stb = @import("stb");
+pub const gfx = @import("gfx");
 
 pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
-
-pub const gfx = @import("gfx/gfx.zig");
 
 pub var window: *sdl.SDL_Window = undefined;
 
@@ -45,7 +43,6 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         return;
     }
 
-    var quit = false;
     while (!pollEvents()) {
         try render();
         sdl.SDL_GL_SwapWindow(window);

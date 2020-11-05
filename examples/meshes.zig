@@ -1,7 +1,6 @@
 const std = @import("std");
 const aya = @import("aya");
-const sdl = @import("sdl");
-const gfx = aya.gfx;
+const gfx = @import("gfx");
 const math = gfx.math;
 
 pub fn main() !void {
@@ -9,7 +8,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.init(@embedFile("../assets/shaders/vert.vs"), @embedFile("../assets/shaders/frag.fs"));
+    var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));
     shader.bind();
     shader.setInt("MainTex", 0);
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));

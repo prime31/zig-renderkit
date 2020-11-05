@@ -1,10 +1,8 @@
 const std = @import("std");
 const aya = @import("aya");
 const sdl = @import("sdl");
-const gfx = aya.gfx;
+const gfx = @import("gfx");
 const math = gfx.math;
-usingnamespace @import("stb");
-usingnamespace gfx.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -32,8 +30,8 @@ pub fn randomColor() u32 {
 
 const Thing = struct {
     texture: gfx.Texture,
-    pos: Vec2,
-    vel: Vec2,
+    pos: math.Vec2,
+    vel: math.Vec2,
     col: u32,
 
     pub fn init(texture: gfx.Texture) Thing {
@@ -102,7 +100,7 @@ fn render() !void {
     defer shader.deinit();
     shader.bind();
     shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", Mat32.initOrtho(800, 600));
+    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
 
     if (use_multi_texture_batcher) {
         var samplers: [8]c_int = undefined;

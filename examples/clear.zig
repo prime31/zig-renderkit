@@ -9,5 +9,6 @@ pub fn main() !void {
 fn render() !void {
     while (!aya.pollEvents()) {
         gfx.clear(.{});
+        aya.swapWindow();
     }
 }
