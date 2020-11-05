@@ -6,7 +6,7 @@ const math = gfx.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
-const total_objects = 5;
+const total_objects = 8;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {

@@ -11,11 +11,11 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        // [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
+        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
-        // [_][]const u8{ "meshes", "examples/meshes.zig" },
-        // [_][]const u8{ "clear", "examples/clear.zig" },
+        [_][]const u8{ "meshes", "examples/meshes.zig" },
+        [_][]const u8{ "clear", "examples/clear.zig" },
     };
 
     const examples_step = b.step("examples", "build all examples");

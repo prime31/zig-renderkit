@@ -1,7 +1,7 @@
 ### zig-gl
-This repo is pretty much a hack job of code that was used to get Zig + SDL + OpenGL setup without needing an external function loader. Some code was grabbed from the repos below to get a jump start.
+Zig graphics backends with a 2D focus. If it doesn't make sense for 2D it won't be found here. OpenGL currently implemented along with higher level objects (mesh, dyanmic mesh, sprite batcher, multi-texture sprite batcher, triangle batcher) built on top of the generic renderer API. A small math lib with just the types required (Vec2, Color, 3x2 Matrix) is also included.
 
-The main premise of the testing was to see if 2D batcher could be improved by binding multiple textures instead of flushing when a second texture is passed to it. The `batcher` example lets you play with the concept. The other examples are just from Learn OpenGL.
+It should be fairly easy to add new backends for Metal, DirectX11, Vulkan using the interface laid out in the dummy renderer (empty implementation).
 
 
 ### Some other interesting GL zig code
