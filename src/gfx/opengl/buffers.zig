@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../../runner.zig");
+const aya = @import("../../aya.zig");
 const gfx = aya.gfx;
 usingnamespace @import("gl_decls.zig");
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../../runner.zig");
+const aya = @import("../../aya.zig");
 const math = aya.math;
 const gfx = aya.gfx;
 

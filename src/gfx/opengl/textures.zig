@@ -1,5 +1,7 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
+const aya = @import("../../aya.zig");
+const gfx = aya.gfx;
+const stb_image = @import("stb_image");
 usingnamespace @import("gl_decls.zig");
 
 pub const TextureId = GLuint;
@@ -39,16 +41,16 @@ pub const Texture = struct {
         glBindTexture(GL_TEXTURE_2D, self.id);
     }
 
-    pub fn setData(self: *Texture, width: c_int, height: c_int, data: [*c]const u8) void {
+    pub fn setData(self: *Texture, width: c_int, height: c_int, data: []const u8) void {
         self.width = @intToFloat(f32, width);
         self.height = @intToFloat(f32, height);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.ptr);
     }
 
-    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: [*c]const u32) void {
+    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: []const u32) void {
         self.width = @intToFloat(f32, width);
         self.height = @intToFloat(f32, height);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.ptr);
     }
 };
 
@@ -72,7 +74,7 @@ pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) 
         defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         var texture = Texture.init();
-        texture.setData(width, height, null);
+        texture.setData(width, height, &[_]u8{});
         errdefer texture.deinit();
 
         // The depth/stencil or stencil buffer

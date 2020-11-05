@@ -6,12 +6,12 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        // [_][]const u8{ "meshes", "examples/meshes.zig" },
-        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
+        [_][]const u8{ "meshes", "examples/meshes.zig" },
+        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
-        // [_][]const u8{ "1_4", "examples/1_4.zig" },
-        // [_][]const u8{ "1_3", "examples/1_3.zig" },
+        [_][]const u8{ "1_4", "examples/1_4.zig" },
+        [_][]const u8{ "1_3", "examples/1_3.zig" },
     };
 
     const examples_step = b.step("examples", "build all examples");
@@ -31,8 +31,8 @@ pub fn build(b: *Builder) void {
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
 
         exe.addPackage(.{
-            .name = "runner",
-            .path = "src/runner.zig",
+            .name = "aya",
+            .path = "src/aya.zig",
             .dependencies = exe.packages.items,
         });
         exe.addPackagePath("gl", "src/gfx/opengl/gl_decls.zig"); // TODO: remove this when all features are accessible without direct GL calls

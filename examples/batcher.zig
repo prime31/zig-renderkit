@@ -1,10 +1,10 @@
 const std = @import("std");
-const runner = @import("runner");
+const aya = @import("aya");
 const sdl = @import("sdl");
-const gfx = runner.gfx;
-const math = runner.math;
+const gfx = aya.gfx;
+const math = aya.math;
 usingnamespace @import("stb");
-usingnamespace runner.math;
+usingnamespace aya.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -92,13 +92,13 @@ const Fps = struct {
 
 pub fn main() !void {
     rng.seed(@intCast(u64, std.time.milliTimestamp()));
-    try runner.run(null, render);
+    try aya.run(null, render);
 }
 
 fn render() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
 
-    var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert_multi.vs", "assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile("assets/shaders/vert_multi.vs", "assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile("assets/shaders/vert.vs", "assets/shaders/frag.fs");
     shader.bind();
 
     if (use_multi_texture_batcher) {
@@ -120,7 +120,7 @@ fn render() !void {
 
     gfx.viewport(0, 0, 800, 600);
 
-    while (!runner.pollEvents()) {
+    while (!aya.pollEvents()) {
         fps.update();
         for (things) |*thing| {
             thing.pos.x += thing.vel.x * fps.dt;
@@ -155,35 +155,28 @@ fn render() !void {
 
         batcher.end();
 
-        runner.swapWindow();
+        aya.swapWindow();
     }
 }
 
 fn loadTextures() []gfx.Texture {
-    var textures = std.testing.allocator.alloc(gfx.Texture, total_textures) catch unreachable;
+    var textures = aya.mem.allocator.alloc(gfx.Texture, total_textures) catch unreachable;
 
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
 
     var buf: [512]u8 = undefined;
-    // stbi_set_flip_vertically_on_load(1);
     for (textures) |tex, i| {
-        textures[i] = gfx.Texture.init();
-
         var name = std.fmt.bufPrintZ(&buf, "assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
-        var data = stbi_load(name.ptr, &width, &height, &channels, 4);
-        defer stbi_image_free(data);
-        if (data != null) {
-            textures[i].setData(width, height, data);
-        }
+        textures[i] = gfx.Texture.initFromFile(name, .nearest) catch unreachable;
     }
 
     return textures;
 }
 
 fn makeThings(n: usize, textures: []gfx.Texture) []Thing {
-    var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
+    var things = aya.mem.allocator.alloc(Thing, n) catch unreachable;
 
     var count: usize = 0;
     var tid = range(usize, 0, total_textures);

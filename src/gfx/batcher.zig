@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../runner.zig");
+const aya = @import("../aya.zig");
 
 const gfx = aya.gfx;
 const math = aya.math;
@@ -19,8 +19,7 @@ pub const Batcher = struct {
     pub fn init(max_sprites: usize) Batcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
 
-        var indices = std.testing.allocator.alloc(u16, max_sprites * 6) catch unreachable;
-        defer std.testing.allocator.free(indices);
+        var indices = aya.mem.tmp_allocator.alloc(u16, max_sprites * 6) catch unreachable;
         var i: usize = 0;
         while (i < max_sprites) : (i += 1) {
             indices[i * 3 * 2 + 0] = @intCast(u16, i) * 4 + 0;

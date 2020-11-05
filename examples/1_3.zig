@@ -1,17 +1,14 @@
 const std = @import("std");
-const runner = @import("runner");
+const runner = @import("aya");
 const sdl = @import("sdl");
 usingnamespace @import("gl");
-
-// var shader: ShaderProgram = undefined;
-// var VAO: c_uint = undefined;
 
 pub fn main() !void {
     try runner.run(null, render);
 }
 
 fn render() !void {
-    var shader = try ShaderProgram.createFromFile(std.testing.allocator, "assets/shaders/1_3_shaders.vert", "assets/shaders/1_3_shaders.frag");
+    var shader = try runner.gfx.Shader.initFromFile("assets/shaders/1_3_shaders.vert", "assets/shaders/1_3_shaders.frag");
 
     const vertices = [_]f32{
         // positions      // colors

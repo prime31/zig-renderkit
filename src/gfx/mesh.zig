@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../runner.zig");
+const aya = @import("../aya.zig");
 
 const gfx = aya.gfx;
 const math = aya.math;
@@ -38,7 +38,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         allocator: *std.mem.Allocator,
 
         pub fn init(allocator: ?*std.mem.Allocator, vertex_count: usize, indices: []IndexT) !Self {
-            const alloc = allocator orelse std.testing.allocator;
+            const alloc = allocator orelse aya.mem.allocator;
 
             var bindings = gfx.BufferBindings.init();
             bindings.vertex_buffer = gfx.VertexBuffer.init(VertT, &[_]VertT{}, .stream_draw);

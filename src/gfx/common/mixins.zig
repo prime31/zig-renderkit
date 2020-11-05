@@ -1,12 +1,29 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
+const aya = @import("../../aya.zig");
+const gfx = aya.gfx;
+const stb_image = @import("stb_image");
 
 // api that isnt renderer specific can be put here then "imported" into the per-renderer types
 
 pub const Texture = struct {
+    pub fn initFromFile(file: []const u8, filter: gfx.TextureFilter) !gfx.Texture {
+        const image_contents = try aya.fs.read(aya.mem.tmp_allocator, file);
+
+        var w: c_int = undefined;
+        var h: c_int = undefined;
+        var channels: c_int = undefined;
+        const load_res = stb_image.stbi_load_from_memory(image_contents.ptr, @intCast(c_int, image_contents.len), &w, &h, &channels, 4);
+        if (load_res == null) return error.ImageLoadFailed;
+        defer stb_image.stbi_image_free(load_res);
+
+        var tex = gfx.Texture.initWithOptions(filter, .clamp);
+        tex.setData(w, h, load_res[0..@intCast(usize, w * h * channels)]);
+        return tex;
+    }
+
     pub fn initWithColorData(pixels: []u32, width: i32, height: i32) gfx.Texture {
         var texture = gfx.Texture.init();
-        texture.setColorData(width, height, pixels.ptr);
+        texture.setColorData(width, height, pixels);
         return texture;
     }
 

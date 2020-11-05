@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../../runner.zig");
+const aya = @import("../../aya.zig");
 const math = aya.math;
 usingnamespace @import("gl_decls.zig");
 
@@ -8,24 +8,24 @@ pub const Shader = struct {
     vertex: GLuint,
     fragment: GLuint,
 
-    pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
-        const vert_file = try std.fs.cwd().openFile(vert_path, .{ .read = true });
-        defer vert_file.close();
+    pub fn initFromFile(vert_path: []const u8, frag_path: []const u8) !Shader {
+        // const vert_file = try std.fs.cwd().openFile(vert_path, .{ .read = true });
+        // defer vert_file.close();
 
-        var vert_array_list = std.ArrayList(u8).init(allocator);
-        defer vert_array_list.deinit();
-        try vert_file.reader().readAllArrayList(&vert_array_list, std.math.maxInt(u64));
-        try vert_array_list.append(0);
+        var vert = try aya.fs.readZ(aya.mem.tmp_allocator, vert_path);
+        // defer vert_array_list.deinit();
+        // try vert_file.reader().readAllArrayList(&vert_array_list, std.math.maxInt(u64));
+        // try vert_array_list.append(0);
 
-        const frag_file = try std.fs.cwd().openFile(frag_path, .{ .read = true });
-        defer frag_file.close();
+        // const frag_file = try std.fs.cwd().openFile(frag_path, .{ .read = true });
+        // defer frag_file.close();
 
-        var frag_array_list = std.ArrayList(u8).init(allocator);
-        defer frag_array_list.deinit();
-        try frag_file.reader().readAllArrayList(&frag_array_list, std.math.maxInt(u64));
-        try frag_array_list.append(0);
+        var frag = try aya.fs.readZ(aya.mem.tmp_allocator, frag_path);
+        // defer frag_array_list.deinit();
+        // try frag_file.reader().readAllArrayList(&frag_array_list, std.math.maxInt(u64));
+        // try frag_array_list.append(0);
 
-        return try Shader.init(vert_array_list.items[0 .. vert_array_list.items.len - 1 :0], frag_array_list.items[0 .. frag_array_list.items.len - 1 :0]);
+        return try Shader.init(vert, frag);
     }
 
     pub fn init(vert: [:0]const u8, frag: [:0]const u8) !Shader {

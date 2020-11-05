@@ -1,4 +1,4 @@
-const aya = @import("../runner.zig");
+const aya = @import("../aya.zig");
 const math = @import("../math/math.zig");
 pub usingnamespace @import("backend.zig");
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const runner = @import("runner");
+const runner = @import("aya");
 const sdl = @import("sdl");
 usingnamespace @import("stb");
 usingnamespace @import("gl");
@@ -9,7 +9,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try ShaderProgram.createFromFile(std.testing.allocator, "assets/shaders/1_4_textures.vert", "assets/shaders/1_4_textures.frag");
+    var shader = try runner.gfx.Shader.initFromFile("assets/shaders/1_4_textures.vert", "assets/shaders/1_4_textures.frag");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     const vertices = [_]f32{
@@ -60,22 +60,9 @@ fn render() !void {
     var channels: c_int = undefined;
     stbi_set_flip_vertically_on_load(1); // tell stb_image.h to flip loaded texture's on the y-axis.
 
-    // texture 1
-    var tex1 = Texture.init();
-    var data = stbi_load("assets/textures/container.png", &width, &height, &channels, 4);
-    if (data != null) {
-        tex1.setData(width, height, data);
-        stbi_image_free(data);
-    }
-
-    // texture 2
-    // load image, create texture and generate mipmaps
-    var tex2 = Texture.init();
-    data = stbi_load("assets/textures/awesomeface.png", &width, &height, &channels, 4);
-    defer stbi_image_free(data);
-    if (data != null) {
-        tex2.setData(width, height, data);
-    }
+    // textures
+    var tex1 = runner.gfx.Texture.initFromFile("assets/textures/container.png", .nearest) catch unreachable;
+    var tex2 = runner.gfx.Texture.initFromFile("assets/textures/awesomeface.png", .nearest) catch unreachable;
 
     shader.bind();
     glUniform1i(glGetUniformLocation(shader.id, "texture1"), 0);

@@ -1,9 +1,9 @@
 const std = @import("std");
-const runner = @import("runner");
+const aya = @import("aya");
 const sdl = @import("sdl");
 usingnamespace @import("stb");
-const gfx = runner.gfx;
-const math = runner.math;
+const gfx = aya.gfx;
+const math = aya.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -48,20 +48,28 @@ const Thing = struct {
 };
 
 pub fn main() !void {
-    try runner.run(null, render);
+    try aya.run(null, render);
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = try gfx.Shader.initFromFile("assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    defer shader.deinit();
     shader.bind();
 
     var batcher = gfx.Batcher.init(100);
     defer batcher.deinit();
 
-    var texture = loadTexture("assets/textures/bee-8.png");
-    var checker_tex = loadCheckerTexture();
-    var white_tex = loadWhiteTexture();
+    var texture = gfx.Texture.initFromFile("assets/textures/bee-8.png", .nearest) catch unreachable;
+    defer texture.deinit();
+
+    var checker_tex = gfx.Texture.initCheckerTexture();
+    defer checker_tex.deinit();
+
+    var white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
+    defer white_tex.deinit();
+
     var things = makeThings(total_objects, texture);
+    defer aya.mem.allocator.free(things);
 
     shader.bind();
     shader.setInt("MainTex", 0);
@@ -83,13 +91,13 @@ fn render() !void {
     batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
     batcher.end();
     rt.unbind();
-    gfx.viewport(0, 0, 800, 600);
 
+    gfx.viewport(0, 0, 800, 600);
     var rt_pos: math.Vec2 = .{};
 
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
 
-    while (!runner.pollEvents()) {
+    while (!aya.pollEvents()) {
         for (things) |*thing| {
             thing.pos.x += thing.vel.x * 0.016;
             thing.pos.y += thing.vel.y * 0.016;
@@ -117,53 +125,12 @@ fn render() !void {
 
         batcher.end();
 
-        runner.swapWindow();
+        aya.swapWindow();
     }
-}
-
-fn loadTexture(name: []const u8) gfx.Texture {
-    var width: c_int = undefined;
-    var height: c_int = undefined;
-    var channels: c_int = undefined;
-
-    var texture = gfx.Texture.init();
-
-    var data = stbi_load(name.ptr, &width, &height, &channels, 4);
-    defer stbi_image_free(data);
-    if (data != null) {
-        texture.setData(width, height, data);
-    }
-
-    return texture;
-}
-
-fn loadWhiteTexture() gfx.Texture {
-    var pixels = [_]u32{
-        0xFFFFFFFF, 0xFFFFFFFF,
-        0xFFFFFFFF, 0xFFFFFFFF,
-    };
-
-    var texture = gfx.Texture.init();
-    texture.setColorData(2, 2, &pixels);
-    return texture;
-}
-
-fn loadCheckerTexture() gfx.Texture {
-    var pixels = [_]u32{
-        0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
-        0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
-        0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
-        0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-        0xFFFFFFFF, // 0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
-    };
-
-    var texture = gfx.Texture.init();
-    texture.setColorData(4, 4, &pixels);
-    return texture;
 }
 
 fn makeThings(n: usize, texture: gfx.Texture) []Thing {
-    var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
+    var things = aya.mem.allocator.alloc(Thing, n) catch unreachable;
 
     for (things) |*thing, i| {
         thing.* = Thing.init(texture);

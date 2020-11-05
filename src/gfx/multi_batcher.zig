@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("../runner.zig");
+const aya = @import("../aya.zig");
 
 const gfx = aya.gfx;
 const math = aya.math;
@@ -15,7 +15,7 @@ pub const MultiVertex = extern struct {
 };
 
 const Allocator = std.mem.Allocator;
-const FixedList = @import("../deps/gl/fixed_list.zig").FixedList;
+const FixedList = @import("../utils/fixed_list.zig").FixedList;
 
 pub const MultiBatcher = struct {
     mesh: gfx.DynamicMesh(MultiVertex, u16),
@@ -26,8 +26,7 @@ pub const MultiBatcher = struct {
     pub fn init(max_sprites: usize) MultiBatcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
 
-        var indices = std.testing.allocator.alloc(u16, max_sprites * 6) catch unreachable;
-        defer std.testing.allocator.free(indices);
+        var indices = aya.mem.tmp_allocator.alloc(u16, max_sprites * 6) catch unreachable;
         var i: usize = 0;
         while (i < max_sprites) : (i += 1) {
             indices[i * 3 * 2 + 0] = @intCast(u16, i) * 4 + 0;
