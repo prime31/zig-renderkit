@@ -91,7 +91,7 @@ pub const ColorMask = enum(u32) {
     force_u32 = 0x7FFFFFFF,
 };
 
-pub const PipelineState = struct {
+pub const RenderState = struct {
     depth: struct {
         enabled: bool = false,
         compare_func: CompareFunc = .always,
@@ -142,16 +142,16 @@ pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls c
 // the backend must provide all of the following types/funcs
 pub fn init() void {
     backend.init();
-    backend.setPipelineState(.{});
+    backend.setRenderState(.{});
 }
 
 pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
     backend.initWithLoader(loader);
-    backend.setPipelineState(.{});
+    backend.setRenderState(.{});
 }
 
-pub fn setPipelineState(state: PipelineState) void {
-    backend.setPipelineState(state);
+pub fn setRenderState(state: RenderState) void {
+    backend.setRenderState(state);
 }
 
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {

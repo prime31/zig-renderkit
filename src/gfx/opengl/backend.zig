@@ -7,7 +7,7 @@ usingnamespace @import("buffers.zig");
 usingnamespace @import("shader.zig");
 usingnamespace @import("textures.zig");
 
-var pip_cache: gfx.PipelineState = undefined;
+var pip_cache: gfx.RenderState = undefined;
 
 pub fn init() void {
     loadFunctionsZig();
@@ -17,7 +17,7 @@ pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
     loadFunctions(loader);
 }
 
-pub fn setPipelineState(state: gfx.PipelineState) void {
+pub fn setRenderState(state: gfx.RenderState) void {
     // depth
     if (state.depth.enabled != pip_cache.depth.enabled) {
         glDepthMask(if (state.depth.enabled) 1 else 0);

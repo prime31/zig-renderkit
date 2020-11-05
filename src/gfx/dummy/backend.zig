@@ -7,7 +7,7 @@ const gfx = aya.gfx;
 
 pub fn init() void {}
 pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {}
-pub fn setPipelineState(state: gfx.PipelineState) void {}
+pub fn setRenderState(state: gfx.RenderState) void {}
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn clear(action: gfx.ClearCommand) void {}
