@@ -26,6 +26,8 @@ pub fn build(b: *Builder) void {
         exe.setOutputDir("zig-cache/bin");
         examples_step.dependOn(&exe.step);
 
+        if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
+
         addOpenGlToArtifact(exe, target);
         @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
