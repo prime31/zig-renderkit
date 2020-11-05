@@ -1,11 +1,11 @@
 const std = @import("std");
-const runner = @import("aya");
+const aya = @import("aya");
 const sdl = @import("sdl");
-const gfx = runner.gfx;
-const math = runner.math;
+const gfx = aya.gfx;
+const math = gfx.math;
 
 pub fn main() !void {
-    try runner.run(null, render);
+    try aya.run(null, render);
 }
 
 fn render() !void {
@@ -17,7 +17,7 @@ fn render() !void {
     var tex = gfx.Texture.initCheckerTexture();
     var red_tex = gfx.Texture.initSingleColor(0xFF0000FF);
 
-    var vertices = [_]runner.gfx.Vertex{
+    var vertices = [_]gfx.Vertex{
         .{ .pos = .{ .x = 10, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
         .{ .pos = .{ .x = 100, .y = 10 }, .uv = .{ .x = 1, .y = 1 } }, // br
         .{ .pos = .{ .x = 100, .y = 100 }, .uv = .{ .x = 1, .y = 0 } }, // tr
@@ -29,7 +29,7 @@ fn render() !void {
 
     var mesh = gfx.Mesh.init(gfx.Vertex, vertices[0..], u16, indices[0..]);
 
-    var dyn_mesh = try gfx.DynamicMesh(gfx.Vertex, u16).init(null, vertices.len, &indices);
+    var dyn_mesh = try gfx.DynamicMesh(gfx.Vertex, u16).init(std.testing.allocator, vertices.len, &indices);
     for (vertices) |*vert, i| {
         vert.pos.x += 200;
         vert.pos.y += 200;
@@ -39,7 +39,7 @@ fn render() !void {
 
     gfx.viewport(0, 0, 800, 600);
 
-    while (!runner.pollEvents()) {
+    while (!aya.pollEvents()) {
         gfx.clear(.{});
 
         shader.bind();
@@ -49,6 +49,6 @@ fn render() !void {
         red_tex.bind();
         dyn_mesh.drawAllVerts();
 
-        runner.swapWindow();
+        aya.swapWindow();
     }
 }

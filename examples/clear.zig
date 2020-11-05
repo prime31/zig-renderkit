@@ -1,14 +1,13 @@
 const std = @import("std");
 const aya = @import("aya");
-const sdl = @import("sdl");
-
+const gfx = aya.gfx;
 
 pub fn main() !void {
-    try aya.run(init, render);
+    try aya.run(null, render);
 }
 
-fn init() !void {}
-
 fn render() !void {
-    aya.gfx.clear(.{});
+    while (!aya.pollEvents()) {
+        gfx.clear(.{});
+    }
 }

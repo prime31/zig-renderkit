@@ -1,6 +1,5 @@
 const std = @import("std");
-const aya = @import("../../aya.zig");
-const gfx = aya.gfx;
+const gfx = @import("../gfx.zig");
 usingnamespace @import("gl_decls.zig");
 
 fn vertexBufferUsageToGl(usage: gfx.VertexBufferUsage) GLenum {

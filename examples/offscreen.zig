@@ -3,7 +3,7 @@ const aya = @import("aya");
 const sdl = @import("sdl");
 usingnamespace @import("stb");
 const gfx = aya.gfx;
-const math = aya.math;
+const math = gfx.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -52,14 +52,14 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.initFromFile("assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
 
-    var batcher = gfx.Batcher.init(100);
+    var batcher = gfx.Batcher.init(std.testing.allocator, 100);
     defer batcher.deinit();
 
-    var texture = gfx.Texture.initFromFile("assets/textures/bee-8.png", .nearest) catch unreachable;
+    var texture = gfx.Texture.initFromFile(std.testing.allocator, "assets/textures/bee-8.png", .nearest) catch unreachable;
     defer texture.deinit();
 
     var checker_tex = gfx.Texture.initCheckerTexture();
@@ -69,7 +69,7 @@ fn render() !void {
     defer white_tex.deinit();
 
     var things = makeThings(total_objects, texture);
-    defer aya.mem.allocator.free(things);
+    defer std.testing.allocator.free(things);
 
     shader.bind();
     shader.setInt("MainTex", 0);
@@ -130,7 +130,7 @@ fn render() !void {
 }
 
 fn makeThings(n: usize, texture: gfx.Texture) []Thing {
-    var things = aya.mem.allocator.alloc(Thing, n) catch unreachable;
+    var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     for (things) |*thing, i| {
         thing.* = Thing.init(texture);

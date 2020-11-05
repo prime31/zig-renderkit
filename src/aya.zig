@@ -5,15 +5,10 @@ const stb = @import("stb");
 pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
 
 pub const gfx = @import("gfx/gfx.zig");
-pub const math = @import("math/math.zig");
-pub const fs = @import("fs.zig");
-pub const mem = @import("mem/mem.zig");
 
 pub var window: *sdl.SDL_Window = undefined;
 
 pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
-    mem.initTmpAllocator();
-
     if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) != 0) {
         sdl.SDL_Log("Unable to initialize SDL: %s", sdl.SDL_GetError());
         return error.SDLInitializationFailed;
@@ -40,7 +35,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     defer sdl.SDL_GL_DeleteContext(gl_ctx);
 
     gfx.init();
-    // gl.loadFunctions(sdl.SDL_GL_GetProcAddress);
+    // gfx.initWithLoader(sdl.SDL_GL_GetProcAddress);
 
     if (init) |init_fn| {
         try init_fn();
@@ -48,7 +43,6 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         try render();
         return;
     }
-
 
     var quit = false;
     while (!pollEvents()) {

@@ -1,6 +1,6 @@
 const std = @import("std");
-const aya = @import("../../aya.zig");
-const math = aya.math;
+const fs = @import("../fs.zig");
+const math = @import("../gfx.zig").math;
 usingnamespace @import("gl_decls.zig");
 
 pub const Shader = struct {
@@ -8,9 +8,11 @@ pub const Shader = struct {
     vertex: GLuint,
     fragment: GLuint,
 
-    pub fn initFromFile(vert_path: []const u8, frag_path: []const u8) !Shader {
-        var vert = try aya.fs.readZ(aya.mem.tmp_allocator, vert_path);
-        var frag = try aya.fs.readZ(aya.mem.tmp_allocator, frag_path);
+    pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
+        var vert = try fs.readZ(allocator, vert_path);
+        errdefer allocator.free(vert);
+        var frag = try fs.readZ(allocator, frag_path);
+        errdefer allocator.free(frag);
 
         return try Shader.init(vert, frag);
     }
@@ -55,16 +57,15 @@ pub const Shader = struct {
         glUseProgram(self.id);
     }
 
+    // TODO: make a single setUniform/setUniformName entry point
+    // setUniformName(self: *Shader, comptime T: type, name: [:0]const u8, value: T)
+
     pub fn setIntArray(self: *Shader, name: [:0]const u8, value: []const c_int) void {
         glUniform1iv(glGetUniformLocation(self.id, name), @intCast(c_int, value.len), value.ptr);
     }
 
     pub fn setInt(self: *Shader, name: [:0]const u8, val: c_int) void {
         glUniform1i(glGetUniformLocation(self.id, name), val);
-    }
-
-    pub fn setVec2(self: *Shader, name: [:0]const u8, val: Vec2) void {
-        glUniform2f(glGetUniformLocation(self.id, name), val.vals[0], val.vals[1]);
     }
 
     pub fn setMat3x2(self: *Shader, name: [:0]const u8, val: math.Mat32) void {

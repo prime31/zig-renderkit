@@ -1,32 +1,28 @@
 const std = @import("std");
-const aya = @import("../aya.zig");
-
-const gfx = aya.gfx;
-const math = aya.math;
+const gfx = @import("gfx.zig");
+const math = gfx.math;
 
 const IndexBuffer = gfx.IndexBuffer;
 const VertexBuffer = gfx.VertexBuffer;
 
 pub const MultiVertex = extern struct {
-    pos: aya.math.Vec2,
-    uv: aya.math.Vec2 = .{ .x = 0, .y = 0 },
+    pos: math.Vec2,
+    uv: math.Vec2 = .{ .x = 0, .y = 0 },
     col: u32 = 0xFFFFFFFF,
     tid: f32 = 0,
 };
-
-const Allocator = std.mem.Allocator;
-const FixedList = @import("../utils/fixed_list.zig").FixedList;
 
 pub const MultiBatcher = struct {
     mesh: gfx.DynamicMesh(MultiVertex, u16),
     vert_index: usize = 0, // current index into the vertex array
     texture: gfx.TextureId = std.math.maxInt(gfx.TextureId),
-    textures: FixedList(gfx.TextureId, 8),
+    textures: [8]gfx.TextureId = undefined,
+    last_texture: usize = 0,
 
-    pub fn init(max_sprites: usize) MultiBatcher {
+    pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) MultiBatcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
 
-        var indices = aya.mem.tmp_allocator.alloc(u16, max_sprites * 6) catch unreachable;
+        var indices = allocator.alloc(u16, max_sprites * 6) catch unreachable;
         var i: usize = 0;
         while (i < max_sprites) : (i += 1) {
             indices[i * 3 * 2 + 0] = @intCast(u16, i) * 4 + 0;
@@ -38,8 +34,8 @@ pub const MultiBatcher = struct {
         }
 
         return .{
-            .mesh = gfx.DynamicMesh(MultiVertex, u16).init(null, max_sprites * 4, indices) catch unreachable,
-            .textures = FixedList(gfx.TextureId, 8).init(),
+            .mesh = gfx.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
+            .textures = [_]gfx.TextureId{0} ** 8,
         };
     }
 
@@ -62,11 +58,9 @@ pub const MultiBatcher = struct {
         self.mesh.updateVertSlice(0, self.vert_index);
 
         // bind textures
-        var iter = self.textures.iter();
-        var i: c_uint = 0;
-        while (iter.next()) |tid| {
-            self.mesh.bindings.bindTexture(tid, i);
-            i += 1;
+        for (self.textures) |tid, i| {
+            if (i == self.last_texture) break;
+            self.mesh.bindings.bindTexture(tid, @intCast(c_uint, i));
         }
 
         // draw
@@ -74,22 +68,22 @@ pub const MultiBatcher = struct {
         self.mesh.draw(@intCast(c_int, quads * 6));
 
         // reset state
-        iter = self.textures.iter();
-        i = 0;
-        while (iter.next()) |tid| {
-            self.mesh.bindings.bindTexture(0, i);
-            i += 1;
+        for (self.textures) |*tid, i| {
+            if (i == self.last_texture) break;
+            self.mesh.bindings.bindTexture(0, @intCast(c_uint, i));
+            tid.* = 0;
         }
 
         self.vert_index = 0;
-        self.textures.clear();
+        self.last_texture = 0;
     }
 
     inline fn submitTexture(self: *MultiBatcher, tid: gfx.TextureId) f32 {
-        if (self.textures.indexOf(tid)) |index| return @intToFloat(f32, index);
+        if (std.mem.indexOfScalar(gfx.TextureId, &self.textures, tid)) |index| return @intToFloat(f32, index);
 
-        self.textures.append(tid);
-        return @intToFloat(f32, self.textures.len - 1);
+        self.textures[self.last_texture] = tid;
+        self.last_texture += 1;
+        return @intToFloat(f32, self.last_texture - 1);
     }
 
     pub fn drawTex(self: *MultiBatcher, pos: math.Vec2, col: u32, texture: gfx.Texture) void {

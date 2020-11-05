@@ -1,13 +1,14 @@
 const std = @import("std");
-const aya = @import("../../aya.zig");
-const gfx = aya.gfx;
+const fs = @import("../fs.zig");
+const gfx = @import("../gfx.zig");
 const stb_image = @import("stb_image");
 
 // api that isnt renderer specific can be put here then "imported" into the per-renderer types
 
 pub const Texture = struct {
-    pub fn initFromFile(file: []const u8, filter: gfx.TextureFilter) !gfx.Texture {
-        const image_contents = try aya.fs.read(aya.mem.tmp_allocator, file);
+    pub fn initFromFile(allocator: *std.mem.Allocator, file: []const u8, filter: gfx.TextureFilter) !gfx.Texture {
+        const image_contents = try fs.read(allocator, file);
+        errdefer allocator.free(image_contents);
 
         var w: c_int = undefined;
         var h: c_int = undefined;

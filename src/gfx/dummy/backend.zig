@@ -1,7 +1,6 @@
 const std = @import("std");
-const aya = @import("../../aya.zig");
-const math = aya.math;
-const gfx = aya.gfx;
+const gfx = @import("../gfx.zig");
+const math = gfx.math;
 
 // the dummy backend defines the interface that all other backends need to implement for renderer compliance
 
@@ -73,6 +72,6 @@ pub const Shader = struct {
     pub fn bind(self: Shader) void {}
     pub fn setIntArray(self: *Shader, name: [:0]const u8, value: []const c_int) void {}
     pub fn setInt(self: *Shader, name: [:0]const u8, val: c_int) void {}
-    pub fn setVec2(self: *Shader, name: [:0]const u8, val: Vec2) void {}
+    pub fn setVec2(self: *Shader, name: [:0]const u8, val: math.Vec2) void {}
     pub fn setMat3x2(self: *Shader, name: [:0]const u8, val: math.Mat32) void {}
 };

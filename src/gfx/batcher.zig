@@ -1,25 +1,21 @@
 const std = @import("std");
-const aya = @import("../aya.zig");
-
-const gfx = aya.gfx;
-const math = aya.math;
+const gfx = @import("gfx.zig");
+const math = gfx.math;
 
 const IndexBuffer = gfx.IndexBuffer;
 const VertexBuffer = gfx.VertexBuffer;
 const Vertex = gfx.Vertex;
-
-const Allocator = std.mem.Allocator;
-const FixedList = @import("../deps/gl/fixed_list.zig").FixedList;
 
 pub const Batcher = struct {
     mesh: gfx.DynamicMesh(Vertex, u16),
     vert_index: usize = 0, // current index into the vertex array
     texture: gfx.TextureId = std.math.maxInt(gfx.TextureId),
 
-    pub fn init(max_sprites: usize) Batcher {
+    pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) Batcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
 
-        var indices = aya.mem.tmp_allocator.alloc(u16, max_sprites * 6) catch unreachable;
+        var indices = allocator.alloc(u16, max_sprites * 6) catch unreachable;
+        defer allocator.free(indices);
         var i: usize = 0;
         while (i < max_sprites) : (i += 1) {
             indices[i * 3 * 2 + 0] = @intCast(u16, i) * 4 + 0;
@@ -31,7 +27,7 @@ pub const Batcher = struct {
         }
 
         return .{
-            .mesh = gfx.DynamicMesh(Vertex, u16).init(null, max_sprites * 4, indices) catch unreachable,
+            .mesh = gfx.DynamicMesh(Vertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
         };
     }
 

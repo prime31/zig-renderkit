@@ -9,7 +9,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try runner.gfx.Shader.initFromFile("assets/shaders/1_4_textures.vert", "assets/shaders/1_4_textures.frag");
+    var shader = try runner.gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/1_4_textures.vert", "assets/shaders/1_4_textures.frag");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     const vertices = [_]f32{
@@ -61,8 +61,8 @@ fn render() !void {
     stbi_set_flip_vertically_on_load(1); // tell stb_image.h to flip loaded texture's on the y-axis.
 
     // textures
-    var tex1 = runner.gfx.Texture.initFromFile("assets/textures/container.png", .nearest) catch unreachable;
-    var tex2 = runner.gfx.Texture.initFromFile("assets/textures/awesomeface.png", .nearest) catch unreachable;
+    var tex1 = runner.gfx.Texture.initFromFile(std.testing.allocator, "assets/textures/container.png", .nearest) catch unreachable;
+    var tex2 = runner.gfx.Texture.initFromFile(std.testing.allocator, "assets/textures/awesomeface.png", .nearest) catch unreachable;
 
     shader.bind();
     glUniform1i(glGetUniformLocation(shader.id, "texture1"), 0);

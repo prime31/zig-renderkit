@@ -1,7 +1,5 @@
 const std = @import("std");
-const aya = @import("../aya.zig");
-
-const gfx = aya.gfx;
+const gfx = @import("gfx.zig");
 const math = aya.math;
 
 pub const Mesh = struct {
@@ -37,17 +35,15 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         verts: []VertT,
         allocator: *std.mem.Allocator,
 
-        pub fn init(allocator: ?*std.mem.Allocator, vertex_count: usize, indices: []IndexT) !Self {
-            const alloc = allocator orelse aya.mem.allocator;
-
+        pub fn init(allocator: *std.mem.Allocator, vertex_count: usize, indices: []IndexT) !Self {
             var bindings = gfx.BufferBindings.init();
             bindings.vertex_buffer = gfx.VertexBuffer.init(VertT, &[_]VertT{}, .stream_draw);
             bindings.index_buffer = gfx.IndexBuffer.init(IndexT, indices);
 
             return Self{
                 .bindings = bindings,
-                .verts = try alloc.alloc(VertT, vertex_count),
-                .allocator = alloc,
+                .verts = try allocator.alloc(VertT, vertex_count),
+                .allocator = allocator,
             };
         }
 
