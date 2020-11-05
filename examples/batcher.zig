@@ -147,7 +147,7 @@ fn render() !void {
             }
         }
 
-        gfx.clear(.{ .color = math.Color.beige });
+        gfx.clear(.{ .color = math.Color.beige.asArray() });
 
         // render
         batcher.begin();

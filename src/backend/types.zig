@@ -1,5 +1,3 @@
-const Color = @import("../math/math.zig").Color;
-
 pub const TextureFilter = enum {
     nearest,
     linear,
@@ -116,14 +114,14 @@ pub const RenderState = struct {
         dst_factor_alpha: BlendFactor = .one_minus_src_alpha,
         op_alpha: BlendOp = .add,
         color_write_mask: ColorMask = .rgba,
-        color: struct { r: f32 = 0, g: f32 = 0, b: f32 = 0, a: f32 = 0 } = .{},
+        color: [4]f32 = [_]f32{ 0, 0, 0, 0 },
     } = .{},
     scissor: bool = false,
 };
 
 pub const ClearCommand = struct {
     color_action: ClearAction = .clear,
-    color: Color = Color.aya,
+    color: [4]f32 = [_]f32{ 0.8, 0.2, 0.3, 1.0 },
     stencil_action: ClearAction = .dontcare,
     stencil: u8 = 0,
     depth_action: ClearAction = .dontcare,

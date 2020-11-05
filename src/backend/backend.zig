@@ -12,7 +12,7 @@ pub const Renderer = enum {
 };
 
 // pub const backend = @import(@tagName(aya.renderer) ++ "/backend.zig"); // zls cant auto-complete these
-pub const backend = @import("dummy/backend.zig"); // hardcoded for now to zls can auto-complete it
+pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // the backend must provide all of the following types/funcs
 pub fn init() void {

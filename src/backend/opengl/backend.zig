@@ -90,12 +90,12 @@ pub fn setRenderState(state: gfx.RenderState) void {
         pip_cache.blend.color_write_mask = state.blend.color_write_mask;
     }
 
-    if (std.math.approxEq(f32, state.blend.color.r, pip_cache.blend.color.r, 0.0001) or
-        std.math.approxEq(f32, state.blend.color.g, pip_cache.blend.color.g, 0.0001) or
-        std.math.approxEq(f32, state.blend.color.b, pip_cache.blend.color.b, 0.0001) or
-        std.math.approxEq(f32, state.blend.color.a, pip_cache.blend.color.a, 0.0001))
+    if (std.math.approxEq(f32, state.blend.color[0], pip_cache.blend.color[0], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[1], pip_cache.blend.color[1], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[2], pip_cache.blend.color[2], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[3], pip_cache.blend.color[3], 0.0001))
     {
-        glBlendColor(state.blend.color.r, state.blend.color.g, state.blend.color.b, state.blend.color.a);
+        glBlendColor(state.blend.color[0], state.blend.color[1], state.blend.color[2], state.blend.color[3]);
         pip_cache.blend.color = state.blend.color;
     }
 
@@ -121,8 +121,7 @@ pub fn clear(action: gfx.ClearCommand) void {
 
     if (action.color_action == .clear) {
         clear_mask |= GL_COLOR_BUFFER_BIT;
-        const col = action.color.asArray();
-        glClearColor(col[0], col[1], col[2], col[3]);
+        glClearColor(action.color[0], action.color[1], action.color[2], action.color[3]);
     }
     if (action.stencil_action == .clear) {
         clear_mask |= GL_STENCIL_BUFFER_BIT;

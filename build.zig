@@ -9,7 +9,7 @@ pub fn linkArtifact(b: *Builder, artifact: *std.build.LibExeObjStep, target: std
 }
 
 pub fn build(b: *Builder) void {
-    const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.dummy;
+    const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
 
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
@@ -36,17 +36,30 @@ pub fn build(b: *Builder) void {
 
         if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
-        if (renderer == .opengl) addOpenGlToArtifact(exe, target);
-        std.debug.print("renderer: {}\n", .{renderer});
+        // TODO: why dont we need to link OpenGL?
+        // if (renderer == .opengl) addOpenGlToArtifact(exe, target);
 
+        // stb package
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
+
+        // backend package. this can probably just go straight to the actual opengl/backend.zig file
+        exe.addPackage(.{
+            .name = "backend",
+            .path = "src/backend/backend.zig",
+            .dependencies = exe.packages.items, // includes just stb
+        });
+
+        // gfx gets access to stb and backend
         exe.addPackage(.{
             .name = "gfx",
             .path = "src/gfx.zig",
-            .dependencies = exe.packages.items, // includes just stb
+            .dependencies = exe.packages.items,
         });
+
+        // sdl package
         @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
 
+        // aya gets access to everything
         exe.addPackage(.{
             .name = "aya",
             .path = "examples/core/aya.zig",

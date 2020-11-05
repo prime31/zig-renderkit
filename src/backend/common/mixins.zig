@@ -1,5 +1,5 @@
 const std = @import("std");
-const fs = @import("../../fs.zig");
+const fs = @import("../fs.zig");
 const gfx = @import("../../gfx.zig");
 const stb_image = @import("stb");
 

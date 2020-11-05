@@ -80,7 +80,7 @@ fn render() !void {
 
     // render something to the render texture
     rt.bind();
-    gfx.clear(.{ .color = math.Color{ .value = randomColor() } });
+    gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
 
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();
@@ -102,7 +102,7 @@ fn render() !void {
             thing.pos.y += thing.vel.y * 0.016;
         }
 
-        gfx.clear(.{ .color = math.Color{ .value = randomColor() } });
+        gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
 
         // render
         batcher.begin();
