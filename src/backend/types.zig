@@ -8,6 +8,18 @@ pub const TextureWrap = enum {
     repeat,
 };
 
+pub const PixelFormat = enum {
+    rgba,
+    stencil,
+    depth_stencil,
+};
+
+pub const Usage = enum {
+    immutable,
+    dynamic,
+    stream,
+};
+
 pub const VertexBufferUsage = enum {
     stream_draw,
     static_draw,

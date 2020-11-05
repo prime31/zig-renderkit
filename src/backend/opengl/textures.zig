@@ -62,7 +62,7 @@ pub const RenderTexture = struct {
         return initWithOptions(width, height, false, false);
     }
 
-pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) !RenderTexture {
+    pub fn initWithOptions(width: c_int, height: c_int, depth: bool, stencil: bool) !RenderTexture {
         // we allow neither, both or stencil but not just depth
         std.debug.assert(!(depth and !stencil));
 

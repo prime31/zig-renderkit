@@ -2,6 +2,9 @@ const std = @import("std");
 const gfx = @import("../../gfx.zig");
 usingnamespace @import("gl_decls.zig");
 
+usingnamespace @import("image.zig");
+
+// old, too high level
 usingnamespace @import("buffers.zig");
 usingnamespace @import("shader.zig");
 usingnamespace @import("textures.zig");
