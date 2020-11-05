@@ -28,12 +28,17 @@ pub const Texture = struct {
     }
     pub fn deinit(self: Texture) void {}
     pub fn bind(self: Texture) void {}
-    pub fn setData(self: *Texture, width: c_int, height: c_int, data: [*c]const u8) void {}
-    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: [*c]const u32) void {}
+    pub fn setData(self: *Texture, width: c_int, height: c_int, data: []const u8) void {}
+    pub fn setColorData(self: *Texture, width: c_int, height: c_int, data: []const u32) void {}
 };
 
 pub const RenderTexture = struct {
+    texture: Texture = undefined,
+
+    pub fn init(width: c_int, height: c_int) !RenderTexture { return RenderTexture{}; }
     pub fn deinit(self: RenderTexture) void {}
+    pub fn bind(self: *const RenderTexture) void {}
+    pub fn unbind(self: *const RenderTexture) void {}
 };
 
 pub const BufferBindings = struct {

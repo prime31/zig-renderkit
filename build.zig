@@ -1,5 +1,6 @@
 const std = @import("std");
 const Builder = @import("std").build.Builder;
+const Renderer = @import("src/backend/backend.zig").Renderer;
 
 /// rel_path is the path to the gfx build.zig file relative to your build.zig.
 /// rel_path is used to add package paths. It should be the the same path used to include this build file
@@ -8,6 +9,8 @@ pub fn linkArtifact(b: *Builder, artifact: *std.build.LibExeObjStep, target: std
 }
 
 pub fn build(b: *Builder) void {
+    const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.dummy;
+
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
@@ -33,14 +36,16 @@ pub fn build(b: *Builder) void {
 
         if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
-        addOpenGlToArtifact(exe, target);
-        @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
+        if (renderer == .opengl) addOpenGlToArtifact(exe, target);
+        std.debug.print("renderer: {}\n", .{renderer});
+
         @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
         exe.addPackage(.{
             .name = "gfx",
             .path = "src/gfx.zig",
-            .dependencies = exe.packages.items,
+            .dependencies = exe.packages.items, // includes just stb
         });
+        @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
 
         exe.addPackage(.{
             .name = "aya",
@@ -61,6 +66,7 @@ pub fn build(b: *Builder) void {
 }
 
 fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
+    std.debug.print("------ linking opengl ----------\n", .{});
     if (target.isDarwin()) {
         artifact.linkFramework("OpenGL");
     } else if (target.isWindows()) {
