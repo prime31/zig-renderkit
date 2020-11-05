@@ -8,6 +8,7 @@ pub const gfx = @import("gfx/gfx.zig");
 
 pub var window: *sdl.SDL_Window = undefined;
 
+// if init is null then render is the only method that will be called. Use while (pollEvents()) to make your game loop.
 pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     if (sdl.SDL_Init(sdl.SDL_INIT_VIDEO) != 0) {
         sdl.SDL_Log("Unable to initialize SDL: %s", sdl.SDL_GetError());

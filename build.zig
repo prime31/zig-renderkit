@@ -1,15 +1,18 @@
 const std = @import("std");
 const Builder = @import("std").build.Builder;
 
+/// rel_path is the path to gfx relative to your build.zig. Must end with a slash.
+pub fn addGfxToArtifact(artifact: *LibExeObjStep, rel_path: []const u8) void {}
+
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
+        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "meshes", "examples/meshes.zig" },
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
         [_][]const u8{ "1_4", "examples/1_4.zig" },
         [_][]const u8{ "1_3", "examples/1_3.zig" },

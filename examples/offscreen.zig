@@ -52,14 +52,14 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
 
     var batcher = gfx.Batcher.init(std.testing.allocator, 100);
     defer batcher.deinit();
 
-    var texture = gfx.Texture.initFromFile(std.testing.allocator, "assets/textures/bee-8.png", .nearest) catch unreachable;
+    var texture = gfx.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
     defer texture.deinit();
 
     var checker_tex = gfx.Texture.initCheckerTexture();

@@ -8,7 +8,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try runner.gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/1_3_shaders.vert", "assets/shaders/1_3_shaders.frag");
+    var shader = try runner.gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/1_3_shaders.vert", "examples/assets/shaders/1_3_shaders.frag");
 
     const vertices = [_]f32{
         // positions      // colors

@@ -8,7 +8,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
     shader.setInt("MainTex", 0);

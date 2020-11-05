@@ -98,7 +98,7 @@ pub fn main() !void {
 fn render() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
 
-    var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert_multi.vs", "assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "assets/shaders/vert.vs", "assets/shaders/frag.fs");
+    var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
     shader.setInt("MainTex", 0);
@@ -173,7 +173,7 @@ fn loadTextures() []gfx.Texture {
 
     var buf: [512]u8 = undefined;
     for (textures) |tex, i| {
-        var name = std.fmt.bufPrintZ(&buf, "assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
+        var name = std.fmt.bufPrintZ(&buf, "examples/assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
         textures[i] = gfx.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
     }
 
