@@ -1,5 +1,5 @@
-pub usingnamespace @import("backend.zig");
-pub usingnamespace @import("types.zig");
+pub usingnamespace @import("backend/backend.zig");
+pub usingnamespace @import("backend/types.zig");
 pub const math = @import("math/math.zig");
 
 pub const Mesh = @import("mesh.zig").Mesh;

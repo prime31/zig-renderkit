@@ -1,4 +1,4 @@
-const Color = @import("math/color.zig").Color;
+const Color = @import("../math/math.zig").Color;
 
 pub const TextureFilter = enum {
     nearest,

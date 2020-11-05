@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
+const gfx = @import("../../gfx.zig");
 const math = gfx.math;
 
 // the dummy backend defines the interface that all other backends need to implement for renderer compliance
