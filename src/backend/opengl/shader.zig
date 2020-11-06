@@ -5,8 +5,6 @@ usingnamespace @import("gl_decls.zig");
 
 pub const Shader = struct {
     id: GLuint,
-    vertex: GLuint,
-    fragment: GLuint,
 
     pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
         var vert = try fs.readZ(allocator, vert_path);
@@ -22,14 +20,14 @@ pub const Shader = struct {
         var v = vert;
         glShaderSource(vertex_shader, 1, &v, null);
         glCompileShader(vertex_shader);
-        errdefer glDeleteShader(vertex_shader);
+        defer glDeleteShader(vertex_shader);
         try checkError(vertex_shader);
 
         const frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
         var f = frag;
         glShaderSource(frag_shader, 1, &f, null);
         glCompileShader(frag_shader);
-        errdefer glDeleteShader(frag_shader);
+        defer glDeleteShader(frag_shader);
         try checkError(frag_shader);
 
         const id = glCreateProgram();
@@ -40,17 +38,11 @@ pub const Shader = struct {
         errdefer glDeleteProgram(id);
         try checkProgramError(id);
 
-        return Shader{
-            .id = id,
-            .vertex = vertex_shader,
-            .fragment = frag_shader,
-        };
+        return Shader{ .id = id };
     }
 
     pub fn deinit(self: Shader) void {
         glDeleteProgram(self.id);
-        glDeleteShader(self.vertex);
-        glDeleteShader(self.fragment);
     }
 
     pub fn bind(self: *const Shader) void {

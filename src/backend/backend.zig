@@ -1,6 +1,6 @@
 const std = @import("std");
-const gfx_types = @import("types.zig");
-usingnamespace @import("descriptions.zig");
+pub const gfx_types = @import("types.zig");
+pub usingnamespace @import("descriptions.zig");
 
 // this is the entrypoint for all renderer specific types. They are loaded based on the chosen Renderer
 // and exposed via this interface.
@@ -29,37 +29,71 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
-pub fn bindImage(image: Image, slot: c_uint) void {
-    backend.bindImage(image, slot);
+
+// passes
+pub const OffscreenPass = backend.OffscreenPass;
+
+pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
+    return backend.createOffscreenPass(desc);
 }
 
-// sg_image sg_make_image(const sg_image_desc* desc);
-// void sg_destroy_image(sg_image img);
-// void sg_update_image(sg_image img, const sg_image_content* data);
+pub fn destroyOffscreenPass(pass: OffscreenPass) void {
+    backend.destroyOffscreenPass(pass);
+}
 
-// resource creation, destruction and updating */
-// sg_buffer sg_make_buffer(const sg_buffer_desc* desc);
-// sg_shader sg_make_shader(const sg_shader_desc* desc);
-// sg_pipeline sg_make_pipeline(const sg_pipeline_desc* desc);
-// sg_pass sg_make_pass(const sg_pass_desc* desc);
-// void sg_destroy_buffer(sg_buffer buf);
-// void sg_destroy_shader(sg_shader shd);
-// void sg_destroy_pipeline(sg_pipeline pip);
-// void sg_destroy_pass(sg_pass pass);
+pub fn beginOffscreenPass(pass: OffscreenPass) void {
+    backend.beginOffscreenPass(pass);
+}
+
+pub fn endOffscreenPass(pass: OffscreenPass) void {
+    backend.endOffscreenPass(pass);
+}
+
+
+// buffers
+pub const Buffer = backend.Buffer;
+pub const Bindings = backend.Bindings;
+
+pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
+    return backend.createBuffer(T, desc);
+}
+
+pub fn destroyBuffer(buffer: Buffer) void {
+    backend.destroyBuffer(buffer);
+}
+
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings {
+    return backend.createBufferBindings(index_buffer, vert_buffer);
+}
+
+pub fn destroyBufferBindings(bindings: *Bindings) void {
+    return backend.destroyBufferBindings(bindings);
+}
+
+pub fn drawBufferBindings(bindings: Bindings, element_count: c_int) void {
+    return backend.drawBufferBindings(bindings, element_count);
+}
+
+pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
+    backend.updateBuffer(T, buffer, verts);
+}
+
 // void sg_update_buffer(sg_buffer buf, const void* data_ptr, int data_size);
 // int sg_append_buffer(sg_buffer buf, const void* data_ptr, int data_size);
-// bool sg_query_buffer_overflow(sg_buffer buf);
+
+// sg_shader sg_make_shader(const sg_shader_desc* desc);
+// void sg_destroy_shader(sg_shader shd);
+
+// sg_pipeline sg_make_pipeline(const sg_pipeline_desc* desc);
+// void sg_destroy_pipeline(sg_pipeline pip);
 
 // rendering functions
-// void sg_begin_default_pass(const sg_pass_action* pass_action, int width, int height);
-// void sg_begin_pass(sg_pass pass, const sg_pass_action* pass_action);
 // void sg_apply_viewport(int x, int y, int width, int height, bool origin_top_left);
 // void sg_apply_scissor_rect(int x, int y, int width, int height, bool origin_top_left);
 // void sg_apply_pipeline(sg_pipeline pip);
 // void sg_apply_bindings(const sg_bindings* bindings);
 // void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
 // void sg_draw(int base_element, int num_elements, int num_instances);
-// void sg_end_pass(void);
 // void sg_commit(void);
 
 

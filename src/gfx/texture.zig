@@ -69,6 +69,41 @@ pub const Texture = struct {
         return initWithData(u32, 4, 4, pixels[0..]);
     }
 
+    pub fn initOffscreen(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) gfx.Texture {
+        const img = backend.createImage(.{
+            .render_target = true,
+            .width = width,
+            .height = height,
+            .min_filter = filter,
+            .mag_filter = filter,
+            .wrap_u = wrap,
+            .wrap_v = wrap,
+        });
+        return .{
+            .img = img,
+            .width = @intToFloat(f32, width),
+            .height = @intToFloat(f32, height),
+        };
+    }
+
+    pub fn initStencil(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) gfx.Texture {
+        const img = backend.createImage(.{
+            .render_target = true,
+            .pixel_format = .stencil,
+            .width = width,
+            .height = height,
+            .min_filter = filter,
+            .mag_filter = filter,
+            .wrap_u = wrap,
+            .wrap_v = wrap,
+        });
+        return .{
+            .img = img,
+            .width = @intToFloat(f32, width),
+            .height = @intToFloat(f32, height),
+        };
+    }
+
     pub fn deinit(self: *const Texture) void {
         backend.destroyImage(self.img);
     }

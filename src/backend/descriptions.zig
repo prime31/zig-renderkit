@@ -1,4 +1,6 @@
+const std = @import("std");
 const gfx = @import("types.zig");
+const backend = @import("backend.zig");
 
 pub const ImageDesc = struct {
     render_target: bool = false,
@@ -12,3 +14,25 @@ pub const ImageDesc = struct {
     wrap_v: gfx.TextureWrap = .clamp,
     content: ?[]const u8 = null,
 };
+
+pub const OffscreenPassDesc = struct {
+    color_img: backend.Image,
+    depth_stencil_img: ?backend.Image = null,
+};
+
+pub fn BufferDesc(comptime T: type) type {
+    return struct {
+        size: c_long = 0, // either size (for stream buffers) or content (for static/dynamic) must be set
+        type: gfx.BufferType = .vertex,
+        usage: gfx.Usage = .immutable,
+        content: ?[]const T = null,
+
+        pub fn getSize(self: @This()) c_long {
+            std.debug.assert(self.usage != .immutable or self.content != null);
+            std.debug.assert(self.size > 0 or self.content != null);
+
+            if (self.content) |con| return @intCast(c_long, con.len * @sizeOf(T));
+            return self.size;
+        }
+    };
+}

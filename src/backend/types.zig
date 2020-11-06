@@ -20,6 +20,11 @@ pub const Usage = enum {
     stream,
 };
 
+pub const BufferType = enum {
+    vertex,
+    index,
+};
+
 pub const VertexBufferUsage = enum {
     stream_draw,
     static_draw,

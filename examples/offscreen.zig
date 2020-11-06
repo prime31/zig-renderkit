@@ -51,6 +51,26 @@ pub fn main() !void {
 }
 
 fn render() !void {
+    const backend = @import("backend");
+    var vertices = &[_]gfx.Vertex{
+        .{ .pos = .{ .x = 100, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
+        .{ .pos = .{ .x = 200, .y = 10 }, .uv = .{ .x = 1, .y = 1 } }, // br
+        .{ .pos = .{ .x = 200, .y = 100 }, .uv = .{ .x = 1, .y = 0 } }, // tr
+        .{ .pos = .{ .x = 100, .y = 100 }, .uv = .{ .x = 0, .y = 0 } }, // tl
+    };
+    var vbuffer = backend.createBuffer(gfx.Vertex, .{
+        .usage = .immutable,
+        .content = vertices,
+    });
+    var ibuffer = backend.createBuffer(u16, .{
+        .type = .index,
+        .content = &[_]u16{0, 1, 2, 2, 3, 0},
+    });
+
+    var bindings = backend.createBufferBindings(ibuffer, vbuffer);
+    defer backend.destroyBufferBindings(&bindings);
+
+
     var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
@@ -75,21 +95,21 @@ fn render() !void {
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
     gfx.viewport(0, 0, 800, 600);
 
-    // var rt = try gfx.RenderTexture.init(300, 200);
-    // defer rt.deinit();
+    var rt = gfx.RenderTexture.init(300, 200);
+    defer rt.deinit();
 
-    // // render something to the render texture
-    // rt.bind();
-    // gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
+    // render something to the render texture
+    rt.bind();
+    gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
 
-    // shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
-    // batcher.begin();
-    // batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
-    // batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
-    // batcher.drawTex(.{ .x = 90 }, 0xFFFFFFFF, texture);
-    // batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
-    // batcher.end();
-    // rt.unbind();
+    shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
+    batcher.begin();
+    batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 90 }, 0xFFFFFFFF, texture);
+    batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
+    batcher.end();
+    rt.unbind();
 
     gfx.viewport(0, 0, 800, 600);
     var rt_pos: math.Vec2 = .{};
@@ -106,7 +126,7 @@ fn render() !void {
 
         // render
         batcher.begin();
-        // batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.texture);
+        batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.texture);
         rt_pos.x += 0.5;
         rt_pos.y += 0.5;
 
@@ -123,6 +143,9 @@ fn render() !void {
         batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
 
         batcher.end();
+
+        backend.drawBufferBindings(bindings, 6);
+        backend.drawBufferBindings(bindings, 6);
 
         aya.swapWindow();
     }
