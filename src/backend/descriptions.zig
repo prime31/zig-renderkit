@@ -2,6 +2,10 @@ const std = @import("std");
 const gfx = @import("types.zig");
 const backend = @import("backend.zig");
 
+pub const RendererDesc = struct {
+    gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
+};
+
 pub const ImageDesc = struct {
     render_target: bool = false,
     width: i32,

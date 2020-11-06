@@ -33,8 +33,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     var gl_ctx = sdl.SDL_GL_CreateContext(window);
     defer sdl.SDL_GL_DeleteContext(gl_ctx);
 
-    gfx.init();
-    // gfx.initWithLoader(sdl.SDL_GL_GetProcAddress);
+    gfx.setup(.{.gl_loader = sdl.SDL_GL_GetProcAddress});
 
     if (init) |init_fn| {
         try init_fn();

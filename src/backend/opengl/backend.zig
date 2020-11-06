@@ -4,17 +4,19 @@ usingnamespace @import("gl_decls.zig");
 
 usingnamespace @import("image.zig");
 
-// old, too high level
+// old, too high level remove
 usingnamespace @import("shader.zig");
+
+const RendererDesc = @import("../descriptions.zig").RendererDesc;
 
 var pip_cache: gfx.RenderState = undefined;
 
-pub fn init() void {
-    loadFunctionsZig();
-}
-
-pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
-    loadFunctions(loader);
+pub fn setup(desc: RendererDesc) void {
+    if (desc.gl_loader) |loader| {
+        loadFunctions(loader);
+    } else {
+        loadFunctionsZig();
+    }
 }
 
 pub fn setRenderState(state: gfx.RenderState) void {

@@ -12,11 +12,10 @@ fn render() !void {
     var s = backend.createShaderProgram(.{
         .vs = @embedFile("assets/shaders/vert.vs"),
         .fs = @embedFile("assets/shaders/frag.fs"),
-        .images = &[_][:0]const u8 {"MainTex"},
+        .images = &[_][:0]const u8{"MainTex"},
     });
     backend.useShaderProgram(s);
     backend.setUniform(math.Mat32, s, "TransformMatrix", math.Mat32.initOrtho(800, 600));
-    backend.setUniform(math.Vec2, s, "t", math.Vec2{});
     defer backend.destroyShaderProgram(s);
 
     // var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));

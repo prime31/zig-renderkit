@@ -221,6 +221,7 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
                             } else {
                                 switch (type_info.bits) {
                                     32 => {
+                                        // u32 is color
                                         glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, @sizeOf(T), offset);
                                         glEnableVertexAttribArray(i);
                                     },
@@ -232,13 +233,13 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
                             glVertexAttribPointer(i, 1, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
                             glEnableVertexAttribArray(i);
                         },
-                        .Struct => |StructT| {
-                            const field_type = StructT.fields[0].field_type;
+                        .Struct => |type_info| {
+                            const field_type = type_info.fields[0].field_type;
                             std.debug.assert(@sizeOf(field_type) == 4);
 
                             switch (@typeInfo(field_type)) {
                                 .Float => {
-                                    switch (StructT.fields.len) {
+                                    switch (type_info.fields.len) {
                                         2 => {
                                             glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
                                             glEnableVertexAttribArray(i);
@@ -389,40 +390,51 @@ pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, v
     const location = glGetUniformLocation(shader.program, name);
     if (location == -1) {
         std.debug.print("could not location uniform {}\n", .{name});
-        // return;
+        return;
     }
 
     const ti = @typeInfo(T);
-    if (ti == .Float) {
-        glUniform1f(glGetUniformLocation(shader.program, name), value);
-    } else if (ti == .Struct) {
-        if (ti.Struct.fields.len == 2 and @typeInfo(ti.Struct.fields[0].field_type) == .Float and @typeInfo(ti.Struct.fields[1].field_type) == .Float) {
-            var val = @field(value, ti.Struct.fields[0].name);
-            glUniform1fv(location, 2, &val);
-            return;
-        }
+    const type_name = @typeName(T);
 
+    // cover common cases before we go down the rabbit hold
+    if (ti == .Struct and std.mem.eql(u8, type_name, "Mat32") and ti.Struct.fields.len == 1 and std.mem.eql(u8, ti.Struct.fields[0].name, "data")) {
+        var data = @field(value, ti.Struct.fields[0].name);
+        glUniformMatrix3x2fv(glGetUniformLocation(shader.program, name), 1, GL_FALSE, &data);
+    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec2")) {
+        var val = @field(value, ti.Struct.fields[0].name);
+        glUniform1fv(location, 2, &val);
+    } else if (ti == .Float) {
+        glUniform1f(glGetUniformLocation(shader.program, name), value);
+    } else if (ti == .Array) {
+        switch (@typeInfo(ti.Array.child)) {
+            .Int => |type_info| {
+                std.debug.assert(type_info.bits == 32);
+                glUniform1iv(location, @intCast(c_int, ti.Array.len), &value);
+            },
+            .Float => |type_info| {
+                std.debug.assert(type_info.bits == 32);
+                glUniform1fv(location, @intCast(c_int, ti.Array.len), &value);
+            },
+            .Struct => |type_info| {
+                std.debug.print("type_info: {}, type_info: {}\n", .{ ti, type_info });
+                @panic("add support for array of struct");
+            },
+            else => unreachable,
+        }
+    } else if (ti == .Struct) {
+        // the rabbit hole
         inline for (ti.Struct.fields) |field, i| {
             switch (@typeInfo(field.field_type)) {
-                .Array => |info| {
-                    // special case Mat32
-                    var data = @field(value, field.name);
-                    if (std.mem.eql(u8, field.name, "data") and @typeInfo(info.child) == .Float and info.len == 6) {
-                        glUniformMatrix3x2fv(glGetUniformLocation(shader.program, name), 1, GL_FALSE, &data[0]);
-                    } else {
-                        glUniform1fv(location, info.len, &data);
-                    }
-                },
                 .Float => |type_info| {
-                    std.debug.print("----- float: {}, field: {}\n", .{type_info, field.name});
+                    std.debug.print("----- float: {}, field: {}\n", .{ type_info, field.name });
                 },
-                .Struct => |StructT| {
-                    const field_type = StructT.fields[0].field_type;
-                    std.debug.print("struct: {}, field: {}, len: {}\n", .{StructT, field.name, StructT.fields.len});
+                .Struct => |type_info| {
+                    const field_type = type_info.fields[0].field_type;
+                    std.debug.print("struct: {}, field: {}, len: {}\n", .{ type_info, field.name, type_info.fields.len });
 
                     switch (@typeInfo(field_type)) {
                         .Float => {
-                            switch (StructT.fields.len) {
+                            switch (type_info.fields.len) {
                                 2 => {
                                     std.debug.print("float2: {}\n", .{type_info});
                                 },
@@ -435,5 +447,24 @@ pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, v
                 else => unreachable,
             }
         }
+    } else if (ti == .Pointer) {
+        switch (ti.Pointer.size) {
+            .Slice, .Many, .C => {
+                switch (@typeInfo(ti.Pointer.child)) {
+                    .Int => |info| {
+                        std.debug.assert(info.bits == 32);
+                        glUniform1iv(location, @intCast(c_int, value.len), value.ptr);
+                    },
+                    .Float => |info| {
+                        std.debug.assert(info.bits == 32);
+                        glUniform1fv(location, @intCast(c_int, value.len), value.ptr);
+                    },
+                    else => unreachable,
+                }
+            },
+            else => unreachable,
+        }
+    } else {
+        unreachable;
     }
 }

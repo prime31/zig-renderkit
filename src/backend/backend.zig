@@ -112,13 +112,8 @@ pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, v
 
 
 // the backend must provide all of the following types/funcs
-pub fn init() void {
-    backend.init();
-    backend.setRenderState(.{});
-}
-
-pub fn initWithLoader(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
-    backend.initWithLoader(loader);
+pub fn setup(desc: RendererDesc) void {
+    backend.setup(desc);
     backend.setRenderState(.{});
 }
 
