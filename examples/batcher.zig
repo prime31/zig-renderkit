@@ -9,8 +9,8 @@ var rng = std.rand.DefaultPrng.init(0x12345678);
 const total_textures: usize = 8;
 const max_sprites_per_batch: usize = 5000;
 const total_objects = 10000;
-const draws_per_tex_swap = 40;
-const use_multi_texture_batcher = true;
+const draws_per_tex_swap = 250;
+const use_multi_texture_batcher = false;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {
@@ -42,8 +42,8 @@ const Thing = struct {
                 .y = range(f32, 0, 50),
             },
             .vel = .{
-                .x = range(f32, -50, 50),
-                .y = range(f32, 0, 50),
+                .x = range(f32, -150, 150),
+                .y = range(f32, 0, 250),
             },
             .col = randomColor(),
         };
@@ -94,18 +94,18 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    _ = sdl.SDL_GL_SetSwapInterval(0);
+    _ = sdl.SDL_GL_SetSwapInterval(1);
 
     var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
-    shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
+    shader.setUniformName(i32, "MainTex", 0);
+    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
 
     if (use_multi_texture_batcher) {
         var samplers: [8]c_int = undefined;
         for (samplers) |*val, i| val.* = @intCast(c_int, i);
-        shader.setIntArray("Textures", &samplers);
+        shader.setUniformName([]c_int, "Textures", &samplers);
     }
 
     var batcher = if (use_multi_texture_batcher) gfx.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else gfx.Batcher.init(std.testing.allocator, max_sprites_per_batch);

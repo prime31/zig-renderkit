@@ -1,8 +1,6 @@
 const std = @import("std");
 const backend = @import("backend");
 const gfx = @import("../gfx.zig");
-const stb_image = @import("stb");
-const fs = @import("../fs.zig");
 
 pub const RenderTexture = struct {
     pass: backend.OffscreenPass,

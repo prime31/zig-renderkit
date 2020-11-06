@@ -6,6 +6,7 @@ pub const fs = @import("fs.zig");
 
 pub const Texture = @import("gfx/texture.zig").Texture;
 pub const RenderTexture = @import("gfx/render_texture.zig").RenderTexture;
+pub const Shader = @import("gfx/shader.zig").Shader;
 
 pub const Mesh = @import("mesh.zig").Mesh;
 pub const DynamicMesh = @import("mesh.zig").DynamicMesh;

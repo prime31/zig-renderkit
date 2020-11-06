@@ -386,7 +386,7 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
     cache.useShaderProgram(shader.program);
 }
 
-pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
+pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
     const location = glGetUniformLocation(shader.program, name);
     if (location == -1) {
         std.debug.print("could not location uniform {}\n", .{name});
@@ -403,6 +403,8 @@ pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, v
     } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec2")) {
         var val = @field(value, ti.Struct.fields[0].name);
         glUniform1fv(location, 2, &val);
+    } else if (ti == .Int) {
+        glUniform1i(location, value);
     } else if (ti == .Float) {
         glUniform1f(glGetUniformLocation(shader.program, name), value);
     } else if (ti == .Array) {

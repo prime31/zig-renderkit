@@ -8,21 +8,11 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    const backend = @import("backend");
-    var s = backend.createShaderProgram(.{
-        .vs = @embedFile("assets/shaders/vert.vs"),
-        .fs = @embedFile("assets/shaders/frag.fs"),
-        .images = &[_][:0]const u8{"MainTex"},
-    });
-    backend.useShaderProgram(s);
-    backend.setUniform(math.Mat32, s, "TransformMatrix", math.Mat32.initOrtho(800, 600));
-    defer backend.destroyShaderProgram(s);
-
-    // var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));
-    // shader.bind();
-    // shader.setInt("MainTex", 0);
-    // shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
-    // defer shader.deinit();
+    var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));
+    shader.bind();
+    shader.setUniformName(i32, "MainTex", 0);
+    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
+    defer shader.deinit();
 
     var tex = gfx.Texture.initCheckerTexture();
     defer tex.deinit();

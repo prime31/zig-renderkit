@@ -83,7 +83,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 }
 
 
-// shders
+// shaders
 pub const ShaderProgram = backend.ShaderProgram;
 
 pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
@@ -98,12 +98,11 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
     backend.useShaderProgram(shader);
 }
 
-pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
-    backend.setUniform(T, shader, name, value);
+pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
+    backend.setShaderProgramUniform(T, shader, name, value);
 }
 
 // rendering functions
-// void sg_apply_pipeline(sg_pipeline pip);
 // void sg_apply_bindings(const sg_bindings* bindings);
 // void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
 // void sg_draw(int base_element, int num_elements, int num_instances);
@@ -132,5 +131,3 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
 pub fn clear(action: gfx_types.ClearCommand) void {
     backend.clear(action);
 }
-
-pub const Shader = backend.Shader;

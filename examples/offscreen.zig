@@ -71,8 +71,8 @@ fn render() !void {
     defer std.testing.allocator.free(things);
 
     shader.bind();
-    shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
+    shader.setUniformName(i32, "MainTex", 0);
+    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
     gfx.viewport(0, 0, 800, 600);
 
     var rt = gfx.RenderTexture.init(300, 200);
@@ -82,7 +82,7 @@ fn render() !void {
     rt.bind();
     gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
 
-    shader.setMat3x2("TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
+    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();
     batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
     batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
@@ -94,7 +94,7 @@ fn render() !void {
     gfx.viewport(0, 0, 800, 600);
     var rt_pos: math.Vec2 = .{};
 
-    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
+    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
 
     while (!aya.pollEvents()) {
         for (things) |*thing| {

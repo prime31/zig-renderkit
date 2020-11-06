@@ -11,8 +11,8 @@ fn render() !void {
     var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
-    shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", gfx.math.Mat32.initOrtho(800, 600));
+    shader.setUniformName(i32, "MainTex", 0);
+    shader.setUniformName(gfx.math.Mat32, "TransformMatrix", gfx.math.Mat32.initOrtho(800, 600));
     gfx.viewport(0, 0, 800, 600);
 
     var tri_batch = try gfx.TriangleBatcher.init(std.testing.allocator, 100);
