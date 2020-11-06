@@ -82,9 +82,25 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
-// sg_shader sg_make_shader(const sg_shader_desc* desc);
-// void sg_destroy_shader(sg_shader shd);
 
+// shders
+pub const ShaderProgram = backend.ShaderProgram;
+
+pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
+    return backend.createShaderProgram(desc);
+}
+
+pub fn destroyShaderProgram(shader: ShaderProgram) void {
+    return backend.destroyShaderProgram(shader);
+}
+
+pub fn useShaderProgram(shader: ShaderProgram) void {
+    backend.useShaderProgram(shader);
+}
+
+pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
+    backend.setUniform(T, shader, name, value);
+}
 
 // rendering functions
 // void sg_apply_pipeline(sg_pipeline pip);

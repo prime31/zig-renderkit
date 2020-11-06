@@ -116,11 +116,11 @@ pub const Mat32 = struct {
         const cos = math.cos(rads);
         const sin = math.sin(rads);
 
-        const nm0 = m[0] * cos + self.data[2] * sin;
-        const nm1 = m[1] * cos + self.data[3] * sin;
+        const nm0 = self.data[0] * cos + self.data[2] * sin;
+        const nm1 = self.data[1] * cos + self.data[3] * sin;
 
-        self.data[2] = m[0] * -sin + self.data[2] * cos;
-        self.data[3] = m[1] * -sin + self.data[3] * cos;
+        self.data[2] = self.data[0] * -sin + self.data[2] * cos;
+        self.data[3] = self.data[1] * -sin + self.data[3] * cos;
         self.data[0] = nm0;
         self.data[1] = nm1;
     }

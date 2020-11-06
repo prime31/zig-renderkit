@@ -5,6 +5,7 @@ pub const RenderCache = struct {
     vao: GLuint = 0,
     vbo: GLuint = 0,
     ebo: GLuint = 0,
+    shader: GLuint = 0,
     textures: [8]c_uint = [_]c_uint{0} ** 8,
 
     pub fn init() RenderCache {
@@ -80,6 +81,20 @@ pub const RenderCache = struct {
                 glActiveTexture(GL_TEXTURE0 + @intCast(c_uint, i));
                 glBindTexture(GL_TEXTURE_2D, tid);
             }
+        }
+    }
+
+    pub fn useShaderProgram(self: *@This(), program: GLuint) void {
+        if (self.shader != program) {
+            self.shader = program;
+            glUseProgram(program);
+        }
+    }
+
+    pub fn invalidateProgram(self: *@This(), program: GLuint) void {
+        if (self.shader == program) {
+            self.shader = 0;
+            glUseProgram(0);
         }
     }
 };

@@ -20,9 +20,45 @@ fn checkError(src: std.builtin.SourceLocation) void {
             else => "Unknown Error Enum",
         };
 
-        std.debug.print("error: {}, file: {}, func: {}, line: {}\n", .{error_name, src.file, src.fn_name, src.line});
+        std.debug.print("error: {}, file: {}, func: {}, line: {}\n", .{ error_name, src.file, src.fn_name, src.line });
         err_code = glGetError();
     }
+}
+
+fn checkShaderError(shader: GLuint) bool {
+    var status: GLint = undefined;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    if (status != GL_TRUE) {
+        var buf: [2048]u8 = undefined;
+        var total_len: GLsizei = -1;
+        glGetShaderInfoLog(shader, 2048, &total_len, buf[0..]);
+        if (total_len == -1) {
+            // the length of the infolog seems to not be set when a GL context isn't set (so when the window isn't created)
+            unreachable;
+        }
+
+        std.debug.print("shader compilation errror:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        return false;
+    }
+    return true;
+}
+
+fn checkProgramError(shader: GLuint) bool {
+    var status: GLint = undefined;
+    glGetProgramiv(shader, GL_LINK_STATUS, &status);
+    if (status != GL_TRUE) {
+        var buf: [2048]u8 = undefined;
+        var total_len: GLsizei = -1;
+        glGetProgramInfoLog(shader, 2048, &total_len, buf[0..]);
+        if (total_len == -1) {
+            // the length of the infolog seems to not be set when a GL context isn't set (so when the window isn't created)
+            unreachable;
+        }
+
+        std.debug.print("program link errror:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        return false;
+    }
+    return true;
 }
 
 pub const ImageId = GLuint;
@@ -280,4 +316,124 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     // orphan the buffer for streamed
     if (buffer.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
+}
+
+pub const ShaderProgram = *GLShaderProgram;
+pub const GLShaderProgram = struct {
+    program: GLuint,
+};
+
+fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
+    const shader = glCreateShader(stage);
+    var shader_src = src;
+    glShaderSource(shader, 1, &shader_src, null);
+    glCompileShader(shader);
+    if (!checkShaderError(shader)) {
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
+    var shader = @ptrCast(*GLShaderProgram, @alignCast(@alignOf(*GLShaderProgram), std.c.malloc(@sizeOf(GLShaderProgram)).?));
+    shader.* = std.mem.zeroes(GLShaderProgram);
+
+    const vertex_shader = compileShader(GL_VERTEX_SHADER, desc.vs);
+    const frag_shader = compileShader(GL_FRAGMENT_SHADER, desc.fs);
+
+    if (vertex_shader == 0 and frag_shader == 0) return shader;
+
+    const id = glCreateProgram();
+    glAttachShader(id, vertex_shader);
+    glAttachShader(id, frag_shader);
+    glLinkProgram(id);
+    glDeleteShader(vertex_shader);
+    glDeleteShader(frag_shader);
+
+    if (!checkProgramError(id)) {
+        glDeleteProgram(id);
+        return shader;
+    }
+
+    shader.program = id;
+
+    // resolve images
+    var cur_prog: GLint = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
+    glUseProgram(id);
+
+    for (desc.images) |image, i| {
+        const loc = glGetUniformLocation(id, image);
+        if (loc != -1) {
+            glUniform1i(loc, @intCast(GLint, i));
+        }
+    }
+
+    glUseProgram(@intCast(GLuint, cur_prog));
+
+    return shader;
+}
+
+pub fn destroyShaderProgram(shader: ShaderProgram) void {
+    cache.invalidateProgram(shader.program);
+    glDeleteProgram(shader.program);
+    std.c.free(shader);
+}
+
+pub fn useShaderProgram(shader: ShaderProgram) void {
+    cache.useShaderProgram(shader.program);
+}
+
+pub fn setUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
+    const location = glGetUniformLocation(shader.program, name);
+    if (location == -1) {
+        std.debug.print("could not location uniform {}\n", .{name});
+        // return;
+    }
+
+    const ti = @typeInfo(T);
+    if (ti == .Float) {
+        glUniform1f(glGetUniformLocation(shader.program, name), value);
+    } else if (ti == .Struct) {
+        if (ti.Struct.fields.len == 2 and @typeInfo(ti.Struct.fields[0].field_type) == .Float and @typeInfo(ti.Struct.fields[1].field_type) == .Float) {
+            var val = @field(value, ti.Struct.fields[0].name);
+            glUniform1fv(location, 2, &val);
+            return;
+        }
+
+        inline for (ti.Struct.fields) |field, i| {
+            switch (@typeInfo(field.field_type)) {
+                .Array => |info| {
+                    // special case Mat32
+                    var data = @field(value, field.name);
+                    if (std.mem.eql(u8, field.name, "data") and @typeInfo(info.child) == .Float and info.len == 6) {
+                        glUniformMatrix3x2fv(glGetUniformLocation(shader.program, name), 1, GL_FALSE, &data[0]);
+                    } else {
+                        glUniform1fv(location, info.len, &data);
+                    }
+                },
+                .Float => |type_info| {
+                    std.debug.print("----- float: {}, field: {}\n", .{type_info, field.name});
+                },
+                .Struct => |StructT| {
+                    const field_type = StructT.fields[0].field_type;
+                    std.debug.print("struct: {}, field: {}, len: {}\n", .{StructT, field.name, StructT.fields.len});
+
+                    switch (@typeInfo(field_type)) {
+                        .Float => {
+                            switch (StructT.fields.len) {
+                                2 => {
+                                    std.debug.print("float2: {}\n", .{type_info});
+                                },
+                                else => unreachable,
+                            }
+                        },
+                        else => unreachable,
+                    }
+                },
+                else => unreachable,
+            }
+        }
+    }
 }

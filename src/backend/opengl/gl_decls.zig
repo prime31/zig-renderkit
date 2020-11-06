@@ -85,6 +85,7 @@ const Funcs = struct {
     glUniform1i: fn (location: GLint, v0: GLint) void,
     glUniform1iv: fn (GLint, GLsizei, [*c]const GLint) void,
     glUniform1f: fn (location: GLint, v0: GLfloat) void,
+    glUniform1fv: fn (GLint, GLsizei, [*c]const GLfloat) void,
     glUniform3f: fn (location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) void,
     glUniformMatrix4fv: fn (location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) void,
     glUniformMatrix3x2fv: fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) void,
@@ -359,6 +360,10 @@ pub fn glUniform1iv(location: GLint, count: GLsizei, value: [*c]const GLint) voi
 
 pub fn glUniform1f(location: GLint, v0: GLfloat) void {
     gl.glUniform1f(location, v0);
+}
+
+pub fn glUniform1fv(location: GLint, count: GLsizei, value: [*c]const GLfloat) void {
+    gl.glUniform1fv(location, count, value);
 }
 
 pub fn glUniform3f(location: GLint, v0: GLfloat, v1: GLfloat, v2: GLfloat) void {

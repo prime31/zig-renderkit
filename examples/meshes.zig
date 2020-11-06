@@ -8,10 +8,22 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));
-    shader.bind();
-    shader.setInt("MainTex", 0);
-    shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
+    const backend = @import("backend");
+    var s = backend.createShaderProgram(.{
+        .vs = @embedFile("assets/shaders/vert.vs"),
+        .fs = @embedFile("assets/shaders/frag.fs"),
+        .images = &[_][:0]const u8 {"MainTex"},
+    });
+    backend.useShaderProgram(s);
+    backend.setUniform(math.Mat32, s, "TransformMatrix", math.Mat32.initOrtho(800, 600));
+    backend.setUniform(math.Vec2, s, "t", math.Vec2{});
+    defer backend.destroyShaderProgram(s);
+
+    // var shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/frag.fs"));
+    // shader.bind();
+    // shader.setInt("MainTex", 0);
+    // shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
+    // defer shader.deinit();
 
     var tex = gfx.Texture.initCheckerTexture();
     defer tex.deinit();
@@ -43,7 +55,7 @@ fn render() !void {
     while (!aya.pollEvents()) {
         gfx.clear(.{});
 
-        shader.bind();
+        // shader.bind();
         mesh.bindings.bindTexture(tex.img.tid, 0);
         mesh.draw();
 
