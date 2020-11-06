@@ -5,7 +5,6 @@ usingnamespace @import("gl_decls.zig");
 usingnamespace @import("image.zig");
 
 // old, too high level
-usingnamespace @import("buffers.zig");
 usingnamespace @import("shader.zig");
 
 var pip_cache: gfx.RenderState = undefined;

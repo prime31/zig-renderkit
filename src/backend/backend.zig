@@ -13,7 +13,11 @@ pub const Renderer = enum {
     vulkan,
 };
 
+// pub const backend = @import(@tagName(aya.renderer) ++ "/backend.zig"); // zls cant auto-complete these
+pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
+
 // textures
+pub const ImageId = backend.ImageId;
 pub const Image = backend.Image;
 
 pub fn createImage(desc: ImageDesc) Image {
@@ -66,7 +70,7 @@ pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings 
     return backend.createBufferBindings(index_buffer, vert_buffer);
 }
 
-pub fn destroyBufferBindings(bindings: *Bindings) void {
+pub fn destroyBufferBindings(bindings: Bindings) void {
     return backend.destroyBufferBindings(bindings);
 }
 
@@ -78,18 +82,11 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
-// void sg_update_buffer(sg_buffer buf, const void* data_ptr, int data_size);
-// int sg_append_buffer(sg_buffer buf, const void* data_ptr, int data_size);
-
 // sg_shader sg_make_shader(const sg_shader_desc* desc);
 // void sg_destroy_shader(sg_shader shd);
 
-// sg_pipeline sg_make_pipeline(const sg_pipeline_desc* desc);
-// void sg_destroy_pipeline(sg_pipeline pip);
 
 // rendering functions
-// void sg_apply_viewport(int x, int y, int width, int height, bool origin_top_left);
-// void sg_apply_scissor_rect(int x, int y, int width, int height, bool origin_top_left);
 // void sg_apply_pipeline(sg_pipeline pip);
 // void sg_apply_bindings(const sg_bindings* bindings);
 // void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
@@ -97,10 +94,6 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 // void sg_commit(void);
 
 
-
-
-// pub const backend = @import(@tagName(aya.renderer) ++ "/backend.zig"); // zls cant auto-complete these
-pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // the backend must provide all of the following types/funcs
 pub fn init() void {
@@ -128,9 +121,5 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
 pub fn clear(action: gfx_types.ClearCommand) void {
     backend.clear(action);
 }
-
-pub const BufferBindings = backend.BufferBindings;
-pub const VertexBuffer = backend.VertexBuffer;
-pub const IndexBuffer = backend.IndexBuffer;
 
 pub const Shader = backend.Shader;

@@ -14,7 +14,9 @@ fn render() !void {
     shader.setMat3x2("TransformMatrix", math.Mat32.initOrtho(800, 600));
 
     var tex = gfx.Texture.initCheckerTexture();
-    var red_tex = gfx.Texture.initSingleColor(0xFF0000FF);
+    defer tex.deinit();
+    var red_tex = gfx.Texture.initSingleColor(0xFFFF0000);
+    defer red_tex.deinit();
 
     var vertices = [_]gfx.Vertex{
         .{ .pos = .{ .x = 10, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
@@ -42,10 +44,10 @@ fn render() !void {
         gfx.clear(.{});
 
         shader.bind();
-        tex.bind();
+        mesh.bindings.bindTexture(tex.img.tid, 0);
         mesh.draw();
 
-        red_tex.bind();
+        mesh.bindings.bindTexture(red_tex.img.tid, 0);
         dyn_mesh.drawAllVerts();
 
         aya.swapWindow();

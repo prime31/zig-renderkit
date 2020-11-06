@@ -27,7 +27,7 @@ pub const TriangleBatcher = struct {
         errdefer batcher.deinit();
 
         var pixels = [_]u32{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-        batcher.white_tex = gfx.Texture.initWithColorData(pixels[0..], 2, 2);
+        batcher.white_tex = gfx.Texture.initWithData(u32, 2, 2, pixels[0..]);
 
         return batcher;
     }
@@ -51,7 +51,7 @@ pub const TriangleBatcher = struct {
         if (self.vert_index == 0) return;
 
         self.mesh.updateVertSlice(0, self.vert_index);
-        self.mesh.bindings.bindTexture(self.white_tex.id, 0);
+        self.mesh.bindings.bindTexture(self.white_tex.img.tid, 0);
 
         // draw
         const tris = self.vert_index / 3;

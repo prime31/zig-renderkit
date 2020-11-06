@@ -46,6 +46,7 @@ const Funcs = struct {
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
     glScissor: fn (GLint, GLint, GLsizei, GLsizei) void,
     glGetString: fn (GLenum) [*c]const GLubyte,
+    glGetError: fn () GLenum,
     glGetIntegerv: fn (GLenum, [*c]GLint) void,
     glClearColor: fn (GLfloat, GLfloat, GLfloat, GLfloat) void,
     glClearStencil: fn (GLint) void,
@@ -217,6 +218,10 @@ pub fn glScissor(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {
 
 pub fn glGetString(which: GLenum) [*c]const GLubyte {
     return gl.glGetString(which);
+}
+
+pub fn glGetError() GLenum {
+    return gl.glGetError();
 }
 
 pub fn glGetIntegerv(name: GLenum, data: [*c]GLint) void {

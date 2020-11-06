@@ -7,9 +7,9 @@ const math = gfx.math;
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
 const total_textures: usize = 8;
-const max_sprites_per_batch: usize = 1000;
-const total_objects = 1000;
-const draws_per_tex_swap = 50;
+const max_sprites_per_batch: usize = 5000;
+const total_objects = 10000;
+const draws_per_tex_swap = 40;
 const use_multi_texture_batcher = true;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {

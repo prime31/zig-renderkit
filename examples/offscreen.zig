@@ -51,26 +51,6 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    const backend = @import("backend");
-    var vertices = &[_]gfx.Vertex{
-        .{ .pos = .{ .x = 100, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
-        .{ .pos = .{ .x = 200, .y = 10 }, .uv = .{ .x = 1, .y = 1 } }, // br
-        .{ .pos = .{ .x = 200, .y = 100 }, .uv = .{ .x = 1, .y = 0 } }, // tr
-        .{ .pos = .{ .x = 100, .y = 100 }, .uv = .{ .x = 0, .y = 0 } }, // tl
-    };
-    var vbuffer = backend.createBuffer(gfx.Vertex, .{
-        .usage = .immutable,
-        .content = vertices,
-    });
-    var ibuffer = backend.createBuffer(u16, .{
-        .type = .index,
-        .content = &[_]u16{0, 1, 2, 2, 3, 0},
-    });
-
-    var bindings = backend.createBufferBindings(ibuffer, vbuffer);
-    defer backend.destroyBufferBindings(&bindings);
-
-
     var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
@@ -143,9 +123,6 @@ fn render() !void {
         batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
 
         batcher.end();
-
-        backend.drawBufferBindings(bindings, 6);
-        backend.drawBufferBindings(bindings, 6);
 
         aya.swapWindow();
     }

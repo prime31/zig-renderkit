@@ -9,7 +9,7 @@ const Vertex = gfx.Vertex;
 pub const Batcher = struct {
     mesh: gfx.DynamicMesh(Vertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    texture: c_uint = std.math.maxInt(c_uint),
+    texture: gfx.backend.ImageId = std.math.maxInt(gfx.backend.ImageId),
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) Batcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");

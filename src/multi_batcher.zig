@@ -15,8 +15,8 @@ pub const MultiVertex = extern struct {
 pub const MultiBatcher = struct {
     mesh: gfx.DynamicMesh(MultiVertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    texture: gfx.TextureId = std.math.maxInt(gfx.TextureId),
-    textures: [8]gfx.TextureId = undefined,
+    texture: gfx.backend.ImageId = std.math.maxInt(gfx.backend.ImageId),
+    textures: [8]gfx.backend.ImageId = undefined,
     last_texture: usize = 0,
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) MultiBatcher {
@@ -35,7 +35,7 @@ pub const MultiBatcher = struct {
 
         return .{
             .mesh = gfx.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
-            .textures = [_]gfx.TextureId{0} ** 8,
+            .textures = [_]gfx.backend.ImageId{0} ** 8,
         };
     }
 
@@ -78,8 +78,8 @@ pub const MultiBatcher = struct {
         self.last_texture = 0;
     }
 
-    inline fn submitTexture(self: *MultiBatcher, tid: gfx.TextureId) f32 {
-        if (std.mem.indexOfScalar(gfx.TextureId, &self.textures, tid)) |index| return @intToFloat(f32, index);
+    inline fn submitTexture(self: *MultiBatcher, tid: gfx.backend.ImageId) f32 {
+        if (std.mem.indexOfScalar(gfx.backend.ImageId, &self.textures, tid)) |index| return @intToFloat(f32, index);
 
         self.textures[self.last_texture] = tid;
         self.last_texture += 1;
@@ -91,7 +91,7 @@ pub const MultiBatcher = struct {
             self.flush();
         }
 
-        const tid = self.submitTexture(texture.id);
+        const tid = self.submitTexture(texture.img.tid);
 
         var verts = self.mesh.verts[self.vert_index .. self.vert_index + 4];
         verts[0].pos = pos; // bl

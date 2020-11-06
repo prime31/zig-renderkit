@@ -3,9 +3,32 @@ usingnamespace @import("gl_decls.zig");
 usingnamespace @import("../descriptions.zig");
 usingnamespace @import("../types.zig");
 
+const RenderCache = @import("render_cache.zig").RenderCache;
+var cache = RenderCache.init();
+
+fn checkError(src: std.builtin.SourceLocation) void {
+    var err_code: GLenum = glGetError();
+    while (err_code != GL_NO_ERROR) {
+        var error_name = switch (err_code) {
+            GL_INVALID_ENUM => "GL_INVALID_ENUM",
+            GL_INVALID_VALUE => "GL_INVALID_VALUE",
+            GL_INVALID_OPERATION => "GL_INVALID_OPERATION",
+            GL_STACK_OVERFLOW_KHR => "GL_STACK_OVERFLOW_KHR",
+            GL_STACK_UNDERFLOW_KHR => "GL_STACK_UNDERFLOW_KHR",
+            GL_OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
+            GL_INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION",
+            else => "Unknown Error Enum",
+        };
+
+        std.debug.print("error: {}, file: {}, func: {}, line: {}\n", .{error_name, src.file, src.fn_name, src.line});
+        err_code = glGetError();
+    }
+}
+
+pub const ImageId = GLuint;
 pub const Image = *GLImage;
 pub const GLImage = struct {
-    tid: GLuint,
+    tid: ImageId,
     width: i32,
     height: i32,
     depth: bool,
@@ -58,6 +81,7 @@ pub fn createImage(desc: ImageDesc) Image {
 }
 
 pub fn destroyImage(image: Image) void {
+    cache.invalidateTexture(image.tid);
     glDeleteTextures(1, &image.tid);
     std.c.free(image);
 }
@@ -122,7 +146,6 @@ pub fn beginOffscreenPass(pass: OffscreenPass) void {
 
 pub fn endOffscreenPass(pass: OffscreenPass) void {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // TODO: reset viewport to screen size?
 }
 
 pub const Buffer = *GLBuffer;
@@ -133,11 +156,15 @@ pub const GLBuffer = struct {
     setVertexAttributes: ?fn () void,
 };
 
-pub const Bindings = GLBufferBindings;
+pub const Bindings = *GLBufferBindings;
 pub const GLBufferBindings = struct {
     vao: GLuint,
     index_buffer: Buffer,
     vert_buffer: Buffer,
+
+    pub fn bindTexture(self: GLBufferBindings, tid: c_uint, slot: c_uint) void {
+        cache.bindTexture(tid, slot);
+    }
 };
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
@@ -195,96 +222,60 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
         buffer.buffer_type = if (T == u16) GL_UNSIGNED_SHORT else GL_UNSIGNED_INT;
     }
 
+    const buffer_type: GLenum = if (desc.type == .index) GL_ELEMENT_ARRAY_BUFFER else GL_ARRAY_BUFFER;
     glGenBuffers(1, &buffer.vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer.vbo);
+    cache.bindBuffer(buffer_type, buffer.vbo);
 
     const usage: GLenum = switch (desc.usage) {
         .stream => GL_STREAM_DRAW,
         .immutable => GL_STATIC_DRAW,
         .dynamic => GL_DYNAMIC_DRAW,
     };
-    glBufferData(GL_ARRAY_BUFFER, desc.getSize(), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
-
-    // if (desc.type == .index) return buffer;
-    // comptime if (@typeInfo(T) != .Struct) return buffer;
-
-    // inline for (@typeInfo(T).Struct.fields) |field, i| {
-    //     const offset: ?usize = if (i == 0) null else @byteOffsetOf(T, field.name);
-
-    //     switch (@typeInfo(field.field_type)) {
-    //         .Int => |type_info| {
-    //             if (type_info.is_signed) {
-    //                 unreachable;
-    //             } else {
-    //                 switch (type_info.bits) {
-    //                     32 => {
-    //                         glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, @sizeOf(T), offset);
-    //                         glEnableVertexAttribArray(i);
-    //                     },
-    //                     else => unreachable,
-    //                 }
-    //             }
-    //         },
-    //         .Float => {
-    //             glVertexAttribPointer(i, 1, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
-    //             glEnableVertexAttribArray(i);
-    //         },
-    //         .Struct => |StructT| {
-    //             const field_type = StructT.fields[0].field_type;
-    //             std.debug.assert(@sizeOf(field_type) == 4);
-
-    //             switch (@typeInfo(field_type)) {
-    //                 .Float => {
-    //                     switch (StructT.fields.len) {
-    //                         2 => {
-    //                             glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
-    //                             glEnableVertexAttribArray(i);
-    //                         },
-    //                         else => unreachable,
-    //                     }
-    //                 },
-    //                 else => unreachable,
-    //             }
-    //         },
-    //         else => unreachable,
-    //     }
-    // }
+    glBufferData(buffer_type, desc.getSize(), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
 
     return buffer;
 }
 
 pub fn destroyBuffer(buffer: Buffer) void {
+    cache.invalidateBuffer(buffer.vbo);
     glDeleteBuffers(1, &buffer.vbo);
     std.c.free(buffer);
 }
 
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings {
-    var vao: GLuint = undefined;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    var buffer = @ptrCast(*GLBufferBindings, @alignCast(@alignOf(*GLBufferBindings), std.c.malloc(@sizeOf(GLBufferBindings)).?));
+    buffer.index_buffer = index_buffer;
+    buffer.vert_buffer = vert_buffer;
 
-    if (vert_buffer.setVertexAttributes) |setter| setter();
+    glGenVertexArrays(1, &buffer.vao);
+    cache.bindVertexArray(buffer.vao);
 
-    return .{
-        .vao = vao,
-        .index_buffer = index_buffer,
-        .vert_buffer = vert_buffer,
-    };
+    // vao needs us to issue binds here
+    cache.forceBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer.vbo);
+
+    if (vert_buffer.setVertexAttributes) |setter| {
+        cache.forceBindBuffer(GL_ARRAY_BUFFER, vert_buffer.vbo);
+        setter();
+    }
+
+    return buffer;
 }
 
-pub fn destroyBufferBindings(bindings: *Bindings) void {
+pub fn destroyBufferBindings(bindings: Bindings) void {
+    cache.invalidateVertexArray(bindings.vao);
     glDeleteVertexArrays(1, &bindings.vao);
     destroyBuffer(bindings.index_buffer);
     destroyBuffer(bindings.vert_buffer);
+    std.c.free(bindings);
 }
 
 pub fn drawBufferBindings(bindings: Bindings, element_count: c_int) void {
-    glBindVertexArray(bindings.vao);
+    cache.bindVertexArray(bindings.vao);
     glDrawElements(GL_TRIANGLES, element_count, bindings.index_buffer.buffer_type, null);
 }
 
 pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
-    glBindBuffer(GL_ARRAY_BUFFER, buffer.vbo);
+    cache.bindBuffer(GL_ARRAY_BUFFER, buffer.vbo);
 
     // orphan the buffer for streamed
     if (buffer.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
