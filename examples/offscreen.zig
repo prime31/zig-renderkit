@@ -105,7 +105,7 @@ fn render() !void {
 
         // render
         batcher.begin();
-        batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.texture);
+        batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.color_texture);
         rt_pos.x += 0.5;
         rt_pos.y += 0.5;
 

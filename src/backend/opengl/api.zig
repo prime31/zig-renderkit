@@ -4,14 +4,22 @@ usingnamespace @import("../descriptions.zig");
 usingnamespace @import("../types.zig");
 const HandledCache = @import("../handles.zig").HandledCache;
 
+const RenderCache = @import("render_cache.zig").RenderCache;
+var cache = RenderCache.init();
+
 var image_cache: HandledCache(GLImage) = undefined;
+var pass_cache: HandledCache(GLOffscreenPass) = undefined;
 
 pub fn init(desc: RendererDesc) void {
     image_cache = HandledCache(GLImage).init(desc.allocator, desc.max_textures);
+    pass_cache = HandledCache(GLOffscreenPass).init(desc.allocator, desc.max_offscreen_passes);
 }
 
-const RenderCache = @import("render_cache.zig").RenderCache;
-var cache = RenderCache.init();
+pub fn shutdown() void {
+    // TODO: destroy the items in the caches as well
+    image_cache.deinit();
+    pass_cache.deinit();
+}
 
 fn checkError(src: std.builtin.SourceLocation) void {
     var err_code: GLenum = glGetError();
@@ -69,7 +77,7 @@ fn checkProgramError(shader: GLuint) bool {
 }
 
 pub const Image = u16;
-pub const GLImage = struct {
+const GLImage = struct {
     tid: GLuint,
     width: i32,
     height: i32,
@@ -140,15 +148,15 @@ pub fn bindImage(image: Image, slot: c_uint) void {
     cache.bindImage(img.tid, slot);
 }
 
-pub const OffscreenPass = *GLOffscreenPass;
-pub const GLOffscreenPass = struct {
+pub const OffscreenPass = u16;
+const GLOffscreenPass = struct {
     framebuffer_tid: GLuint,
     color_img: Image,
     depth_stencil_img: ?Image,
 };
 
 pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
-    var pass = @ptrCast(*GLOffscreenPass, @alignCast(@alignOf(*GLOffscreenPass), std.c.malloc(@sizeOf(GLOffscreenPass)).?));
+    var pass = std.mem.zeroes(GLOffscreenPass);
     pass.depth_stencil_img = null;
 
     var orig_fb: GLint = undefined;
@@ -180,20 +188,21 @@ pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) std.debug.print("framebuffer failed\n", .{});
 
-    return pass;
+    return pass_cache.append(pass);
 }
 
-pub fn destroyOffscreenPass(pass: OffscreenPass) void {
+pub fn destroyOffscreenPass(offscreen_pass: OffscreenPass) void {
+    var pass = pass_cache.free(offscreen_pass);
     glDeleteFramebuffers(1, &pass.framebuffer_tid);
     if (pass.depth_stencil_img) |depth_stencil_handle| {
         var depth_stencil = image_cache.get(depth_stencil_handle);
         glDeleteRenderbuffers(1, &depth_stencil.tid);
     }
-    std.c.free(pass);
 }
 
-pub fn beginOffscreenPass(pass: OffscreenPass) void {
-    var img = image_cache.get(pass.color_img);
+pub fn beginOffscreenPass(offscreen_pass: OffscreenPass) void {
+    const pass = pass_cache.get(offscreen_pass);
+    const img = image_cache.get(pass.color_img);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer_tid);
     glViewport(0, 0, img.width, img.height);
 }
@@ -203,15 +212,15 @@ pub fn endOffscreenPass(pass: OffscreenPass) void {
 }
 
 pub const Buffer = *GLBuffer;
-pub const GLBuffer = struct {
+const GLBuffer = struct {
     vbo: GLuint,
     stream: bool,
     buffer_type: GLenum,
     setVertexAttributes: ?fn () void,
 };
 
-pub const Bindings = *GLBufferBindings;
-pub const GLBufferBindings = struct {
+pub const BufferBindings = *GLBufferBindings;
+const GLBufferBindings = struct {
     vao: GLuint,
     index_buffer: Buffer,
     vert_buffer: Buffer,
@@ -293,7 +302,7 @@ pub fn destroyBuffer(buffer: Buffer) void {
     std.c.free(buffer);
 }
 
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings {
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
     var buffer = @ptrCast(*GLBufferBindings, @alignCast(@alignOf(*GLBufferBindings), std.c.malloc(@sizeOf(GLBufferBindings)).?));
     buffer.index_buffer = index_buffer;
     buffer.vert_buffer = vert_buffer;
@@ -312,7 +321,7 @@ pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings 
     return buffer;
 }
 
-pub fn destroyBufferBindings(bindings: Bindings) void {
+pub fn destroyBufferBindings(bindings: BufferBindings) void {
     cache.invalidateVertexArray(bindings.vao);
     glDeleteVertexArrays(1, &bindings.vao);
     destroyBuffer(bindings.index_buffer);
@@ -320,7 +329,7 @@ pub fn destroyBufferBindings(bindings: Bindings) void {
     std.c.free(bindings);
 }
 
-pub fn drawBufferBindings(bindings: Bindings, element_count: c_int) void {
+pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {
     cache.bindVertexArray(bindings.vao);
     glDrawElements(GL_TRIANGLES, element_count, bindings.index_buffer.buffer_type, null);
 }
@@ -334,7 +343,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 }
 
 pub const ShaderProgram = *GLShaderProgram;
-pub const GLShaderProgram = struct {
+const GLShaderProgram = struct {
     program: GLuint,
 };
 

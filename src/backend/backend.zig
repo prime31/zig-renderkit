@@ -58,7 +58,7 @@ pub fn endOffscreenPass(pass: OffscreenPass) void {
 
 // buffers and Bindings
 pub const Buffer = backend.Buffer;
-pub const Bindings = backend.Bindings;
+pub const BufferBindings = backend.BufferBindings;
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
     return backend.createBuffer(T, desc);
@@ -68,15 +68,15 @@ pub fn destroyBuffer(buffer: Buffer) void {
     backend.destroyBuffer(buffer);
 }
 
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) Bindings {
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
     return backend.createBufferBindings(index_buffer, vert_buffer);
 }
 
-pub fn destroyBufferBindings(bindings: Bindings) void {
+pub fn destroyBufferBindings(bindings: BufferBindings) void {
     return backend.destroyBufferBindings(bindings);
 }
 
-pub fn drawBufferBindings(bindings: Bindings, element_count: c_int) void {
+pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {
     return backend.drawBufferBindings(bindings, element_count);
 }
 

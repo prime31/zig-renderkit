@@ -4,7 +4,7 @@ const gfx = @import("../gfx.zig");
 const math = aya.math;
 
 pub const Mesh = struct {
-    bindings: backend.Bindings,
+    bindings: backend.BufferBindings,
     element_count: c_int,
 
     pub fn init(comptime VertT: type, verts: []VertT, comptime IndexT: type, indices: []IndexT) Mesh {
@@ -37,7 +37,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
     return struct {
         const Self = @This();
 
-        bindings: backend.Bindings,
+        bindings: backend.BufferBindings,
         verts: []VertT,
         allocator: *std.mem.Allocator,
 

@@ -4,7 +4,7 @@ const gfx = @import("../gfx.zig");
 
 pub const RenderTexture = struct {
     pass: backend.OffscreenPass,
-    texture: gfx.Texture,
+    color_texture: gfx.Texture,
     depth_stencil_texture: ?gfx.Texture = null,
 
     pub fn init(width: i32, height: i32) RenderTexture {
@@ -17,7 +17,7 @@ pub const RenderTexture = struct {
         const pass = backend.createOffscreenPass(.{
             .color_img = color_tex.img,
         });
-        return .{ .pass = pass, .texture = color_tex };
+        return .{ .pass = pass, .color_texture = color_tex };
     }
 
     pub fn initWithStencil(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) RenderTexture {
@@ -28,13 +28,13 @@ pub const RenderTexture = struct {
             .color_img = color_tex.img,
             .depth_stencil_img = depth_stencil_img.img,
         });
-        return .{ .pass = pass, .texture = color_tex, .depth_stencil_texture = depth_stencil_img };
+        return .{ .pass = pass, .color_texture = color_tex, .depth_stencil_texture = depth_stencil_img };
     }
 
     pub fn deinit(self: *const RenderTexture) void {
         // OffscreenPass MUST be destroyed first! It relies on the Textures being present.
         backend.destroyOffscreenPass(self.pass);
-        backend.destroyImage(self.pass.color_img);
+        self.color_texture.deinit();
         if (self.depth_stencil_texture) |depth_stencil| {
             depth_stencil.deinit();
         }
