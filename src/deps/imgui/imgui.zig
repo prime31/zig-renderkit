@@ -1,11 +1,19 @@
 pub usingnamespace @import("wrapper.zig");
 
+// uncomment to generate a cimport.zig file
+// pub usingnamespace @cImport({
+//     @cDefine("CIMGUI_DEFINE_ENUMS_AND_STRUCTS", "");
+//     @cInclude("cimgui.h");
+// });
+
+pub const __darwin_off_t = c_longlong;
+pub const fpos_t = __darwin_off_t;
 pub const struct___sbuf = extern struct {
     _base: [*c]u8,
     _size: c_int,
 };
-
-pub const FILE = extern struct {
+pub const struct___sFILEX = opaque {};
+pub const struct___sFILE = extern struct {
     _p: [*c]u8,
     _r: c_int,
     _w: c_int,
@@ -16,39 +24,20 @@ pub const FILE = extern struct {
     _cookie: ?*c_void,
     _close: ?fn (?*c_void) callconv(.C) c_int,
     _read: ?fn (?*c_void, [*c]u8, c_int) callconv(.C) c_int,
-    // _seek: ?fn (?*c_void, fpos_t, c_int) callconv(.C) fpos_t,
+    _seek: ?fn (?*c_void, fpos_t, c_int) callconv(.C) fpos_t,
     _write: ?fn (?*c_void, [*c]const u8, c_int) callconv(.C) c_int,
     _ub: struct___sbuf,
-    _extra: ?*opaque {},
+    _extra: ?*struct___sFILEX,
     _ur: c_int,
     _ubuf: [3]u8,
     _nbuf: [1]u8,
     _lb: struct___sbuf,
     _blksize: c_int,
-    // _offset: fpos_t,
+    _offset: fpos_t,
 };
+pub const FILE = struct___sFILE;
 
-pub const struct___va_list_tag = extern struct {
-    gp_offset: c_uint,
-    fp_offset: c_uint,
-    overflow_arg_area: ?*c_void,
-    reg_save_area: ?*c_void,
-};
 
-pub const struct_ImGuiStoragePair = extern struct {
-    key: ImGuiID,
-    unnamed_0: extern union {
-        val_i: c_int,
-        val_f: f32,
-        val_p: ?*c_void,
-    },
-};
-pub const ImGuiStoragePair = struct_ImGuiStoragePair;
-pub const struct_ImGuiTextRange = extern struct {
-    b: [*c]const u8,
-    e: [*c]const u8,
-};
-pub const ImGuiTextRange = struct_ImGuiTextRange;
 pub const struct_ImGuiViewportP = extern struct {
     _ImGuiViewport: ImGuiViewport,
     Idx: c_int,
@@ -95,44 +84,48 @@ pub const struct_ImVec1 = extern struct {
     x: f32,
 };
 pub const ImVec1 = struct_ImVec1;
-pub const struct_ImFontAtlasCustomRect = extern struct {
-    Width: c_ushort,
-    Height: c_ushort,
-    X: c_ushort,
-    Y: c_ushort,
-    GlyphID: c_uint,
-    GlyphAdvanceX: f32,
-    GlyphOffset: ImVec2,
-    Font: [*c]ImFont,
+pub const struct_StbTexteditRow = extern struct {
+    x0: f32,
+    x1: f32,
+    baseline_y_delta: f32,
+    ymin: f32,
+    ymax: f32,
+    num_chars: c_int,
 };
-pub const ImFontAtlasCustomRect = struct_ImFontAtlasCustomRect;
-pub const struct_ImVec4 = extern struct {
-    x: f32 = 0,
-    y: f32 = 0,
-    z: f32 = 0,
-    w: f32 = 0,
+pub const StbTexteditRow = struct_StbTexteditRow;
+pub const struct_STB_TexteditState = extern struct {
+    cursor: c_int,
+    select_start: c_int,
+    select_end: c_int,
+    insert_mode: u8,
+    row_count_per_page: c_int,
+    cursor_at_end_of_line: u8,
+    initialized: u8,
+    has_preferred_x: u8,
+    single_line: u8,
+    padding1: u8,
+    padding2: u8,
+    padding3: u8,
+    preferred_x: f32,
+    undostate: StbUndoState,
 };
-pub const ImVec4 = struct_ImVec4;
-pub const ImVec2 = extern struct {
-    x: f32 = 0,
-    y: f32 = 0,
-
-    pub fn init(x: f32, y: f32) ImVec2 {
-        return .{ .x = x, .y = y };
-    }
-
-    pub fn add(self: ImVec2, other: ImVec2) ImVec2 {
-        return .{ .x = self.x + other.x, .y = self.y + other.y };
-    }
-
-    pub fn subtract(self: ImVec2, other: ImVec2) ImVec2 {
-        return .{ .x = self.x - other.x, .y = self.y - other.y };
-    }
-
-    pub fn scale(self: ImVec2, s: f32) ImVec2 {
-        return .{ .x = self.x * s, .y = self.y * s };
-    }
+pub const STB_TexteditState = struct_STB_TexteditState;
+pub const struct_StbUndoState = extern struct {
+    undo_rec: [99]StbUndoRecord,
+    undo_char: [999]ImWchar,
+    undo_point: c_short,
+    redo_point: c_short,
+    undo_char_point: c_int,
+    redo_char_point: c_int,
 };
+pub const StbUndoState = struct_StbUndoState;
+pub const struct_StbUndoRecord = extern struct {
+    where: c_int,
+    insert_length: c_int,
+    delete_length: c_int,
+    char_storage: c_int,
+};
+pub const StbUndoRecord = struct_StbUndoRecord;
 pub const struct_ImGuiWindowSettings = extern struct {
     ID: ImGuiID,
     Pos: ImVec2ih,
@@ -163,7 +156,6 @@ pub const struct_ImGuiWindowTempData = extern struct {
     LastItemRect: ImRect,
     LastItemDisplayRect: ImRect,
     NavLayerCurrent: ImGuiNavLayer,
-    NavLayerCurrentMask: c_int,
     NavLayerActiveMask: c_int,
     NavLayerActiveMaskNext: c_int,
     NavFocusScopeIdCurrent: ImGuiID,
@@ -191,7 +183,7 @@ pub const struct_ImGuiWindowTempData = extern struct {
     StackSizesBackup: [6]c_short,
 };
 pub const ImGuiWindowTempData = struct_ImGuiWindowTempData;
-pub const struct_ImGuiWindow = opaque {}; // /Users/mikedesaro/Zig-Aya/deps/imgui/cimgui/cimgui.h:1954:10: warning: struct demoted to opaque type - has bitfield
+pub const struct_ImGuiWindow = opaque {}; // /Users/desaro/zig-gl/src/deps/imgui/cimgui/cimgui.h:2022:10: warning: struct demoted to opaque type - has bitfield
 pub const ImGuiWindow = struct_ImGuiWindow;
 pub const struct_ImGuiTabItem = extern struct {
     ID: ImGuiID,
@@ -199,10 +191,13 @@ pub const struct_ImGuiTabItem = extern struct {
     Window: ?*ImGuiWindow,
     LastFrameVisible: c_int,
     LastFrameSelected: c_int,
-    NameOffset: c_int,
     Offset: f32,
     Width: f32,
     ContentWidth: f32,
+    NameOffset: ImS16,
+    BeginOrder: ImS8,
+    IndexDuringLayout: ImS8,
+    WantClose: bool,
 };
 pub const ImGuiTabItem = struct_ImGuiTabItem;
 pub const struct_ImGuiTabBar = extern struct {
@@ -215,30 +210,33 @@ pub const struct_ImGuiTabBar = extern struct {
     PrevFrameVisible: c_int,
     BarRect: ImRect,
     LastTabContentHeight: f32,
-    OffsetMax: f32,
-    OffsetMaxIdeal: f32,
-    OffsetNextTab: f32,
+    WidthAllTabs: f32,
+    WidthAllTabsIdeal: f32,
     ScrollingAnim: f32,
     ScrollingTarget: f32,
     ScrollingTargetDistToVisibility: f32,
     ScrollingSpeed: f32,
+    ScrollingRectMinX: f32,
+    ScrollingRectMaxX: f32,
     Flags: ImGuiTabBarFlags,
     ReorderRequestTabId: ImGuiID,
     ReorderRequestDir: ImS8,
+    TabsActiveCount: ImS8,
     WantLayout: bool,
     VisibleTabWasSubmitted: bool,
+    TabsAddedNew: bool,
     LastTabItemIdx: c_short,
     FramePadding: ImVec2,
     TabsNames: ImGuiTextBuffer,
 };
 pub const ImGuiTabBar = struct_ImGuiTabBar;
-const union_unnamed_3 = extern union {
+const union_unnamed_2 = extern union {
     BackupInt: [2]c_int,
     BackupFloat: [2]f32,
 };
 pub const struct_ImGuiStyleMod = extern struct {
     VarIdx: ImGuiStyleVar,
-    unnamed_0: union_unnamed_3,
+    unnamed_0: union_unnamed_2,
 };
 pub const ImGuiStyleMod = struct_ImGuiStyleMod;
 pub const struct_ImGuiSettingsHandler = extern struct {
@@ -312,13 +310,13 @@ pub const struct_ImGuiMenuColumns = extern struct {
     NextWidths: [3]f32,
 };
 pub const ImGuiMenuColumns = struct_ImGuiMenuColumns;
-pub const struct_ImGuiItemHoveredDataBackup = extern struct {
+pub const struct_ImGuiLastItemDataBackup = extern struct {
     LastItemId: ImGuiID,
     LastItemStatusFlags: ImGuiItemStatusFlags,
     LastItemRect: ImRect,
     LastItemDisplayRect: ImRect,
 };
-pub const ImGuiItemHoveredDataBackup = struct_ImGuiItemHoveredDataBackup;
+pub const ImGuiLastItemDataBackup = struct_ImGuiLastItemDataBackup;
 pub const struct_ImGuiInputTextState = extern struct {
     ID: ImGuiID,
     CurLenW: c_int,
@@ -333,6 +331,7 @@ pub const struct_ImGuiInputTextState = extern struct {
     CursorAnim: f32,
     CursorFollow: bool,
     SelectedAllMouseLock: bool,
+    Edited: bool,
     UserFlags: ImGuiInputTextFlags,
     UserCallback: ImGuiInputTextCallback,
     UserCallbackData: ?*c_void,
@@ -352,7 +351,7 @@ pub const struct_ImGuiGroupData = extern struct {
 pub const ImGuiGroupData = struct_ImGuiGroupData;
 pub const struct_ImGuiDockNodeSettings = opaque {};
 pub const ImGuiDockNodeSettings = struct_ImGuiDockNodeSettings;
-pub const struct_ImGuiDockNode = opaque {}; // /Users/mikedesaro/Zig-Aya/deps/imgui/cimgui/cimgui.h:1551:24: warning: struct demoted to opaque type - has bitfield
+pub const struct_ImGuiDockNode = opaque {}; // /Users/desaro/zig-gl/src/deps/imgui/cimgui/cimgui.h:1613:24: warning: struct demoted to opaque type - has bitfield
 pub const ImGuiDockNode = struct_ImGuiDockNode;
 pub const struct_ImGuiDockRequest = opaque {};
 pub const ImGuiDockRequest = struct_ImGuiDockRequest;
@@ -365,6 +364,7 @@ pub const struct_ImGuiDockContext = extern struct {
 pub const ImGuiDockContext = struct_ImGuiDockContext;
 pub const struct_ImGuiDataTypeInfo = extern struct {
     Size: usize,
+    Name: [*c]const u8,
     PrintFmt: [*c]const u8,
     ScanFmt: [*c]const u8,
 };
@@ -382,8 +382,9 @@ pub const struct_ImGuiColumns = extern struct {
     LineMaxY: f32,
     HostCursorPosY: f32,
     HostCursorMaxPosX: f32,
-    HostClipRect: ImRect,
-    HostWorkRect: ImRect,
+    HostInitialClipRect: ImRect,
+    HostBackupClipRect: ImRect,
+    HostBackupParentWorkRect: ImRect,
     Columns: ImVector_ImGuiColumnData,
     Splitter: ImDrawListSplitter,
 };
@@ -413,6 +414,61 @@ pub const struct_ImBitVector = extern struct {
     Storage: ImVector_ImU32,
 };
 pub const ImBitVector = struct_ImBitVector;
+pub const struct_ImFontAtlasCustomRect = extern struct {
+    Width: c_ushort,
+    Height: c_ushort,
+    X: c_ushort,
+    Y: c_ushort,
+    GlyphID: c_uint,
+    GlyphAdvanceX: f32,
+    GlyphOffset: ImVec2,
+    Font: [*c]ImFont,
+};
+pub const ImFontAtlasCustomRect = struct_ImFontAtlasCustomRect;
+const union_unnamed_3 = extern union {
+    val_i: c_int,
+    val_f: f32,
+    val_p: ?*c_void,
+};
+pub const struct_ImGuiStoragePair = extern struct {
+    key: ImGuiID,
+    unnamed_0: union_unnamed_3,
+};
+pub const ImGuiStoragePair = struct_ImGuiStoragePair;
+pub const struct_ImGuiTextRange = extern struct {
+    b: [*c]const u8,
+    e: [*c]const u8,
+};
+pub const ImGuiTextRange = struct_ImGuiTextRange;
+pub const struct_ImVec4 = extern struct {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
+};
+pub const ImVec4 = struct_ImVec4;
+
+pub const ImVec2 = extern struct {
+    x: f32 = 0,
+    y: f32 = 0,
+
+    pub fn init(x: f32, y: f32) ImVec2 {
+        return .{ .x = x, .y = y };
+    }
+
+    pub fn add(self: ImVec2, other: ImVec2) ImVec2 {
+        return .{ .x = self.x + other.x, .y = self.y + other.y };
+    }
+
+    pub fn subtract(self: ImVec2, other: ImVec2) ImVec2 {
+        return .{ .x = self.x - other.x, .y = self.y - other.y };
+    }
+
+    pub fn scale(self: ImVec2, s: f32) ImVec2 {
+        return .{ .x = self.x * s, .y = self.y * s };
+    }
+};
+
 pub const struct_ImGuiWindowClass = extern struct {
     ClassId: ImGuiID,
     ParentViewportId: ImGuiID,
@@ -477,9 +533,10 @@ pub const struct_ImGuiStyle = extern struct {
     ScrollbarRounding: f32,
     GrabMinSize: f32,
     GrabRounding: f32,
+    LogSliderDeadzone: f32,
     TabRounding: f32,
     TabBorderSize: f32,
-    TabMinWidthForUnselectedCloseButton: f32,
+    TabMinWidthForCloseButton: f32,
     ColorButtonPosition: ImGuiDir,
     ButtonTextAlign: ImVec2,
     SelectableTextAlign: ImVec2,
@@ -487,6 +544,7 @@ pub const struct_ImGuiStyle = extern struct {
     DisplaySafeAreaPadding: ImVec2,
     MouseCursorScale: f32,
     AntiAliasedLines: bool,
+    AntiAliasedLinesUseTex: bool,
     AntiAliasedFill: bool,
     CurveTessellationTol: f32,
     CircleSegmentMaxError: f32,
@@ -666,6 +724,7 @@ pub const struct_ImGuiIO = extern struct {
     KeysDownDurationPrev: [512]f32,
     NavInputsDownDuration: [21]f32,
     NavInputsDownDurationPrev: [21]f32,
+    PenPressure: f32,
     InputQueueSurrogate: ImWchar16,
     InputQueueCharacters: ImVector_ImWchar,
 };
@@ -703,13 +762,15 @@ pub const struct_ImGuiContext = extern struct {
     HoveredWindow: ?*ImGuiWindow,
     HoveredRootWindow: ?*ImGuiWindow,
     HoveredWindowUnderMovingWindow: ?*ImGuiWindow,
+    HoveredDockNode: ?*ImGuiDockNode,
     MovingWindow: ?*ImGuiWindow,
     WheelingWindow: ?*ImGuiWindow,
     WheelingWindowRefMousePos: ImVec2,
     WheelingWindowTimer: f32,
     HoveredId: ImGuiID,
-    HoveredIdAllowOverlap: bool,
     HoveredIdPreviousFrame: ImGuiID,
+    HoveredIdAllowOverlap: bool,
+    HoveredIdDisabled: bool,
     HoveredIdTimer: f32,
     HoveredIdNotActiveTimer: f32,
     ActiveId: ImGuiID,
@@ -717,6 +778,7 @@ pub const struct_ImGuiContext = extern struct {
     ActiveIdTimer: f32,
     ActiveIdIsJustActivated: bool,
     ActiveIdAllowOverlap: bool,
+    ActiveIdNoClearOnFocusLoss: bool,
     ActiveIdHasBeenPressedBefore: bool,
     ActiveIdHasBeenEditedBefore: bool,
     ActiveIdHasBeenEditedThisFrame: bool,
@@ -745,7 +807,6 @@ pub const struct_ImGuiContext = extern struct {
     CurrentViewport: [*c]ImGuiViewportP,
     MouseViewport: [*c]ImGuiViewportP,
     MouseLastHoveredViewport: [*c]ImGuiViewportP,
-    PlatformLastFocusedViewport: ImGuiID,
     ViewportFrontMostStampCount: c_int,
     NavWindow: ?*ImGuiWindow,
     NavId: ImGuiID,
@@ -773,7 +834,6 @@ pub const struct_ImGuiContext = extern struct {
     NavInitRequestFromMove: bool,
     NavInitResultId: ImGuiID,
     NavInitResultRectRel: ImRect,
-    NavMoveFromClampedRefRect: bool,
     NavMoveRequest: bool,
     NavMoveRequestFlags: ImGuiNavMoveFlags,
     NavMoveRequestForward: ImGuiNavForward,
@@ -831,6 +891,8 @@ pub const struct_ImGuiContext = extern struct {
     ColorEditLastSat: f32,
     ColorEditLastColor: [3]f32,
     ColorPickerRef: ImVec4,
+    SliderCurrentAccum: f32,
+    SliderCurrentAccumDirty: bool,
     DragCurrentAccumDirty: bool,
     DragCurrentAccum: f32,
     DragSpeedDefaultRatio: f32,
@@ -841,6 +903,7 @@ pub const struct_ImGuiContext = extern struct {
     PlatformImePos: ImVec2,
     PlatformImeLastPos: ImVec2,
     PlatformImePosViewport: [*c]ImGuiViewportP,
+    PlatformLocaleDecimalPoint: u8,
     DockContext: ImGuiDockContext,
     SettingsLoaded: bool,
     SettingsDirtyTimer: f32,
@@ -875,7 +938,7 @@ pub const struct_ImFontGlyphRangesBuilder = extern struct {
     UsedChars: ImVector_ImU32,
 };
 pub const ImFontGlyphRangesBuilder = struct_ImFontGlyphRangesBuilder;
-pub const struct_ImFontGlyph = opaque {}; // /Users/mikedesaro/Zig-Aya/deps/imgui/cimgui/cimgui.h:1012:18: warning: struct demoted to opaque type - has bitfield
+pub const struct_ImFontGlyph = opaque {}; // /Users/desaro/zig-gl/src/deps/imgui/cimgui/cimgui.h:1033:18: warning: struct demoted to opaque type - has bitfield
 pub const ImFontGlyph = struct_ImFontGlyph;
 pub const struct_ImFontConfig = extern struct {
     FontData: ?*c_void,
@@ -914,7 +977,9 @@ pub const struct_ImFontAtlas = extern struct {
     Fonts: ImVector_ImFontPtr,
     CustomRects: ImVector_ImFontAtlasCustomRect,
     ConfigData: ImVector_ImFontConfig,
-    CustomRectIds: [1]c_int,
+    TexUvLines: [64]ImVec4,
+    PackIdMouseCursors: c_int,
+    PackIdLines: c_int,
 };
 pub const ImFontAtlas = struct_ImFontAtlas;
 pub const struct_ImFont = extern struct {
@@ -924,7 +989,6 @@ pub const struct_ImFont = extern struct {
     IndexLookup: ImVector_ImWchar,
     Glyphs: ImVector_ImFontGlyph,
     FallbackGlyph: ?*const ImFontGlyph,
-    DisplayOffset: ImVec2,
     ContainerAtlas: [*c]ImFontAtlas,
     ConfigData: [*c]const ImFontConfig,
     ConfigDataCount: c_short,
@@ -960,6 +1024,7 @@ pub const struct_ImDrawListSharedData = extern struct {
     InitialFlags: ImDrawListFlags,
     ArcFastVtx: [12]ImVec2,
     CircleSegmentCounts: [64]ImU8,
+    TexUvLines: [*c]const ImVec4,
 };
 pub const ImDrawListSharedData = struct_ImDrawListSharedData;
 pub const struct_ImDrawList = extern struct {
@@ -969,13 +1034,13 @@ pub const struct_ImDrawList = extern struct {
     Flags: ImDrawListFlags,
     _Data: [*c]const ImDrawListSharedData,
     _OwnerName: [*c]const u8,
-    _VtxCurrentOffset: c_uint,
     _VtxCurrentIdx: c_uint,
     _VtxWritePtr: [*c]ImDrawVert,
     _IdxWritePtr: [*c]ImDrawIdx,
     _ClipRectStack: ImVector_ImVec4,
     _TextureIdStack: ImVector_ImTextureID,
     _Path: ImVector_ImVec2,
+    _CmdHeader: ImDrawCmd,
     _Splitter: ImDrawListSplitter,
 };
 pub const ImDrawList = struct_ImDrawList;
@@ -992,11 +1057,11 @@ pub const struct_ImDrawData = extern struct {
 };
 pub const ImDrawData = struct_ImDrawData;
 pub const struct_ImDrawCmd = extern struct {
-    ElemCount: c_uint,
     ClipRect: ImVec4,
     TextureId: ImTextureID,
     VtxOffset: c_uint,
     IdxOffset: c_uint,
+    ElemCount: c_uint,
     UserCallback: ImDrawCallback,
     UserCallbackData: ?*c_void,
 };
@@ -1019,6 +1084,7 @@ pub const ImDrawCornerFlags = c_int;
 pub const ImDrawListFlags = c_int;
 pub const ImFontAtlasFlags = c_int;
 pub const ImGuiBackendFlags = c_int;
+pub const ImGuiButtonFlags = c_int;
 pub const ImGuiColorEditFlags = c_int;
 pub const ImGuiConfigFlags = c_int;
 pub const ImGuiComboFlags = c_int;
@@ -1028,7 +1094,9 @@ pub const ImGuiFocusedFlags = c_int;
 pub const ImGuiHoveredFlags = c_int;
 pub const ImGuiInputTextFlags = c_int;
 pub const ImGuiKeyModFlags = c_int;
+pub const ImGuiPopupFlags = c_int;
 pub const ImGuiSelectableFlags = c_int;
+pub const ImGuiSliderFlags = c_int;
 pub const ImGuiTabBarFlags = c_int;
 pub const ImGuiTabItemFlags = c_int;
 pub const ImGuiTreeNodeFlags = c_int;
@@ -1053,9 +1121,7 @@ pub const ImDrawCallback = ?fn ([*c]const ImDrawList, [*c]const ImDrawCmd) callc
 pub const ImDrawIdx = c_ushort;
 pub const ImGuiDataAuthority = c_int;
 pub const ImGuiLayoutType = c_int;
-pub const ImGuiButtonFlags = c_int;
 pub const ImGuiColumnsFlags = c_int;
-pub const ImGuiDragFlags = c_int;
 pub const ImGuiItemFlags = c_int;
 pub const ImGuiItemStatusFlags = c_int;
 pub const ImGuiNavHighlightFlags = c_int;
@@ -1064,7 +1130,6 @@ pub const ImGuiNavMoveFlags = c_int;
 pub const ImGuiNextItemDataFlags = c_int;
 pub const ImGuiNextWindowDataFlags = c_int;
 pub const ImGuiSeparatorFlags = c_int;
-pub const ImGuiSliderFlags = c_int;
 pub const ImGuiTextFlags = c_int;
 pub const ImGuiTooltipFlags = c_int;
 pub extern var GImGui: [*c]ImGuiContext;
@@ -1076,102 +1141,148 @@ pub const struct_ImVector = extern struct {
     Data: ?*c_void,
 };
 pub const ImVector = struct_ImVector;
-pub const struct_ImVector_float = extern struct {
+pub const struct_ImVector_ImGuiWindowSettings = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]f32,
+    Data: [*c]ImGuiWindowSettings,
 };
-pub const ImVector_float = struct_ImVector_float;
-pub const struct_ImVector_ImWchar = extern struct {
+pub const ImVector_ImGuiWindowSettings = struct_ImVector_ImGuiWindowSettings;
+pub const struct_ImChunkStream_ImGuiWindowSettings = extern struct {
+    Buf: ImVector_ImGuiWindowSettings,
+};
+pub const ImChunkStream_ImGuiWindowSettings = struct_ImChunkStream_ImGuiWindowSettings;
+pub const struct_ImVector_ImDrawChannel = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]ImWchar,
+    Data: [*c]ImDrawChannel,
 };
-pub const ImVector_ImWchar = struct_ImVector_ImWchar;
+pub const ImVector_ImDrawChannel = struct_ImVector_ImDrawChannel;
+pub const struct_ImVector_ImDrawCmd = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImDrawCmd,
+};
+pub const ImVector_ImDrawCmd = struct_ImVector_ImDrawCmd;
+pub const struct_ImVector_ImDrawIdx = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImDrawIdx,
+};
+pub const ImVector_ImDrawIdx = struct_ImVector_ImDrawIdx;
+pub const struct_ImVector_ImDrawListPtr = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c][*c]ImDrawList,
+};
+pub const ImVector_ImDrawListPtr = struct_ImVector_ImDrawListPtr;
 pub const struct_ImVector_ImDrawVert = extern struct {
     Size: c_int,
     Capacity: c_int,
     Data: [*c]ImDrawVert,
 };
 pub const ImVector_ImDrawVert = struct_ImVector_ImDrawVert;
-pub const struct_ImVector_ImGuiSettingsHandler = extern struct {
+pub const struct_ImVector_ImFontPtr = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]ImGuiSettingsHandler,
+    Data: [*c][*c]ImFont,
 };
-pub const ImVector_ImGuiSettingsHandler = struct_ImVector_ImGuiSettingsHandler;
-pub const struct_ImVector_ImGuiPlatformMonitor = extern struct {
+pub const ImVector_ImFontPtr = struct_ImVector_ImFontPtr;
+pub const struct_ImVector_ImFontAtlasCustomRect = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]ImGuiPlatformMonitor,
+    Data: [*c]ImFontAtlasCustomRect,
 };
-pub const ImVector_ImGuiPlatformMonitor = struct_ImVector_ImGuiPlatformMonitor;
-pub const struct_ImVector_ImVec4 = extern struct {
+pub const ImVector_ImFontAtlasCustomRect = struct_ImVector_ImFontAtlasCustomRect;
+pub const struct_ImVector_ImFontConfig = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]ImVec4,
+    Data: [*c]ImFontConfig,
 };
-pub const ImVector_ImVec4 = struct_ImVector_ImVec4;
-pub const struct_ImVector_ImGuiPopupData = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiPopupData,
-};
-pub const ImVector_ImGuiPopupData = struct_ImVector_ImGuiPopupData;
-pub const struct_ImVector_const_charPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c][*c]const u8,
-};
-pub const ImVector_const_charPtr = struct_ImVector_const_charPtr;
-pub const struct_ImVector_ImGuiID = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiID,
-};
-pub const ImVector_ImGuiID = struct_ImVector_ImGuiID;
-pub const struct_ImVector_ImGuiWindowPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]?*ImGuiWindow,
-};
-pub const ImVector_ImGuiWindowPtr = struct_ImVector_ImGuiWindowPtr;
-pub const struct_ImVector_ImGuiColumnData = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiColumnData,
-};
-pub const ImVector_ImGuiColumnData = struct_ImVector_ImGuiColumnData;
-pub const struct_ImVector_ImGuiViewportPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c][*c]ImGuiViewport,
-};
-pub const ImVector_ImGuiViewportPtr = struct_ImVector_ImGuiViewportPtr;
-pub const struct_ImVector_ImGuiColorMod = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiColorMod,
-};
-pub const ImVector_ImGuiColorMod = struct_ImVector_ImGuiColorMod;
-pub const struct_ImVector_ImGuiDockRequest = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: ?*ImGuiDockRequest,
-};
-pub const ImVector_ImGuiDockRequest = struct_ImVector_ImGuiDockRequest;
+pub const ImVector_ImFontConfig = struct_ImVector_ImFontConfig;
 pub const struct_ImVector_ImFontGlyph = extern struct {
     Size: c_int,
     Capacity: c_int,
     Data: ?*ImFontGlyph,
 };
 pub const ImVector_ImFontGlyph = struct_ImVector_ImFontGlyph;
-pub const struct_ImVector_unsigned_char = extern struct {
+pub const struct_ImVector_ImGuiColorMod = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]u8,
+    Data: [*c]ImGuiColorMod,
 };
-pub const ImVector_unsigned_char = struct_ImVector_unsigned_char;
+pub const ImVector_ImGuiColorMod = struct_ImVector_ImGuiColorMod;
+pub const struct_ImVector_ImGuiColumnData = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiColumnData,
+};
+pub const ImVector_ImGuiColumnData = struct_ImVector_ImGuiColumnData;
+pub const struct_ImVector_ImGuiColumns = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiColumns,
+};
+pub const ImVector_ImGuiColumns = struct_ImVector_ImGuiColumns;
+pub const struct_ImVector_ImGuiDockNodeSettings = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: ?*ImGuiDockNodeSettings,
+};
+pub const ImVector_ImGuiDockNodeSettings = struct_ImVector_ImGuiDockNodeSettings;
+pub const struct_ImVector_ImGuiDockRequest = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: ?*ImGuiDockRequest,
+};
+pub const ImVector_ImGuiDockRequest = struct_ImVector_ImGuiDockRequest;
+pub const struct_ImVector_ImGuiGroupData = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiGroupData,
+};
+pub const ImVector_ImGuiGroupData = struct_ImVector_ImGuiGroupData;
+pub const struct_ImVector_ImGuiID = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiID,
+};
+pub const ImVector_ImGuiID = struct_ImVector_ImGuiID;
+pub const struct_ImVector_ImGuiItemFlags = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiItemFlags,
+};
+pub const ImVector_ImGuiItemFlags = struct_ImVector_ImGuiItemFlags;
+pub const struct_ImVector_ImGuiPlatformMonitor = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiPlatformMonitor,
+};
+pub const ImVector_ImGuiPlatformMonitor = struct_ImVector_ImGuiPlatformMonitor;
+pub const struct_ImVector_ImGuiPopupData = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiPopupData,
+};
+pub const ImVector_ImGuiPopupData = struct_ImVector_ImGuiPopupData;
+pub const struct_ImVector_ImGuiPtrOrIndex = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiPtrOrIndex,
+};
+pub const ImVector_ImGuiPtrOrIndex = struct_ImVector_ImGuiPtrOrIndex;
+pub const struct_ImVector_ImGuiSettingsHandler = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiSettingsHandler,
+};
+pub const ImVector_ImGuiSettingsHandler = struct_ImVector_ImGuiSettingsHandler;
+pub const struct_ImVector_ImGuiShrinkWidthItem = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImGuiShrinkWidthItem,
+};
+pub const ImVector_ImGuiShrinkWidthItem = struct_ImVector_ImGuiShrinkWidthItem;
 pub const struct_ImVector_ImGuiStoragePair = extern struct {
     Size: c_int,
     Capacity: c_int,
@@ -1184,210 +1295,123 @@ pub const struct_ImVector_ImGuiStyleMod = extern struct {
     Data: [*c]ImGuiStyleMod,
 };
 pub const ImVector_ImGuiStyleMod = struct_ImVector_ImGuiStyleMod;
-pub const struct_ImVector_ImGuiViewportPPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c][*c]ImGuiViewportP,
-};
-pub const ImVector_ImGuiViewportPPtr = struct_ImVector_ImGuiViewportPPtr;
-pub const struct_ImVector_ImDrawChannel = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImDrawChannel,
-};
-pub const ImVector_ImDrawChannel = struct_ImVector_ImDrawChannel;
-pub const struct_ImVector_ImDrawListPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c][*c]ImDrawList,
-};
-pub const ImVector_ImDrawListPtr = struct_ImVector_ImDrawListPtr;
 pub const struct_ImVector_ImGuiTabItem = extern struct {
     Size: c_int,
     Capacity: c_int,
     Data: [*c]ImGuiTabItem,
 };
 pub const ImVector_ImGuiTabItem = struct_ImVector_ImGuiTabItem;
-pub const struct_ImVector_ImU32 = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImU32,
-};
-pub const ImVector_ImU32 = struct_ImVector_ImU32;
-pub const struct_ImVector_ImGuiItemFlags = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiItemFlags,
-};
-pub const ImVector_ImGuiItemFlags = struct_ImVector_ImGuiItemFlags;
-pub const struct_ImVector_ImGuiColumns = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiColumns,
-};
-pub const ImVector_ImGuiColumns = struct_ImVector_ImGuiColumns;
-pub const struct_ImVector_ImFontAtlasCustomRect = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImFontAtlasCustomRect,
-};
-pub const ImVector_ImFontAtlasCustomRect = struct_ImVector_ImFontAtlasCustomRect;
-pub const struct_ImVector_ImGuiDockNodeSettings = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: ?*ImGuiDockNodeSettings,
-};
-pub const ImVector_ImGuiDockNodeSettings = struct_ImVector_ImGuiDockNodeSettings;
-pub const struct_ImVector_ImGuiGroupData = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiGroupData,
-};
-pub const ImVector_ImGuiGroupData = struct_ImVector_ImGuiGroupData;
-pub const struct_ImVector_ImTextureID = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImTextureID,
-};
-pub const ImVector_ImTextureID = struct_ImVector_ImTextureID;
-pub const struct_ImVector_ImGuiShrinkWidthItem = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiShrinkWidthItem,
-};
-pub const ImVector_ImGuiShrinkWidthItem = struct_ImVector_ImGuiShrinkWidthItem;
-pub const struct_ImVector_ImFontConfig = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImFontConfig,
-};
-pub const ImVector_ImFontConfig = struct_ImVector_ImFontConfig;
-pub const struct_ImVector_ImVec2 = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImVec2,
-};
-pub const ImVector_ImVec2 = struct_ImVector_ImVec2;
-pub const struct_ImVector_char = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]u8,
-};
-pub const ImVector_char = struct_ImVector_char;
-pub const struct_ImVector_ImDrawCmd = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImDrawCmd,
-};
-pub const ImVector_ImDrawCmd = struct_ImVector_ImDrawCmd;
-pub const struct_ImVector_ImFontPtr = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c][*c]ImFont,
-};
-pub const ImVector_ImFontPtr = struct_ImVector_ImFontPtr;
-pub const struct_ImVector_ImGuiPtrOrIndex = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImGuiPtrOrIndex,
-};
-pub const ImVector_ImGuiPtrOrIndex = struct_ImVector_ImGuiPtrOrIndex;
-pub const struct_ImVector_ImDrawIdx = extern struct {
-    Size: c_int,
-    Capacity: c_int,
-    Data: [*c]ImDrawIdx,
-};
-pub const ImVector_ImDrawIdx = struct_ImVector_ImDrawIdx;
 pub const struct_ImVector_ImGuiTextRange = extern struct {
     Size: c_int,
     Capacity: c_int,
     Data: [*c]ImGuiTextRange,
 };
 pub const ImVector_ImGuiTextRange = struct_ImVector_ImGuiTextRange;
-pub const struct_ImVector_ImGuiWindowSettings = extern struct {
+pub const struct_ImVector_ImGuiViewportPtr = extern struct {
     Size: c_int,
     Capacity: c_int,
-    Data: [*c]ImGuiWindowSettings,
+    Data: [*c][*c]ImGuiViewport,
 };
-pub const ImVector_ImGuiWindowSettings = struct_ImVector_ImGuiWindowSettings;
-pub const struct_ImChunkStream_ImGuiWindowSettings = extern struct {
-    Buf: ImVector_ImGuiWindowSettings,
+pub const ImVector_ImGuiViewportPtr = struct_ImVector_ImGuiViewportPtr;
+pub const struct_ImVector_ImGuiViewportPPtr = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c][*c]ImGuiViewportP,
 };
-pub const ImChunkStream_ImGuiWindowSettings = struct_ImChunkStream_ImGuiWindowSettings;
-const struct_unnamed_4 = extern struct {
-    where: c_int,
-    insert_length: c_int,
-    delete_length: c_int,
-    char_storage: c_int,
+pub const ImVector_ImGuiViewportPPtr = struct_ImVector_ImGuiViewportPPtr;
+pub const struct_ImVector_ImGuiWindowPtr = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]?*ImGuiWindow,
 };
-pub const StbUndoRecord = struct_unnamed_4;
-const struct_unnamed_5 = extern struct {
-    undo_rec: [99]StbUndoRecord,
-    undo_char: [999]ImWchar,
-    undo_point: c_short,
-    redo_point: c_short,
-    undo_char_point: c_int,
-    redo_char_point: c_int,
+pub const ImVector_ImGuiWindowPtr = struct_ImVector_ImGuiWindowPtr;
+pub const struct_ImVector_ImTextureID = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImTextureID,
 };
-pub const StbUndoState = struct_unnamed_5;
-const struct_unnamed_6 = extern struct {
-    cursor: c_int,
-    select_start: c_int,
-    select_end: c_int,
-    insert_mode: u8,
-    cursor_at_end_of_line: u8,
-    initialized: u8,
-    has_preferred_x: u8,
-    single_line: u8,
-    padding1: u8,
-    padding2: u8,
-    padding3: u8,
-    preferred_x: f32,
-    undostate: StbUndoState,
+pub const ImVector_ImTextureID = struct_ImVector_ImTextureID;
+pub const struct_ImVector_ImU32 = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImU32,
 };
-pub const STB_TexteditState = struct_unnamed_6;
-const struct_unnamed_7 = extern struct {
-    x0: f32,
-    x1: f32,
-    baseline_y_delta: f32,
-    ymin: f32,
-    ymax: f32,
-    num_chars: c_int,
+pub const ImVector_ImU32 = struct_ImVector_ImU32;
+pub const struct_ImVector_ImVec2 = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImVec2,
 };
-pub const StbTexteditRow = struct_unnamed_7;
-pub const ImGuiWindowFlags_None = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_None);
-pub const ImGuiWindowFlags_NoTitleBar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoTitleBar);
-pub const ImGuiWindowFlags_NoResize = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoResize);
-pub const ImGuiWindowFlags_NoMove = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoMove);
-pub const ImGuiWindowFlags_NoScrollbar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoScrollbar);
-pub const ImGuiWindowFlags_NoScrollWithMouse = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoScrollWithMouse);
-pub const ImGuiWindowFlags_NoCollapse = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoCollapse);
-pub const ImGuiWindowFlags_AlwaysAutoResize = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_AlwaysAutoResize);
-pub const ImGuiWindowFlags_NoBackground = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoBackground);
-pub const ImGuiWindowFlags_NoSavedSettings = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoSavedSettings);
-pub const ImGuiWindowFlags_NoMouseInputs = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoMouseInputs);
-pub const ImGuiWindowFlags_MenuBar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_MenuBar);
-pub const ImGuiWindowFlags_HorizontalScrollbar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_HorizontalScrollbar);
-pub const ImGuiWindowFlags_NoFocusOnAppearing = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoFocusOnAppearing);
-pub const ImGuiWindowFlags_NoBringToFrontOnFocus = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoBringToFrontOnFocus);
-pub const ImGuiWindowFlags_AlwaysVerticalScrollbar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_AlwaysVerticalScrollbar);
-pub const ImGuiWindowFlags_AlwaysHorizontalScrollbar = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
-pub const ImGuiWindowFlags_AlwaysUseWindowPadding = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_AlwaysUseWindowPadding);
-pub const ImGuiWindowFlags_NoNavInputs = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoNavInputs);
-pub const ImGuiWindowFlags_NoNavFocus = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoNavFocus);
-pub const ImGuiWindowFlags_UnsavedDocument = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_UnsavedDocument);
-pub const ImGuiWindowFlags_NoDocking = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoDocking);
-pub const ImGuiWindowFlags_NoNav = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoNav);
-pub const ImGuiWindowFlags_NoDecoration = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoDecoration);
-pub const ImGuiWindowFlags_NoInputs = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NoInputs);
-pub const ImGuiWindowFlags_NavFlattened = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_NavFlattened);
-pub const ImGuiWindowFlags_ChildWindow = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_ChildWindow);
-pub const ImGuiWindowFlags_Tooltip = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_Tooltip);
-pub const ImGuiWindowFlags_Popup = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_Popup);
-pub const ImGuiWindowFlags_Modal = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_Modal);
-pub const ImGuiWindowFlags_ChildMenu = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_ChildMenu);
-pub const ImGuiWindowFlags_DockNodeHost = @enumToInt(enum_unnamed_8.ImGuiWindowFlags_DockNodeHost);
-const enum_unnamed_8 = extern enum(c_int) {
+pub const ImVector_ImVec2 = struct_ImVector_ImVec2;
+pub const struct_ImVector_ImVec4 = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImVec4,
+};
+pub const ImVector_ImVec4 = struct_ImVector_ImVec4;
+pub const struct_ImVector_ImWchar = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]ImWchar,
+};
+pub const ImVector_ImWchar = struct_ImVector_ImWchar;
+pub const struct_ImVector_char = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]u8,
+};
+pub const ImVector_char = struct_ImVector_char;
+pub const struct_ImVector_const_charPtr = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c][*c]const u8,
+};
+pub const ImVector_const_charPtr = struct_ImVector_const_charPtr;
+pub const struct_ImVector_float = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]f32,
+};
+pub const ImVector_float = struct_ImVector_float;
+pub const struct_ImVector_unsigned_char = extern struct {
+    Size: c_int,
+    Capacity: c_int,
+    Data: [*c]u8,
+};
+pub const ImVector_unsigned_char = struct_ImVector_unsigned_char;
+pub const ImGuiWindowFlags_None = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_None);
+pub const ImGuiWindowFlags_NoTitleBar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoTitleBar);
+pub const ImGuiWindowFlags_NoResize = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoResize);
+pub const ImGuiWindowFlags_NoMove = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoMove);
+pub const ImGuiWindowFlags_NoScrollbar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoScrollbar);
+pub const ImGuiWindowFlags_NoScrollWithMouse = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoScrollWithMouse);
+pub const ImGuiWindowFlags_NoCollapse = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoCollapse);
+pub const ImGuiWindowFlags_AlwaysAutoResize = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_AlwaysAutoResize);
+pub const ImGuiWindowFlags_NoBackground = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoBackground);
+pub const ImGuiWindowFlags_NoSavedSettings = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoSavedSettings);
+pub const ImGuiWindowFlags_NoMouseInputs = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoMouseInputs);
+pub const ImGuiWindowFlags_MenuBar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_MenuBar);
+pub const ImGuiWindowFlags_HorizontalScrollbar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_HorizontalScrollbar);
+pub const ImGuiWindowFlags_NoFocusOnAppearing = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoFocusOnAppearing);
+pub const ImGuiWindowFlags_NoBringToFrontOnFocus = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoBringToFrontOnFocus);
+pub const ImGuiWindowFlags_AlwaysVerticalScrollbar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_AlwaysVerticalScrollbar);
+pub const ImGuiWindowFlags_AlwaysHorizontalScrollbar = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_AlwaysHorizontalScrollbar);
+pub const ImGuiWindowFlags_AlwaysUseWindowPadding = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_AlwaysUseWindowPadding);
+pub const ImGuiWindowFlags_NoNavInputs = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoNavInputs);
+pub const ImGuiWindowFlags_NoNavFocus = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoNavFocus);
+pub const ImGuiWindowFlags_UnsavedDocument = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_UnsavedDocument);
+pub const ImGuiWindowFlags_NoDocking = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoDocking);
+pub const ImGuiWindowFlags_NoNav = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoNav);
+pub const ImGuiWindowFlags_NoDecoration = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoDecoration);
+pub const ImGuiWindowFlags_NoInputs = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NoInputs);
+pub const ImGuiWindowFlags_NavFlattened = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_NavFlattened);
+pub const ImGuiWindowFlags_ChildWindow = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_ChildWindow);
+pub const ImGuiWindowFlags_Tooltip = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_Tooltip);
+pub const ImGuiWindowFlags_Popup = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_Popup);
+pub const ImGuiWindowFlags_Modal = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_Modal);
+pub const ImGuiWindowFlags_ChildMenu = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_ChildMenu);
+pub const ImGuiWindowFlags_DockNodeHost = @enumToInt(enum_unnamed_4.ImGuiWindowFlags_DockNodeHost);
+const enum_unnamed_4 = extern enum(c_int) {
     ImGuiWindowFlags_None = 0,
     ImGuiWindowFlags_NoTitleBar = 1,
     ImGuiWindowFlags_NoResize = 2,
@@ -1422,30 +1446,31 @@ const enum_unnamed_8 = extern enum(c_int) {
     ImGuiWindowFlags_DockNodeHost = 536870912,
     _,
 };
-pub const ImGuiWindowFlags_ = enum_unnamed_8;
-pub const ImGuiInputTextFlags_None = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_None);
-pub const ImGuiInputTextFlags_CharsDecimal = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CharsDecimal);
-pub const ImGuiInputTextFlags_CharsHexadecimal = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CharsHexadecimal);
-pub const ImGuiInputTextFlags_CharsUppercase = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CharsUppercase);
-pub const ImGuiInputTextFlags_CharsNoBlank = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CharsNoBlank);
-pub const ImGuiInputTextFlags_AutoSelectAll = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_AutoSelectAll);
-pub const ImGuiInputTextFlags_EnterReturnsTrue = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_EnterReturnsTrue);
-pub const ImGuiInputTextFlags_CallbackCompletion = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CallbackCompletion);
-pub const ImGuiInputTextFlags_CallbackHistory = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CallbackHistory);
-pub const ImGuiInputTextFlags_CallbackAlways = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CallbackAlways);
-pub const ImGuiInputTextFlags_CallbackCharFilter = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CallbackCharFilter);
-pub const ImGuiInputTextFlags_AllowTabInput = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_AllowTabInput);
-pub const ImGuiInputTextFlags_CtrlEnterForNewLine = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CtrlEnterForNewLine);
-pub const ImGuiInputTextFlags_NoHorizontalScroll = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_NoHorizontalScroll);
-pub const ImGuiInputTextFlags_AlwaysInsertMode = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_AlwaysInsertMode);
-pub const ImGuiInputTextFlags_ReadOnly = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_ReadOnly);
-pub const ImGuiInputTextFlags_Password = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_Password);
-pub const ImGuiInputTextFlags_NoUndoRedo = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_NoUndoRedo);
-pub const ImGuiInputTextFlags_CharsScientific = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CharsScientific);
-pub const ImGuiInputTextFlags_CallbackResize = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_CallbackResize);
-pub const ImGuiInputTextFlags_Multiline = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_Multiline);
-pub const ImGuiInputTextFlags_NoMarkEdited = @enumToInt(enum_unnamed_9.ImGuiInputTextFlags_NoMarkEdited);
-const enum_unnamed_9 = extern enum(c_int) {
+pub const ImGuiWindowFlags_ = enum_unnamed_4;
+pub const ImGuiInputTextFlags_None = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_None);
+pub const ImGuiInputTextFlags_CharsDecimal = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CharsDecimal);
+pub const ImGuiInputTextFlags_CharsHexadecimal = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CharsHexadecimal);
+pub const ImGuiInputTextFlags_CharsUppercase = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CharsUppercase);
+pub const ImGuiInputTextFlags_CharsNoBlank = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CharsNoBlank);
+pub const ImGuiInputTextFlags_AutoSelectAll = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_AutoSelectAll);
+pub const ImGuiInputTextFlags_EnterReturnsTrue = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_EnterReturnsTrue);
+pub const ImGuiInputTextFlags_CallbackCompletion = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackCompletion);
+pub const ImGuiInputTextFlags_CallbackHistory = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackHistory);
+pub const ImGuiInputTextFlags_CallbackAlways = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackAlways);
+pub const ImGuiInputTextFlags_CallbackCharFilter = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackCharFilter);
+pub const ImGuiInputTextFlags_AllowTabInput = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_AllowTabInput);
+pub const ImGuiInputTextFlags_CtrlEnterForNewLine = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CtrlEnterForNewLine);
+pub const ImGuiInputTextFlags_NoHorizontalScroll = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_NoHorizontalScroll);
+pub const ImGuiInputTextFlags_AlwaysInsertMode = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_AlwaysInsertMode);
+pub const ImGuiInputTextFlags_ReadOnly = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_ReadOnly);
+pub const ImGuiInputTextFlags_Password = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_Password);
+pub const ImGuiInputTextFlags_NoUndoRedo = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_NoUndoRedo);
+pub const ImGuiInputTextFlags_CharsScientific = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CharsScientific);
+pub const ImGuiInputTextFlags_CallbackResize = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackResize);
+pub const ImGuiInputTextFlags_CallbackEdit = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_CallbackEdit);
+pub const ImGuiInputTextFlags_Multiline = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_Multiline);
+pub const ImGuiInputTextFlags_NoMarkEdited = @enumToInt(enum_unnamed_5.ImGuiInputTextFlags_NoMarkEdited);
+const enum_unnamed_5 = extern enum(c_int) {
     ImGuiInputTextFlags_None = 0,
     ImGuiInputTextFlags_CharsDecimal = 1,
     ImGuiInputTextFlags_CharsHexadecimal = 2,
@@ -1466,28 +1491,29 @@ const enum_unnamed_9 = extern enum(c_int) {
     ImGuiInputTextFlags_NoUndoRedo = 65536,
     ImGuiInputTextFlags_CharsScientific = 131072,
     ImGuiInputTextFlags_CallbackResize = 262144,
+    ImGuiInputTextFlags_CallbackEdit = 524288,
     ImGuiInputTextFlags_Multiline = 1048576,
     ImGuiInputTextFlags_NoMarkEdited = 2097152,
     _,
 };
-pub const ImGuiInputTextFlags_ = enum_unnamed_9;
-pub const ImGuiTreeNodeFlags_None = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_None);
-pub const ImGuiTreeNodeFlags_Selected = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_Selected);
-pub const ImGuiTreeNodeFlags_Framed = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_Framed);
-pub const ImGuiTreeNodeFlags_AllowItemOverlap = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_AllowItemOverlap);
-pub const ImGuiTreeNodeFlags_NoTreePushOnOpen = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_NoTreePushOnOpen);
-pub const ImGuiTreeNodeFlags_NoAutoOpenOnLog = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_NoAutoOpenOnLog);
-pub const ImGuiTreeNodeFlags_DefaultOpen = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_DefaultOpen);
-pub const ImGuiTreeNodeFlags_OpenOnDoubleClick = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_OpenOnDoubleClick);
-pub const ImGuiTreeNodeFlags_OpenOnArrow = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_OpenOnArrow);
-pub const ImGuiTreeNodeFlags_Leaf = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_Leaf);
-pub const ImGuiTreeNodeFlags_Bullet = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_Bullet);
-pub const ImGuiTreeNodeFlags_FramePadding = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_FramePadding);
-pub const ImGuiTreeNodeFlags_SpanAvailWidth = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_SpanAvailWidth);
-pub const ImGuiTreeNodeFlags_SpanFullWidth = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_SpanFullWidth);
-pub const ImGuiTreeNodeFlags_NavLeftJumpsBackHere = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_NavLeftJumpsBackHere);
-pub const ImGuiTreeNodeFlags_CollapsingHeader = @enumToInt(enum_unnamed_10.ImGuiTreeNodeFlags_CollapsingHeader);
-const enum_unnamed_10 = extern enum(c_int) {
+pub const ImGuiInputTextFlags_ = enum_unnamed_5;
+pub const ImGuiTreeNodeFlags_None = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_None);
+pub const ImGuiTreeNodeFlags_Selected = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_Selected);
+pub const ImGuiTreeNodeFlags_Framed = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_Framed);
+pub const ImGuiTreeNodeFlags_AllowItemOverlap = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_AllowItemOverlap);
+pub const ImGuiTreeNodeFlags_NoTreePushOnOpen = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_NoTreePushOnOpen);
+pub const ImGuiTreeNodeFlags_NoAutoOpenOnLog = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_NoAutoOpenOnLog);
+pub const ImGuiTreeNodeFlags_DefaultOpen = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_DefaultOpen);
+pub const ImGuiTreeNodeFlags_OpenOnDoubleClick = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_OpenOnDoubleClick);
+pub const ImGuiTreeNodeFlags_OpenOnArrow = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_OpenOnArrow);
+pub const ImGuiTreeNodeFlags_Leaf = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_Leaf);
+pub const ImGuiTreeNodeFlags_Bullet = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_Bullet);
+pub const ImGuiTreeNodeFlags_FramePadding = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_FramePadding);
+pub const ImGuiTreeNodeFlags_SpanAvailWidth = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_SpanAvailWidth);
+pub const ImGuiTreeNodeFlags_SpanFullWidth = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_SpanFullWidth);
+pub const ImGuiTreeNodeFlags_NavLeftJumpsBackHere = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_NavLeftJumpsBackHere);
+pub const ImGuiTreeNodeFlags_CollapsingHeader = @enumToInt(enum_unnamed_6.ImGuiTreeNodeFlags_CollapsingHeader);
+const enum_unnamed_6 = extern enum(c_int) {
     ImGuiTreeNodeFlags_None = 0,
     ImGuiTreeNodeFlags_Selected = 1,
     ImGuiTreeNodeFlags_Framed = 2,
@@ -1506,14 +1532,40 @@ const enum_unnamed_10 = extern enum(c_int) {
     ImGuiTreeNodeFlags_CollapsingHeader = 26,
     _,
 };
-pub const ImGuiTreeNodeFlags_ = enum_unnamed_10;
-pub const ImGuiSelectableFlags_None = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_None);
-pub const ImGuiSelectableFlags_DontClosePopups = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_DontClosePopups);
-pub const ImGuiSelectableFlags_SpanAllColumns = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_SpanAllColumns);
-pub const ImGuiSelectableFlags_AllowDoubleClick = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_AllowDoubleClick);
-pub const ImGuiSelectableFlags_Disabled = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_Disabled);
-pub const ImGuiSelectableFlags_AllowItemOverlap = @enumToInt(enum_unnamed_11.ImGuiSelectableFlags_AllowItemOverlap);
-const enum_unnamed_11 = extern enum(c_int) {
+pub const ImGuiTreeNodeFlags_ = enum_unnamed_6;
+pub const ImGuiPopupFlags_None = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_None);
+pub const ImGuiPopupFlags_MouseButtonLeft = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_MouseButtonLeft);
+pub const ImGuiPopupFlags_MouseButtonRight = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_MouseButtonRight);
+pub const ImGuiPopupFlags_MouseButtonMiddle = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_MouseButtonMiddle);
+pub const ImGuiPopupFlags_MouseButtonMask_ = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_MouseButtonMask_);
+pub const ImGuiPopupFlags_MouseButtonDefault_ = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_MouseButtonDefault_);
+pub const ImGuiPopupFlags_NoOpenOverExistingPopup = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_NoOpenOverExistingPopup);
+pub const ImGuiPopupFlags_NoOpenOverItems = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_NoOpenOverItems);
+pub const ImGuiPopupFlags_AnyPopupId = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_AnyPopupId);
+pub const ImGuiPopupFlags_AnyPopupLevel = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_AnyPopupLevel);
+pub const ImGuiPopupFlags_AnyPopup = @enumToInt(enum_unnamed_7.ImGuiPopupFlags_AnyPopup);
+const enum_unnamed_7 = extern enum(c_int) {
+    ImGuiPopupFlags_None = 0,
+    ImGuiPopupFlags_MouseButtonLeft = 0,
+    ImGuiPopupFlags_MouseButtonRight = 1,
+    ImGuiPopupFlags_MouseButtonMiddle = 2,
+    ImGuiPopupFlags_MouseButtonMask_ = 31,
+    ImGuiPopupFlags_MouseButtonDefault_ = 1,
+    ImGuiPopupFlags_NoOpenOverExistingPopup = 32,
+    ImGuiPopupFlags_NoOpenOverItems = 64,
+    ImGuiPopupFlags_AnyPopupId = 128,
+    ImGuiPopupFlags_AnyPopupLevel = 256,
+    ImGuiPopupFlags_AnyPopup = 384,
+    _,
+};
+pub const ImGuiPopupFlags_ = enum_unnamed_7;
+pub const ImGuiSelectableFlags_None = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_None);
+pub const ImGuiSelectableFlags_DontClosePopups = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_DontClosePopups);
+pub const ImGuiSelectableFlags_SpanAllColumns = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_SpanAllColumns);
+pub const ImGuiSelectableFlags_AllowDoubleClick = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_AllowDoubleClick);
+pub const ImGuiSelectableFlags_Disabled = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_Disabled);
+pub const ImGuiSelectableFlags_AllowItemOverlap = @enumToInt(enum_unnamed_8.ImGuiSelectableFlags_AllowItemOverlap);
+const enum_unnamed_8 = extern enum(c_int) {
     ImGuiSelectableFlags_None = 0,
     ImGuiSelectableFlags_DontClosePopups = 1,
     ImGuiSelectableFlags_SpanAllColumns = 2,
@@ -1522,17 +1574,17 @@ const enum_unnamed_11 = extern enum(c_int) {
     ImGuiSelectableFlags_AllowItemOverlap = 16,
     _,
 };
-pub const ImGuiSelectableFlags_ = enum_unnamed_11;
-pub const ImGuiComboFlags_None = @enumToInt(enum_unnamed_12.ImGuiComboFlags_None);
-pub const ImGuiComboFlags_PopupAlignLeft = @enumToInt(enum_unnamed_12.ImGuiComboFlags_PopupAlignLeft);
-pub const ImGuiComboFlags_HeightSmall = @enumToInt(enum_unnamed_12.ImGuiComboFlags_HeightSmall);
-pub const ImGuiComboFlags_HeightRegular = @enumToInt(enum_unnamed_12.ImGuiComboFlags_HeightRegular);
-pub const ImGuiComboFlags_HeightLarge = @enumToInt(enum_unnamed_12.ImGuiComboFlags_HeightLarge);
-pub const ImGuiComboFlags_HeightLargest = @enumToInt(enum_unnamed_12.ImGuiComboFlags_HeightLargest);
-pub const ImGuiComboFlags_NoArrowButton = @enumToInt(enum_unnamed_12.ImGuiComboFlags_NoArrowButton);
-pub const ImGuiComboFlags_NoPreview = @enumToInt(enum_unnamed_12.ImGuiComboFlags_NoPreview);
-pub const ImGuiComboFlags_HeightMask_ = @enumToInt(enum_unnamed_12.ImGuiComboFlags_HeightMask_);
-const enum_unnamed_12 = extern enum(c_int) {
+pub const ImGuiSelectableFlags_ = enum_unnamed_8;
+pub const ImGuiComboFlags_None = @enumToInt(enum_unnamed_9.ImGuiComboFlags_None);
+pub const ImGuiComboFlags_PopupAlignLeft = @enumToInt(enum_unnamed_9.ImGuiComboFlags_PopupAlignLeft);
+pub const ImGuiComboFlags_HeightSmall = @enumToInt(enum_unnamed_9.ImGuiComboFlags_HeightSmall);
+pub const ImGuiComboFlags_HeightRegular = @enumToInt(enum_unnamed_9.ImGuiComboFlags_HeightRegular);
+pub const ImGuiComboFlags_HeightLarge = @enumToInt(enum_unnamed_9.ImGuiComboFlags_HeightLarge);
+pub const ImGuiComboFlags_HeightLargest = @enumToInt(enum_unnamed_9.ImGuiComboFlags_HeightLargest);
+pub const ImGuiComboFlags_NoArrowButton = @enumToInt(enum_unnamed_9.ImGuiComboFlags_NoArrowButton);
+pub const ImGuiComboFlags_NoPreview = @enumToInt(enum_unnamed_9.ImGuiComboFlags_NoPreview);
+pub const ImGuiComboFlags_HeightMask_ = @enumToInt(enum_unnamed_9.ImGuiComboFlags_HeightMask_);
+const enum_unnamed_9 = extern enum(c_int) {
     ImGuiComboFlags_None = 0,
     ImGuiComboFlags_PopupAlignLeft = 1,
     ImGuiComboFlags_HeightSmall = 2,
@@ -1544,19 +1596,19 @@ const enum_unnamed_12 = extern enum(c_int) {
     ImGuiComboFlags_HeightMask_ = 30,
     _,
 };
-pub const ImGuiComboFlags_ = enum_unnamed_12;
-pub const ImGuiTabBarFlags_None = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_None);
-pub const ImGuiTabBarFlags_Reorderable = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_Reorderable);
-pub const ImGuiTabBarFlags_AutoSelectNewTabs = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_AutoSelectNewTabs);
-pub const ImGuiTabBarFlags_TabListPopupButton = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_TabListPopupButton);
-pub const ImGuiTabBarFlags_NoCloseWithMiddleMouseButton = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_NoCloseWithMiddleMouseButton);
-pub const ImGuiTabBarFlags_NoTabListScrollingButtons = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_NoTabListScrollingButtons);
-pub const ImGuiTabBarFlags_NoTooltip = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_NoTooltip);
-pub const ImGuiTabBarFlags_FittingPolicyResizeDown = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_FittingPolicyResizeDown);
-pub const ImGuiTabBarFlags_FittingPolicyScroll = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_FittingPolicyScroll);
-pub const ImGuiTabBarFlags_FittingPolicyMask_ = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_FittingPolicyMask_);
-pub const ImGuiTabBarFlags_FittingPolicyDefault_ = @enumToInt(enum_unnamed_13.ImGuiTabBarFlags_FittingPolicyDefault_);
-const enum_unnamed_13 = extern enum(c_int) {
+pub const ImGuiComboFlags_ = enum_unnamed_9;
+pub const ImGuiTabBarFlags_None = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_None);
+pub const ImGuiTabBarFlags_Reorderable = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_Reorderable);
+pub const ImGuiTabBarFlags_AutoSelectNewTabs = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_AutoSelectNewTabs);
+pub const ImGuiTabBarFlags_TabListPopupButton = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_TabListPopupButton);
+pub const ImGuiTabBarFlags_NoCloseWithMiddleMouseButton = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_NoCloseWithMiddleMouseButton);
+pub const ImGuiTabBarFlags_NoTabListScrollingButtons = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_NoTabListScrollingButtons);
+pub const ImGuiTabBarFlags_NoTooltip = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_NoTooltip);
+pub const ImGuiTabBarFlags_FittingPolicyResizeDown = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_FittingPolicyResizeDown);
+pub const ImGuiTabBarFlags_FittingPolicyScroll = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_FittingPolicyScroll);
+pub const ImGuiTabBarFlags_FittingPolicyMask_ = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_FittingPolicyMask_);
+pub const ImGuiTabBarFlags_FittingPolicyDefault_ = @enumToInt(enum_unnamed_10.ImGuiTabBarFlags_FittingPolicyDefault_);
+const enum_unnamed_10 = extern enum(c_int) {
     ImGuiTabBarFlags_None = 0,
     ImGuiTabBarFlags_Reorderable = 1,
     ImGuiTabBarFlags_AutoSelectNewTabs = 2,
@@ -1570,27 +1622,35 @@ const enum_unnamed_13 = extern enum(c_int) {
     ImGuiTabBarFlags_FittingPolicyDefault_ = 64,
     _,
 };
-pub const ImGuiTabBarFlags_ = enum_unnamed_13;
-pub const ImGuiTabItemFlags_None = @enumToInt(enum_unnamed_14.ImGuiTabItemFlags_None);
-pub const ImGuiTabItemFlags_UnsavedDocument = @enumToInt(enum_unnamed_14.ImGuiTabItemFlags_UnsavedDocument);
-pub const ImGuiTabItemFlags_SetSelected = @enumToInt(enum_unnamed_14.ImGuiTabItemFlags_SetSelected);
-pub const ImGuiTabItemFlags_NoCloseWithMiddleMouseButton = @enumToInt(enum_unnamed_14.ImGuiTabItemFlags_NoCloseWithMiddleMouseButton);
-pub const ImGuiTabItemFlags_NoPushId = @enumToInt(enum_unnamed_14.ImGuiTabItemFlags_NoPushId);
-const enum_unnamed_14 = extern enum(c_int) {
+pub const ImGuiTabBarFlags_ = enum_unnamed_10;
+pub const ImGuiTabItemFlags_None = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_None);
+pub const ImGuiTabItemFlags_UnsavedDocument = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_UnsavedDocument);
+pub const ImGuiTabItemFlags_SetSelected = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_SetSelected);
+pub const ImGuiTabItemFlags_NoCloseWithMiddleMouseButton = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_NoCloseWithMiddleMouseButton);
+pub const ImGuiTabItemFlags_NoPushId = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_NoPushId);
+pub const ImGuiTabItemFlags_NoTooltip = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_NoTooltip);
+pub const ImGuiTabItemFlags_NoReorder = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_NoReorder);
+pub const ImGuiTabItemFlags_Leading = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_Leading);
+pub const ImGuiTabItemFlags_Trailing = @enumToInt(enum_unnamed_11.ImGuiTabItemFlags_Trailing);
+const enum_unnamed_11 = extern enum(c_int) {
     ImGuiTabItemFlags_None = 0,
     ImGuiTabItemFlags_UnsavedDocument = 1,
     ImGuiTabItemFlags_SetSelected = 2,
     ImGuiTabItemFlags_NoCloseWithMiddleMouseButton = 4,
     ImGuiTabItemFlags_NoPushId = 8,
+    ImGuiTabItemFlags_NoTooltip = 16,
+    ImGuiTabItemFlags_NoReorder = 32,
+    ImGuiTabItemFlags_Leading = 64,
+    ImGuiTabItemFlags_Trailing = 128,
     _,
 };
-pub const ImGuiTabItemFlags_ = enum_unnamed_14;
-pub const ImGuiFocusedFlags_None = @enumToInt(enum_unnamed_15.ImGuiFocusedFlags_None);
-pub const ImGuiFocusedFlags_ChildWindows = @enumToInt(enum_unnamed_15.ImGuiFocusedFlags_ChildWindows);
-pub const ImGuiFocusedFlags_RootWindow = @enumToInt(enum_unnamed_15.ImGuiFocusedFlags_RootWindow);
-pub const ImGuiFocusedFlags_AnyWindow = @enumToInt(enum_unnamed_15.ImGuiFocusedFlags_AnyWindow);
-pub const ImGuiFocusedFlags_RootAndChildWindows = @enumToInt(enum_unnamed_15.ImGuiFocusedFlags_RootAndChildWindows);
-const enum_unnamed_15 = extern enum(c_int) {
+pub const ImGuiTabItemFlags_ = enum_unnamed_11;
+pub const ImGuiFocusedFlags_None = @enumToInt(enum_unnamed_12.ImGuiFocusedFlags_None);
+pub const ImGuiFocusedFlags_ChildWindows = @enumToInt(enum_unnamed_12.ImGuiFocusedFlags_ChildWindows);
+pub const ImGuiFocusedFlags_RootWindow = @enumToInt(enum_unnamed_12.ImGuiFocusedFlags_RootWindow);
+pub const ImGuiFocusedFlags_AnyWindow = @enumToInt(enum_unnamed_12.ImGuiFocusedFlags_AnyWindow);
+pub const ImGuiFocusedFlags_RootAndChildWindows = @enumToInt(enum_unnamed_12.ImGuiFocusedFlags_RootAndChildWindows);
+const enum_unnamed_12 = extern enum(c_int) {
     ImGuiFocusedFlags_None = 0,
     ImGuiFocusedFlags_ChildWindows = 1,
     ImGuiFocusedFlags_RootWindow = 2,
@@ -1598,18 +1658,18 @@ const enum_unnamed_15 = extern enum(c_int) {
     ImGuiFocusedFlags_RootAndChildWindows = 3,
     _,
 };
-pub const ImGuiFocusedFlags_ = enum_unnamed_15;
-pub const ImGuiHoveredFlags_None = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_None);
-pub const ImGuiHoveredFlags_ChildWindows = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_ChildWindows);
-pub const ImGuiHoveredFlags_RootWindow = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_RootWindow);
-pub const ImGuiHoveredFlags_AnyWindow = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_AnyWindow);
-pub const ImGuiHoveredFlags_AllowWhenBlockedByPopup = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_AllowWhenBlockedByPopup);
-pub const ImGuiHoveredFlags_AllowWhenBlockedByActiveItem = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
-pub const ImGuiHoveredFlags_AllowWhenOverlapped = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_AllowWhenOverlapped);
-pub const ImGuiHoveredFlags_AllowWhenDisabled = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_AllowWhenDisabled);
-pub const ImGuiHoveredFlags_RectOnly = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_RectOnly);
-pub const ImGuiHoveredFlags_RootAndChildWindows = @enumToInt(enum_unnamed_16.ImGuiHoveredFlags_RootAndChildWindows);
-const enum_unnamed_16 = extern enum(c_int) {
+pub const ImGuiFocusedFlags_ = enum_unnamed_12;
+pub const ImGuiHoveredFlags_None = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_None);
+pub const ImGuiHoveredFlags_ChildWindows = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_ChildWindows);
+pub const ImGuiHoveredFlags_RootWindow = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_RootWindow);
+pub const ImGuiHoveredFlags_AnyWindow = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_AnyWindow);
+pub const ImGuiHoveredFlags_AllowWhenBlockedByPopup = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_AllowWhenBlockedByPopup);
+pub const ImGuiHoveredFlags_AllowWhenBlockedByActiveItem = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+pub const ImGuiHoveredFlags_AllowWhenOverlapped = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_AllowWhenOverlapped);
+pub const ImGuiHoveredFlags_AllowWhenDisabled = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_AllowWhenDisabled);
+pub const ImGuiHoveredFlags_RectOnly = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_RectOnly);
+pub const ImGuiHoveredFlags_RootAndChildWindows = @enumToInt(enum_unnamed_13.ImGuiHoveredFlags_RootAndChildWindows);
+const enum_unnamed_13 = extern enum(c_int) {
     ImGuiHoveredFlags_None = 0,
     ImGuiHoveredFlags_ChildWindows = 1,
     ImGuiHoveredFlags_RootWindow = 2,
@@ -1622,15 +1682,15 @@ const enum_unnamed_16 = extern enum(c_int) {
     ImGuiHoveredFlags_RootAndChildWindows = 3,
     _,
 };
-pub const ImGuiHoveredFlags_ = enum_unnamed_16;
-pub const ImGuiDockNodeFlags_None = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_None);
-pub const ImGuiDockNodeFlags_KeepAliveOnly = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_KeepAliveOnly);
-pub const ImGuiDockNodeFlags_NoDockingInCentralNode = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_NoDockingInCentralNode);
-pub const ImGuiDockNodeFlags_PassthruCentralNode = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_PassthruCentralNode);
-pub const ImGuiDockNodeFlags_NoSplit = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_NoSplit);
-pub const ImGuiDockNodeFlags_NoResize = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_NoResize);
-pub const ImGuiDockNodeFlags_AutoHideTabBar = @enumToInt(enum_unnamed_17.ImGuiDockNodeFlags_AutoHideTabBar);
-const enum_unnamed_17 = extern enum(c_int) {
+pub const ImGuiHoveredFlags_ = enum_unnamed_13;
+pub const ImGuiDockNodeFlags_None = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_None);
+pub const ImGuiDockNodeFlags_KeepAliveOnly = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_KeepAliveOnly);
+pub const ImGuiDockNodeFlags_NoDockingInCentralNode = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_NoDockingInCentralNode);
+pub const ImGuiDockNodeFlags_PassthruCentralNode = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_PassthruCentralNode);
+pub const ImGuiDockNodeFlags_NoSplit = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_NoSplit);
+pub const ImGuiDockNodeFlags_NoResize = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_NoResize);
+pub const ImGuiDockNodeFlags_AutoHideTabBar = @enumToInt(enum_unnamed_14.ImGuiDockNodeFlags_AutoHideTabBar);
+const enum_unnamed_14 = extern enum(c_int) {
     ImGuiDockNodeFlags_None = 0,
     ImGuiDockNodeFlags_KeepAliveOnly = 1,
     ImGuiDockNodeFlags_NoDockingInCentralNode = 4,
@@ -1640,19 +1700,19 @@ const enum_unnamed_17 = extern enum(c_int) {
     ImGuiDockNodeFlags_AutoHideTabBar = 64,
     _,
 };
-pub const ImGuiDockNodeFlags_ = enum_unnamed_17;
-pub const ImGuiDragDropFlags_None = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_None);
-pub const ImGuiDragDropFlags_SourceNoPreviewTooltip = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceNoPreviewTooltip);
-pub const ImGuiDragDropFlags_SourceNoDisableHover = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceNoDisableHover);
-pub const ImGuiDragDropFlags_SourceNoHoldToOpenOthers = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceNoHoldToOpenOthers);
-pub const ImGuiDragDropFlags_SourceAllowNullID = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceAllowNullID);
-pub const ImGuiDragDropFlags_SourceExtern = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceExtern);
-pub const ImGuiDragDropFlags_SourceAutoExpirePayload = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_SourceAutoExpirePayload);
-pub const ImGuiDragDropFlags_AcceptBeforeDelivery = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_AcceptBeforeDelivery);
-pub const ImGuiDragDropFlags_AcceptNoDrawDefaultRect = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
-pub const ImGuiDragDropFlags_AcceptNoPreviewTooltip = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_AcceptNoPreviewTooltip);
-pub const ImGuiDragDropFlags_AcceptPeekOnly = @enumToInt(enum_unnamed_18.ImGuiDragDropFlags_AcceptPeekOnly);
-const enum_unnamed_18 = extern enum(c_int) {
+pub const ImGuiDockNodeFlags_ = enum_unnamed_14;
+pub const ImGuiDragDropFlags_None = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_None);
+pub const ImGuiDragDropFlags_SourceNoPreviewTooltip = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceNoPreviewTooltip);
+pub const ImGuiDragDropFlags_SourceNoDisableHover = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceNoDisableHover);
+pub const ImGuiDragDropFlags_SourceNoHoldToOpenOthers = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceNoHoldToOpenOthers);
+pub const ImGuiDragDropFlags_SourceAllowNullID = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceAllowNullID);
+pub const ImGuiDragDropFlags_SourceExtern = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceExtern);
+pub const ImGuiDragDropFlags_SourceAutoExpirePayload = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_SourceAutoExpirePayload);
+pub const ImGuiDragDropFlags_AcceptBeforeDelivery = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_AcceptBeforeDelivery);
+pub const ImGuiDragDropFlags_AcceptNoDrawDefaultRect = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+pub const ImGuiDragDropFlags_AcceptNoPreviewTooltip = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_AcceptNoPreviewTooltip);
+pub const ImGuiDragDropFlags_AcceptPeekOnly = @enumToInt(enum_unnamed_15.ImGuiDragDropFlags_AcceptPeekOnly);
+const enum_unnamed_15 = extern enum(c_int) {
     ImGuiDragDropFlags_None = 0,
     ImGuiDragDropFlags_SourceNoPreviewTooltip = 1,
     ImGuiDragDropFlags_SourceNoDisableHover = 2,
@@ -1666,19 +1726,19 @@ const enum_unnamed_18 = extern enum(c_int) {
     ImGuiDragDropFlags_AcceptPeekOnly = 3072,
     _,
 };
-pub const ImGuiDragDropFlags_ = enum_unnamed_18;
-pub const ImGuiDataType_S8 = @enumToInt(enum_unnamed_19.ImGuiDataType_S8);
-pub const ImGuiDataType_U8 = @enumToInt(enum_unnamed_19.ImGuiDataType_U8);
-pub const ImGuiDataType_S16 = @enumToInt(enum_unnamed_19.ImGuiDataType_S16);
-pub const ImGuiDataType_U16 = @enumToInt(enum_unnamed_19.ImGuiDataType_U16);
-pub const ImGuiDataType_S32 = @enumToInt(enum_unnamed_19.ImGuiDataType_S32);
-pub const ImGuiDataType_U32 = @enumToInt(enum_unnamed_19.ImGuiDataType_U32);
-pub const ImGuiDataType_S64 = @enumToInt(enum_unnamed_19.ImGuiDataType_S64);
-pub const ImGuiDataType_U64 = @enumToInt(enum_unnamed_19.ImGuiDataType_U64);
-pub const ImGuiDataType_Float = @enumToInt(enum_unnamed_19.ImGuiDataType_Float);
-pub const ImGuiDataType_Double = @enumToInt(enum_unnamed_19.ImGuiDataType_Double);
-pub const ImGuiDataType_COUNT = @enumToInt(enum_unnamed_19.ImGuiDataType_COUNT);
-const enum_unnamed_19 = extern enum(c_int) {
+pub const ImGuiDragDropFlags_ = enum_unnamed_15;
+pub const ImGuiDataType_S8 = @enumToInt(enum_unnamed_16.ImGuiDataType_S8);
+pub const ImGuiDataType_U8 = @enumToInt(enum_unnamed_16.ImGuiDataType_U8);
+pub const ImGuiDataType_S16 = @enumToInt(enum_unnamed_16.ImGuiDataType_S16);
+pub const ImGuiDataType_U16 = @enumToInt(enum_unnamed_16.ImGuiDataType_U16);
+pub const ImGuiDataType_S32 = @enumToInt(enum_unnamed_16.ImGuiDataType_S32);
+pub const ImGuiDataType_U32 = @enumToInt(enum_unnamed_16.ImGuiDataType_U32);
+pub const ImGuiDataType_S64 = @enumToInt(enum_unnamed_16.ImGuiDataType_S64);
+pub const ImGuiDataType_U64 = @enumToInt(enum_unnamed_16.ImGuiDataType_U64);
+pub const ImGuiDataType_Float = @enumToInt(enum_unnamed_16.ImGuiDataType_Float);
+pub const ImGuiDataType_Double = @enumToInt(enum_unnamed_16.ImGuiDataType_Double);
+pub const ImGuiDataType_COUNT = @enumToInt(enum_unnamed_16.ImGuiDataType_COUNT);
+const enum_unnamed_16 = extern enum(c_int) {
     ImGuiDataType_S8,
     ImGuiDataType_U8,
     ImGuiDataType_S16,
@@ -1692,14 +1752,14 @@ const enum_unnamed_19 = extern enum(c_int) {
     ImGuiDataType_COUNT,
     _,
 };
-pub const ImGuiDataType_ = enum_unnamed_19;
-pub const ImGuiDir_None = @enumToInt(enum_unnamed_20.ImGuiDir_None);
-pub const ImGuiDir_Left = @enumToInt(enum_unnamed_20.ImGuiDir_Left);
-pub const ImGuiDir_Right = @enumToInt(enum_unnamed_20.ImGuiDir_Right);
-pub const ImGuiDir_Up = @enumToInt(enum_unnamed_20.ImGuiDir_Up);
-pub const ImGuiDir_Down = @enumToInt(enum_unnamed_20.ImGuiDir_Down);
-pub const ImGuiDir_COUNT = @enumToInt(enum_unnamed_20.ImGuiDir_COUNT);
-const enum_unnamed_20 = extern enum(c_int) {
+pub const ImGuiDataType_ = enum_unnamed_16;
+pub const ImGuiDir_None = @enumToInt(enum_unnamed_17.ImGuiDir_None);
+pub const ImGuiDir_Left = @enumToInt(enum_unnamed_17.ImGuiDir_Left);
+pub const ImGuiDir_Right = @enumToInt(enum_unnamed_17.ImGuiDir_Right);
+pub const ImGuiDir_Up = @enumToInt(enum_unnamed_17.ImGuiDir_Up);
+pub const ImGuiDir_Down = @enumToInt(enum_unnamed_17.ImGuiDir_Down);
+pub const ImGuiDir_COUNT = @enumToInt(enum_unnamed_17.ImGuiDir_COUNT);
+const enum_unnamed_17 = extern enum(c_int) {
     ImGuiDir_None = -1,
     ImGuiDir_Left = 0,
     ImGuiDir_Right = 1,
@@ -1708,31 +1768,31 @@ const enum_unnamed_20 = extern enum(c_int) {
     ImGuiDir_COUNT = 4,
     _,
 };
-pub const ImGuiDir_ = enum_unnamed_20;
-pub const ImGuiKey_Tab = @enumToInt(enum_unnamed_21.ImGuiKey_Tab);
-pub const ImGuiKey_LeftArrow = @enumToInt(enum_unnamed_21.ImGuiKey_LeftArrow);
-pub const ImGuiKey_RightArrow = @enumToInt(enum_unnamed_21.ImGuiKey_RightArrow);
-pub const ImGuiKey_UpArrow = @enumToInt(enum_unnamed_21.ImGuiKey_UpArrow);
-pub const ImGuiKey_DownArrow = @enumToInt(enum_unnamed_21.ImGuiKey_DownArrow);
-pub const ImGuiKey_PageUp = @enumToInt(enum_unnamed_21.ImGuiKey_PageUp);
-pub const ImGuiKey_PageDown = @enumToInt(enum_unnamed_21.ImGuiKey_PageDown);
-pub const ImGuiKey_Home = @enumToInt(enum_unnamed_21.ImGuiKey_Home);
-pub const ImGuiKey_End = @enumToInt(enum_unnamed_21.ImGuiKey_End);
-pub const ImGuiKey_Insert = @enumToInt(enum_unnamed_21.ImGuiKey_Insert);
-pub const ImGuiKey_Delete = @enumToInt(enum_unnamed_21.ImGuiKey_Delete);
-pub const ImGuiKey_Backspace = @enumToInt(enum_unnamed_21.ImGuiKey_Backspace);
-pub const ImGuiKey_Space = @enumToInt(enum_unnamed_21.ImGuiKey_Space);
-pub const ImGuiKey_Enter = @enumToInt(enum_unnamed_21.ImGuiKey_Enter);
-pub const ImGuiKey_Escape = @enumToInt(enum_unnamed_21.ImGuiKey_Escape);
-pub const ImGuiKey_KeyPadEnter = @enumToInt(enum_unnamed_21.ImGuiKey_KeyPadEnter);
-pub const ImGuiKey_A = @enumToInt(enum_unnamed_21.ImGuiKey_A);
-pub const ImGuiKey_C = @enumToInt(enum_unnamed_21.ImGuiKey_C);
-pub const ImGuiKey_V = @enumToInt(enum_unnamed_21.ImGuiKey_V);
-pub const ImGuiKey_X = @enumToInt(enum_unnamed_21.ImGuiKey_X);
-pub const ImGuiKey_Y = @enumToInt(enum_unnamed_21.ImGuiKey_Y);
-pub const ImGuiKey_Z = @enumToInt(enum_unnamed_21.ImGuiKey_Z);
-pub const ImGuiKey_COUNT = @enumToInt(enum_unnamed_21.ImGuiKey_COUNT);
-const enum_unnamed_21 = extern enum(c_int) {
+pub const ImGuiDir_ = enum_unnamed_17;
+pub const ImGuiKey_Tab = @enumToInt(enum_unnamed_18.ImGuiKey_Tab);
+pub const ImGuiKey_LeftArrow = @enumToInt(enum_unnamed_18.ImGuiKey_LeftArrow);
+pub const ImGuiKey_RightArrow = @enumToInt(enum_unnamed_18.ImGuiKey_RightArrow);
+pub const ImGuiKey_UpArrow = @enumToInt(enum_unnamed_18.ImGuiKey_UpArrow);
+pub const ImGuiKey_DownArrow = @enumToInt(enum_unnamed_18.ImGuiKey_DownArrow);
+pub const ImGuiKey_PageUp = @enumToInt(enum_unnamed_18.ImGuiKey_PageUp);
+pub const ImGuiKey_PageDown = @enumToInt(enum_unnamed_18.ImGuiKey_PageDown);
+pub const ImGuiKey_Home = @enumToInt(enum_unnamed_18.ImGuiKey_Home);
+pub const ImGuiKey_End = @enumToInt(enum_unnamed_18.ImGuiKey_End);
+pub const ImGuiKey_Insert = @enumToInt(enum_unnamed_18.ImGuiKey_Insert);
+pub const ImGuiKey_Delete = @enumToInt(enum_unnamed_18.ImGuiKey_Delete);
+pub const ImGuiKey_Backspace = @enumToInt(enum_unnamed_18.ImGuiKey_Backspace);
+pub const ImGuiKey_Space = @enumToInt(enum_unnamed_18.ImGuiKey_Space);
+pub const ImGuiKey_Enter = @enumToInt(enum_unnamed_18.ImGuiKey_Enter);
+pub const ImGuiKey_Escape = @enumToInt(enum_unnamed_18.ImGuiKey_Escape);
+pub const ImGuiKey_KeyPadEnter = @enumToInt(enum_unnamed_18.ImGuiKey_KeyPadEnter);
+pub const ImGuiKey_A = @enumToInt(enum_unnamed_18.ImGuiKey_A);
+pub const ImGuiKey_C = @enumToInt(enum_unnamed_18.ImGuiKey_C);
+pub const ImGuiKey_V = @enumToInt(enum_unnamed_18.ImGuiKey_V);
+pub const ImGuiKey_X = @enumToInt(enum_unnamed_18.ImGuiKey_X);
+pub const ImGuiKey_Y = @enumToInt(enum_unnamed_18.ImGuiKey_Y);
+pub const ImGuiKey_Z = @enumToInt(enum_unnamed_18.ImGuiKey_Z);
+pub const ImGuiKey_COUNT = @enumToInt(enum_unnamed_18.ImGuiKey_COUNT);
+const enum_unnamed_18 = extern enum(c_int) {
     ImGuiKey_Tab,
     ImGuiKey_LeftArrow,
     ImGuiKey_RightArrow,
@@ -1758,13 +1818,13 @@ const enum_unnamed_21 = extern enum(c_int) {
     ImGuiKey_COUNT,
     _,
 };
-pub const ImGuiKey_ = enum_unnamed_21;
-pub const ImGuiKeyModFlags_None = @enumToInt(enum_unnamed_22.ImGuiKeyModFlags_None);
-pub const ImGuiKeyModFlags_Ctrl = @enumToInt(enum_unnamed_22.ImGuiKeyModFlags_Ctrl);
-pub const ImGuiKeyModFlags_Shift = @enumToInt(enum_unnamed_22.ImGuiKeyModFlags_Shift);
-pub const ImGuiKeyModFlags_Alt = @enumToInt(enum_unnamed_22.ImGuiKeyModFlags_Alt);
-pub const ImGuiKeyModFlags_Super = @enumToInt(enum_unnamed_22.ImGuiKeyModFlags_Super);
-const enum_unnamed_22 = extern enum(c_int) {
+pub const ImGuiKey_ = enum_unnamed_18;
+pub const ImGuiKeyModFlags_None = @enumToInt(enum_unnamed_19.ImGuiKeyModFlags_None);
+pub const ImGuiKeyModFlags_Ctrl = @enumToInt(enum_unnamed_19.ImGuiKeyModFlags_Ctrl);
+pub const ImGuiKeyModFlags_Shift = @enumToInt(enum_unnamed_19.ImGuiKeyModFlags_Shift);
+pub const ImGuiKeyModFlags_Alt = @enumToInt(enum_unnamed_19.ImGuiKeyModFlags_Alt);
+pub const ImGuiKeyModFlags_Super = @enumToInt(enum_unnamed_19.ImGuiKeyModFlags_Super);
+const enum_unnamed_19 = extern enum(c_int) {
     ImGuiKeyModFlags_None = 0,
     ImGuiKeyModFlags_Ctrl = 1,
     ImGuiKeyModFlags_Shift = 2,
@@ -1772,31 +1832,31 @@ const enum_unnamed_22 = extern enum(c_int) {
     ImGuiKeyModFlags_Super = 8,
     _,
 };
-pub const ImGuiKeyModFlags_ = enum_unnamed_22;
-pub const ImGuiNavInput_Activate = @enumToInt(enum_unnamed_23.ImGuiNavInput_Activate);
-pub const ImGuiNavInput_Cancel = @enumToInt(enum_unnamed_23.ImGuiNavInput_Cancel);
-pub const ImGuiNavInput_Input = @enumToInt(enum_unnamed_23.ImGuiNavInput_Input);
-pub const ImGuiNavInput_Menu = @enumToInt(enum_unnamed_23.ImGuiNavInput_Menu);
-pub const ImGuiNavInput_DpadLeft = @enumToInt(enum_unnamed_23.ImGuiNavInput_DpadLeft);
-pub const ImGuiNavInput_DpadRight = @enumToInt(enum_unnamed_23.ImGuiNavInput_DpadRight);
-pub const ImGuiNavInput_DpadUp = @enumToInt(enum_unnamed_23.ImGuiNavInput_DpadUp);
-pub const ImGuiNavInput_DpadDown = @enumToInt(enum_unnamed_23.ImGuiNavInput_DpadDown);
-pub const ImGuiNavInput_LStickLeft = @enumToInt(enum_unnamed_23.ImGuiNavInput_LStickLeft);
-pub const ImGuiNavInput_LStickRight = @enumToInt(enum_unnamed_23.ImGuiNavInput_LStickRight);
-pub const ImGuiNavInput_LStickUp = @enumToInt(enum_unnamed_23.ImGuiNavInput_LStickUp);
-pub const ImGuiNavInput_LStickDown = @enumToInt(enum_unnamed_23.ImGuiNavInput_LStickDown);
-pub const ImGuiNavInput_FocusPrev = @enumToInt(enum_unnamed_23.ImGuiNavInput_FocusPrev);
-pub const ImGuiNavInput_FocusNext = @enumToInt(enum_unnamed_23.ImGuiNavInput_FocusNext);
-pub const ImGuiNavInput_TweakSlow = @enumToInt(enum_unnamed_23.ImGuiNavInput_TweakSlow);
-pub const ImGuiNavInput_TweakFast = @enumToInt(enum_unnamed_23.ImGuiNavInput_TweakFast);
-pub const ImGuiNavInput_KeyMenu_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_KeyMenu_);
-pub const ImGuiNavInput_KeyLeft_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_KeyLeft_);
-pub const ImGuiNavInput_KeyRight_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_KeyRight_);
-pub const ImGuiNavInput_KeyUp_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_KeyUp_);
-pub const ImGuiNavInput_KeyDown_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_KeyDown_);
-pub const ImGuiNavInput_COUNT = @enumToInt(enum_unnamed_23.ImGuiNavInput_COUNT);
-pub const ImGuiNavInput_InternalStart_ = @enumToInt(enum_unnamed_23.ImGuiNavInput_InternalStart_);
-const enum_unnamed_23 = extern enum(c_int) {
+pub const ImGuiKeyModFlags_ = enum_unnamed_19;
+pub const ImGuiNavInput_Activate = @enumToInt(enum_unnamed_20.ImGuiNavInput_Activate);
+pub const ImGuiNavInput_Cancel = @enumToInt(enum_unnamed_20.ImGuiNavInput_Cancel);
+pub const ImGuiNavInput_Input = @enumToInt(enum_unnamed_20.ImGuiNavInput_Input);
+pub const ImGuiNavInput_Menu = @enumToInt(enum_unnamed_20.ImGuiNavInput_Menu);
+pub const ImGuiNavInput_DpadLeft = @enumToInt(enum_unnamed_20.ImGuiNavInput_DpadLeft);
+pub const ImGuiNavInput_DpadRight = @enumToInt(enum_unnamed_20.ImGuiNavInput_DpadRight);
+pub const ImGuiNavInput_DpadUp = @enumToInt(enum_unnamed_20.ImGuiNavInput_DpadUp);
+pub const ImGuiNavInput_DpadDown = @enumToInt(enum_unnamed_20.ImGuiNavInput_DpadDown);
+pub const ImGuiNavInput_LStickLeft = @enumToInt(enum_unnamed_20.ImGuiNavInput_LStickLeft);
+pub const ImGuiNavInput_LStickRight = @enumToInt(enum_unnamed_20.ImGuiNavInput_LStickRight);
+pub const ImGuiNavInput_LStickUp = @enumToInt(enum_unnamed_20.ImGuiNavInput_LStickUp);
+pub const ImGuiNavInput_LStickDown = @enumToInt(enum_unnamed_20.ImGuiNavInput_LStickDown);
+pub const ImGuiNavInput_FocusPrev = @enumToInt(enum_unnamed_20.ImGuiNavInput_FocusPrev);
+pub const ImGuiNavInput_FocusNext = @enumToInt(enum_unnamed_20.ImGuiNavInput_FocusNext);
+pub const ImGuiNavInput_TweakSlow = @enumToInt(enum_unnamed_20.ImGuiNavInput_TweakSlow);
+pub const ImGuiNavInput_TweakFast = @enumToInt(enum_unnamed_20.ImGuiNavInput_TweakFast);
+pub const ImGuiNavInput_KeyMenu_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_KeyMenu_);
+pub const ImGuiNavInput_KeyLeft_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_KeyLeft_);
+pub const ImGuiNavInput_KeyRight_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_KeyRight_);
+pub const ImGuiNavInput_KeyUp_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_KeyUp_);
+pub const ImGuiNavInput_KeyDown_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_KeyDown_);
+pub const ImGuiNavInput_COUNT = @enumToInt(enum_unnamed_20.ImGuiNavInput_COUNT);
+pub const ImGuiNavInput_InternalStart_ = @enumToInt(enum_unnamed_20.ImGuiNavInput_InternalStart_);
+const enum_unnamed_20 = extern enum(c_int) {
     ImGuiNavInput_Activate = 0,
     ImGuiNavInput_Cancel = 1,
     ImGuiNavInput_Input = 2,
@@ -1822,21 +1882,21 @@ const enum_unnamed_23 = extern enum(c_int) {
     ImGuiNavInput_InternalStart_ = 16,
     _,
 };
-pub const ImGuiNavInput_ = enum_unnamed_23;
-pub const ImGuiConfigFlags_None = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_None);
-pub const ImGuiConfigFlags_NavEnableKeyboard = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NavEnableKeyboard);
-pub const ImGuiConfigFlags_NavEnableGamepad = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NavEnableGamepad);
-pub const ImGuiConfigFlags_NavEnableSetMousePos = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NavEnableSetMousePos);
-pub const ImGuiConfigFlags_NavNoCaptureKeyboard = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NavNoCaptureKeyboard);
-pub const ImGuiConfigFlags_NoMouse = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NoMouse);
-pub const ImGuiConfigFlags_NoMouseCursorChange = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_NoMouseCursorChange);
-pub const ImGuiConfigFlags_DockingEnable = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_DockingEnable);
-pub const ImGuiConfigFlags_ViewportsEnable = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_ViewportsEnable);
-pub const ImGuiConfigFlags_DpiEnableScaleViewports = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_DpiEnableScaleViewports);
-pub const ImGuiConfigFlags_DpiEnableScaleFonts = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_DpiEnableScaleFonts);
-pub const ImGuiConfigFlags_IsSRGB = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_IsSRGB);
-pub const ImGuiConfigFlags_IsTouchScreen = @enumToInt(enum_unnamed_24.ImGuiConfigFlags_IsTouchScreen);
-const enum_unnamed_24 = extern enum(c_int) {
+pub const ImGuiNavInput_ = enum_unnamed_20;
+pub const ImGuiConfigFlags_None = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_None);
+pub const ImGuiConfigFlags_NavEnableKeyboard = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NavEnableKeyboard);
+pub const ImGuiConfigFlags_NavEnableGamepad = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NavEnableGamepad);
+pub const ImGuiConfigFlags_NavEnableSetMousePos = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NavEnableSetMousePos);
+pub const ImGuiConfigFlags_NavNoCaptureKeyboard = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NavNoCaptureKeyboard);
+pub const ImGuiConfigFlags_NoMouse = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NoMouse);
+pub const ImGuiConfigFlags_NoMouseCursorChange = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_NoMouseCursorChange);
+pub const ImGuiConfigFlags_DockingEnable = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_DockingEnable);
+pub const ImGuiConfigFlags_ViewportsEnable = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_ViewportsEnable);
+pub const ImGuiConfigFlags_DpiEnableScaleViewports = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_DpiEnableScaleViewports);
+pub const ImGuiConfigFlags_DpiEnableScaleFonts = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_DpiEnableScaleFonts);
+pub const ImGuiConfigFlags_IsSRGB = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_IsSRGB);
+pub const ImGuiConfigFlags_IsTouchScreen = @enumToInt(enum_unnamed_21.ImGuiConfigFlags_IsTouchScreen);
+const enum_unnamed_21 = extern enum(c_int) {
     ImGuiConfigFlags_None = 0,
     ImGuiConfigFlags_NavEnableKeyboard = 1,
     ImGuiConfigFlags_NavEnableGamepad = 2,
@@ -1852,16 +1912,16 @@ const enum_unnamed_24 = extern enum(c_int) {
     ImGuiConfigFlags_IsTouchScreen = 2097152,
     _,
 };
-pub const ImGuiConfigFlags_ = enum_unnamed_24;
-pub const ImGuiBackendFlags_None = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_None);
-pub const ImGuiBackendFlags_HasGamepad = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_HasGamepad);
-pub const ImGuiBackendFlags_HasMouseCursors = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_HasMouseCursors);
-pub const ImGuiBackendFlags_HasSetMousePos = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_HasSetMousePos);
-pub const ImGuiBackendFlags_RendererHasVtxOffset = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_RendererHasVtxOffset);
-pub const ImGuiBackendFlags_PlatformHasViewports = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_PlatformHasViewports);
-pub const ImGuiBackendFlags_HasMouseHoveredViewport = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_HasMouseHoveredViewport);
-pub const ImGuiBackendFlags_RendererHasViewports = @enumToInt(enum_unnamed_25.ImGuiBackendFlags_RendererHasViewports);
-const enum_unnamed_25 = extern enum(c_int) {
+pub const ImGuiConfigFlags_ = enum_unnamed_21;
+pub const ImGuiBackendFlags_None = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_None);
+pub const ImGuiBackendFlags_HasGamepad = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_HasGamepad);
+pub const ImGuiBackendFlags_HasMouseCursors = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_HasMouseCursors);
+pub const ImGuiBackendFlags_HasSetMousePos = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_HasSetMousePos);
+pub const ImGuiBackendFlags_RendererHasVtxOffset = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_RendererHasVtxOffset);
+pub const ImGuiBackendFlags_PlatformHasViewports = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_PlatformHasViewports);
+pub const ImGuiBackendFlags_HasMouseHoveredViewport = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_HasMouseHoveredViewport);
+pub const ImGuiBackendFlags_RendererHasViewports = @enumToInt(enum_unnamed_22.ImGuiBackendFlags_RendererHasViewports);
+const enum_unnamed_22 = extern enum(c_int) {
     ImGuiBackendFlags_None = 0,
     ImGuiBackendFlags_HasGamepad = 1,
     ImGuiBackendFlags_HasMouseCursors = 2,
@@ -1872,59 +1932,59 @@ const enum_unnamed_25 = extern enum(c_int) {
     ImGuiBackendFlags_RendererHasViewports = 4096,
     _,
 };
-pub const ImGuiBackendFlags_ = enum_unnamed_25;
-pub const ImGuiCol_Text = @enumToInt(enum_unnamed_26.ImGuiCol_Text);
-pub const ImGuiCol_TextDisabled = @enumToInt(enum_unnamed_26.ImGuiCol_TextDisabled);
-pub const ImGuiCol_WindowBg = @enumToInt(enum_unnamed_26.ImGuiCol_WindowBg);
-pub const ImGuiCol_ChildBg = @enumToInt(enum_unnamed_26.ImGuiCol_ChildBg);
-pub const ImGuiCol_PopupBg = @enumToInt(enum_unnamed_26.ImGuiCol_PopupBg);
-pub const ImGuiCol_Border = @enumToInt(enum_unnamed_26.ImGuiCol_Border);
-pub const ImGuiCol_BorderShadow = @enumToInt(enum_unnamed_26.ImGuiCol_BorderShadow);
-pub const ImGuiCol_FrameBg = @enumToInt(enum_unnamed_26.ImGuiCol_FrameBg);
-pub const ImGuiCol_FrameBgHovered = @enumToInt(enum_unnamed_26.ImGuiCol_FrameBgHovered);
-pub const ImGuiCol_FrameBgActive = @enumToInt(enum_unnamed_26.ImGuiCol_FrameBgActive);
-pub const ImGuiCol_TitleBg = @enumToInt(enum_unnamed_26.ImGuiCol_TitleBg);
-pub const ImGuiCol_TitleBgActive = @enumToInt(enum_unnamed_26.ImGuiCol_TitleBgActive);
-pub const ImGuiCol_TitleBgCollapsed = @enumToInt(enum_unnamed_26.ImGuiCol_TitleBgCollapsed);
-pub const ImGuiCol_MenuBarBg = @enumToInt(enum_unnamed_26.ImGuiCol_MenuBarBg);
-pub const ImGuiCol_ScrollbarBg = @enumToInt(enum_unnamed_26.ImGuiCol_ScrollbarBg);
-pub const ImGuiCol_ScrollbarGrab = @enumToInt(enum_unnamed_26.ImGuiCol_ScrollbarGrab);
-pub const ImGuiCol_ScrollbarGrabHovered = @enumToInt(enum_unnamed_26.ImGuiCol_ScrollbarGrabHovered);
-pub const ImGuiCol_ScrollbarGrabActive = @enumToInt(enum_unnamed_26.ImGuiCol_ScrollbarGrabActive);
-pub const ImGuiCol_CheckMark = @enumToInt(enum_unnamed_26.ImGuiCol_CheckMark);
-pub const ImGuiCol_SliderGrab = @enumToInt(enum_unnamed_26.ImGuiCol_SliderGrab);
-pub const ImGuiCol_SliderGrabActive = @enumToInt(enum_unnamed_26.ImGuiCol_SliderGrabActive);
-pub const ImGuiCol_Button = @enumToInt(enum_unnamed_26.ImGuiCol_Button);
-pub const ImGuiCol_ButtonHovered = @enumToInt(enum_unnamed_26.ImGuiCol_ButtonHovered);
-pub const ImGuiCol_ButtonActive = @enumToInt(enum_unnamed_26.ImGuiCol_ButtonActive);
-pub const ImGuiCol_Header = @enumToInt(enum_unnamed_26.ImGuiCol_Header);
-pub const ImGuiCol_HeaderHovered = @enumToInt(enum_unnamed_26.ImGuiCol_HeaderHovered);
-pub const ImGuiCol_HeaderActive = @enumToInt(enum_unnamed_26.ImGuiCol_HeaderActive);
-pub const ImGuiCol_Separator = @enumToInt(enum_unnamed_26.ImGuiCol_Separator);
-pub const ImGuiCol_SeparatorHovered = @enumToInt(enum_unnamed_26.ImGuiCol_SeparatorHovered);
-pub const ImGuiCol_SeparatorActive = @enumToInt(enum_unnamed_26.ImGuiCol_SeparatorActive);
-pub const ImGuiCol_ResizeGrip = @enumToInt(enum_unnamed_26.ImGuiCol_ResizeGrip);
-pub const ImGuiCol_ResizeGripHovered = @enumToInt(enum_unnamed_26.ImGuiCol_ResizeGripHovered);
-pub const ImGuiCol_ResizeGripActive = @enumToInt(enum_unnamed_26.ImGuiCol_ResizeGripActive);
-pub const ImGuiCol_Tab = @enumToInt(enum_unnamed_26.ImGuiCol_Tab);
-pub const ImGuiCol_TabHovered = @enumToInt(enum_unnamed_26.ImGuiCol_TabHovered);
-pub const ImGuiCol_TabActive = @enumToInt(enum_unnamed_26.ImGuiCol_TabActive);
-pub const ImGuiCol_TabUnfocused = @enumToInt(enum_unnamed_26.ImGuiCol_TabUnfocused);
-pub const ImGuiCol_TabUnfocusedActive = @enumToInt(enum_unnamed_26.ImGuiCol_TabUnfocusedActive);
-pub const ImGuiCol_DockingPreview = @enumToInt(enum_unnamed_26.ImGuiCol_DockingPreview);
-pub const ImGuiCol_DockingEmptyBg = @enumToInt(enum_unnamed_26.ImGuiCol_DockingEmptyBg);
-pub const ImGuiCol_PlotLines = @enumToInt(enum_unnamed_26.ImGuiCol_PlotLines);
-pub const ImGuiCol_PlotLinesHovered = @enumToInt(enum_unnamed_26.ImGuiCol_PlotLinesHovered);
-pub const ImGuiCol_PlotHistogram = @enumToInt(enum_unnamed_26.ImGuiCol_PlotHistogram);
-pub const ImGuiCol_PlotHistogramHovered = @enumToInt(enum_unnamed_26.ImGuiCol_PlotHistogramHovered);
-pub const ImGuiCol_TextSelectedBg = @enumToInt(enum_unnamed_26.ImGuiCol_TextSelectedBg);
-pub const ImGuiCol_DragDropTarget = @enumToInt(enum_unnamed_26.ImGuiCol_DragDropTarget);
-pub const ImGuiCol_NavHighlight = @enumToInt(enum_unnamed_26.ImGuiCol_NavHighlight);
-pub const ImGuiCol_NavWindowingHighlight = @enumToInt(enum_unnamed_26.ImGuiCol_NavWindowingHighlight);
-pub const ImGuiCol_NavWindowingDimBg = @enumToInt(enum_unnamed_26.ImGuiCol_NavWindowingDimBg);
-pub const ImGuiCol_ModalWindowDimBg = @enumToInt(enum_unnamed_26.ImGuiCol_ModalWindowDimBg);
-pub const ImGuiCol_COUNT = @enumToInt(enum_unnamed_26.ImGuiCol_COUNT);
-const enum_unnamed_26 = extern enum(c_int) {
+pub const ImGuiBackendFlags_ = enum_unnamed_22;
+pub const ImGuiCol_Text = @enumToInt(enum_unnamed_23.ImGuiCol_Text);
+pub const ImGuiCol_TextDisabled = @enumToInt(enum_unnamed_23.ImGuiCol_TextDisabled);
+pub const ImGuiCol_WindowBg = @enumToInt(enum_unnamed_23.ImGuiCol_WindowBg);
+pub const ImGuiCol_ChildBg = @enumToInt(enum_unnamed_23.ImGuiCol_ChildBg);
+pub const ImGuiCol_PopupBg = @enumToInt(enum_unnamed_23.ImGuiCol_PopupBg);
+pub const ImGuiCol_Border = @enumToInt(enum_unnamed_23.ImGuiCol_Border);
+pub const ImGuiCol_BorderShadow = @enumToInt(enum_unnamed_23.ImGuiCol_BorderShadow);
+pub const ImGuiCol_FrameBg = @enumToInt(enum_unnamed_23.ImGuiCol_FrameBg);
+pub const ImGuiCol_FrameBgHovered = @enumToInt(enum_unnamed_23.ImGuiCol_FrameBgHovered);
+pub const ImGuiCol_FrameBgActive = @enumToInt(enum_unnamed_23.ImGuiCol_FrameBgActive);
+pub const ImGuiCol_TitleBg = @enumToInt(enum_unnamed_23.ImGuiCol_TitleBg);
+pub const ImGuiCol_TitleBgActive = @enumToInt(enum_unnamed_23.ImGuiCol_TitleBgActive);
+pub const ImGuiCol_TitleBgCollapsed = @enumToInt(enum_unnamed_23.ImGuiCol_TitleBgCollapsed);
+pub const ImGuiCol_MenuBarBg = @enumToInt(enum_unnamed_23.ImGuiCol_MenuBarBg);
+pub const ImGuiCol_ScrollbarBg = @enumToInt(enum_unnamed_23.ImGuiCol_ScrollbarBg);
+pub const ImGuiCol_ScrollbarGrab = @enumToInt(enum_unnamed_23.ImGuiCol_ScrollbarGrab);
+pub const ImGuiCol_ScrollbarGrabHovered = @enumToInt(enum_unnamed_23.ImGuiCol_ScrollbarGrabHovered);
+pub const ImGuiCol_ScrollbarGrabActive = @enumToInt(enum_unnamed_23.ImGuiCol_ScrollbarGrabActive);
+pub const ImGuiCol_CheckMark = @enumToInt(enum_unnamed_23.ImGuiCol_CheckMark);
+pub const ImGuiCol_SliderGrab = @enumToInt(enum_unnamed_23.ImGuiCol_SliderGrab);
+pub const ImGuiCol_SliderGrabActive = @enumToInt(enum_unnamed_23.ImGuiCol_SliderGrabActive);
+pub const ImGuiCol_Button = @enumToInt(enum_unnamed_23.ImGuiCol_Button);
+pub const ImGuiCol_ButtonHovered = @enumToInt(enum_unnamed_23.ImGuiCol_ButtonHovered);
+pub const ImGuiCol_ButtonActive = @enumToInt(enum_unnamed_23.ImGuiCol_ButtonActive);
+pub const ImGuiCol_Header = @enumToInt(enum_unnamed_23.ImGuiCol_Header);
+pub const ImGuiCol_HeaderHovered = @enumToInt(enum_unnamed_23.ImGuiCol_HeaderHovered);
+pub const ImGuiCol_HeaderActive = @enumToInt(enum_unnamed_23.ImGuiCol_HeaderActive);
+pub const ImGuiCol_Separator = @enumToInt(enum_unnamed_23.ImGuiCol_Separator);
+pub const ImGuiCol_SeparatorHovered = @enumToInt(enum_unnamed_23.ImGuiCol_SeparatorHovered);
+pub const ImGuiCol_SeparatorActive = @enumToInt(enum_unnamed_23.ImGuiCol_SeparatorActive);
+pub const ImGuiCol_ResizeGrip = @enumToInt(enum_unnamed_23.ImGuiCol_ResizeGrip);
+pub const ImGuiCol_ResizeGripHovered = @enumToInt(enum_unnamed_23.ImGuiCol_ResizeGripHovered);
+pub const ImGuiCol_ResizeGripActive = @enumToInt(enum_unnamed_23.ImGuiCol_ResizeGripActive);
+pub const ImGuiCol_Tab = @enumToInt(enum_unnamed_23.ImGuiCol_Tab);
+pub const ImGuiCol_TabHovered = @enumToInt(enum_unnamed_23.ImGuiCol_TabHovered);
+pub const ImGuiCol_TabActive = @enumToInt(enum_unnamed_23.ImGuiCol_TabActive);
+pub const ImGuiCol_TabUnfocused = @enumToInt(enum_unnamed_23.ImGuiCol_TabUnfocused);
+pub const ImGuiCol_TabUnfocusedActive = @enumToInt(enum_unnamed_23.ImGuiCol_TabUnfocusedActive);
+pub const ImGuiCol_DockingPreview = @enumToInt(enum_unnamed_23.ImGuiCol_DockingPreview);
+pub const ImGuiCol_DockingEmptyBg = @enumToInt(enum_unnamed_23.ImGuiCol_DockingEmptyBg);
+pub const ImGuiCol_PlotLines = @enumToInt(enum_unnamed_23.ImGuiCol_PlotLines);
+pub const ImGuiCol_PlotLinesHovered = @enumToInt(enum_unnamed_23.ImGuiCol_PlotLinesHovered);
+pub const ImGuiCol_PlotHistogram = @enumToInt(enum_unnamed_23.ImGuiCol_PlotHistogram);
+pub const ImGuiCol_PlotHistogramHovered = @enumToInt(enum_unnamed_23.ImGuiCol_PlotHistogramHovered);
+pub const ImGuiCol_TextSelectedBg = @enumToInt(enum_unnamed_23.ImGuiCol_TextSelectedBg);
+pub const ImGuiCol_DragDropTarget = @enumToInt(enum_unnamed_23.ImGuiCol_DragDropTarget);
+pub const ImGuiCol_NavHighlight = @enumToInt(enum_unnamed_23.ImGuiCol_NavHighlight);
+pub const ImGuiCol_NavWindowingHighlight = @enumToInt(enum_unnamed_23.ImGuiCol_NavWindowingHighlight);
+pub const ImGuiCol_NavWindowingDimBg = @enumToInt(enum_unnamed_23.ImGuiCol_NavWindowingDimBg);
+pub const ImGuiCol_ModalWindowDimBg = @enumToInt(enum_unnamed_23.ImGuiCol_ModalWindowDimBg);
+pub const ImGuiCol_COUNT = @enumToInt(enum_unnamed_23.ImGuiCol_COUNT);
+const enum_unnamed_23 = extern enum(c_int) {
     ImGuiCol_Text,
     ImGuiCol_TextDisabled,
     ImGuiCol_WindowBg,
@@ -1978,32 +2038,32 @@ const enum_unnamed_26 = extern enum(c_int) {
     ImGuiCol_COUNT,
     _,
 };
-pub const ImGuiCol_ = enum_unnamed_26;
-pub const ImGuiStyleVar_Alpha = @enumToInt(enum_unnamed_27.ImGuiStyleVar_Alpha);
-pub const ImGuiStyleVar_WindowPadding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_WindowPadding);
-pub const ImGuiStyleVar_WindowRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_WindowRounding);
-pub const ImGuiStyleVar_WindowBorderSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_WindowBorderSize);
-pub const ImGuiStyleVar_WindowMinSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_WindowMinSize);
-pub const ImGuiStyleVar_WindowTitleAlign = @enumToInt(enum_unnamed_27.ImGuiStyleVar_WindowTitleAlign);
-pub const ImGuiStyleVar_ChildRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ChildRounding);
-pub const ImGuiStyleVar_ChildBorderSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ChildBorderSize);
-pub const ImGuiStyleVar_PopupRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_PopupRounding);
-pub const ImGuiStyleVar_PopupBorderSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_PopupBorderSize);
-pub const ImGuiStyleVar_FramePadding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_FramePadding);
-pub const ImGuiStyleVar_FrameRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_FrameRounding);
-pub const ImGuiStyleVar_FrameBorderSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_FrameBorderSize);
-pub const ImGuiStyleVar_ItemSpacing = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ItemSpacing);
-pub const ImGuiStyleVar_ItemInnerSpacing = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ItemInnerSpacing);
-pub const ImGuiStyleVar_IndentSpacing = @enumToInt(enum_unnamed_27.ImGuiStyleVar_IndentSpacing);
-pub const ImGuiStyleVar_ScrollbarSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ScrollbarSize);
-pub const ImGuiStyleVar_ScrollbarRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ScrollbarRounding);
-pub const ImGuiStyleVar_GrabMinSize = @enumToInt(enum_unnamed_27.ImGuiStyleVar_GrabMinSize);
-pub const ImGuiStyleVar_GrabRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_GrabRounding);
-pub const ImGuiStyleVar_TabRounding = @enumToInt(enum_unnamed_27.ImGuiStyleVar_TabRounding);
-pub const ImGuiStyleVar_ButtonTextAlign = @enumToInt(enum_unnamed_27.ImGuiStyleVar_ButtonTextAlign);
-pub const ImGuiStyleVar_SelectableTextAlign = @enumToInt(enum_unnamed_27.ImGuiStyleVar_SelectableTextAlign);
-pub const ImGuiStyleVar_COUNT = @enumToInt(enum_unnamed_27.ImGuiStyleVar_COUNT);
-const enum_unnamed_27 = extern enum(c_int) {
+pub const ImGuiCol_ = enum_unnamed_23;
+pub const ImGuiStyleVar_Alpha = @enumToInt(enum_unnamed_24.ImGuiStyleVar_Alpha);
+pub const ImGuiStyleVar_WindowPadding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_WindowPadding);
+pub const ImGuiStyleVar_WindowRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_WindowRounding);
+pub const ImGuiStyleVar_WindowBorderSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_WindowBorderSize);
+pub const ImGuiStyleVar_WindowMinSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_WindowMinSize);
+pub const ImGuiStyleVar_WindowTitleAlign = @enumToInt(enum_unnamed_24.ImGuiStyleVar_WindowTitleAlign);
+pub const ImGuiStyleVar_ChildRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ChildRounding);
+pub const ImGuiStyleVar_ChildBorderSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ChildBorderSize);
+pub const ImGuiStyleVar_PopupRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_PopupRounding);
+pub const ImGuiStyleVar_PopupBorderSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_PopupBorderSize);
+pub const ImGuiStyleVar_FramePadding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_FramePadding);
+pub const ImGuiStyleVar_FrameRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_FrameRounding);
+pub const ImGuiStyleVar_FrameBorderSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_FrameBorderSize);
+pub const ImGuiStyleVar_ItemSpacing = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ItemSpacing);
+pub const ImGuiStyleVar_ItemInnerSpacing = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ItemInnerSpacing);
+pub const ImGuiStyleVar_IndentSpacing = @enumToInt(enum_unnamed_24.ImGuiStyleVar_IndentSpacing);
+pub const ImGuiStyleVar_ScrollbarSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ScrollbarSize);
+pub const ImGuiStyleVar_ScrollbarRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ScrollbarRounding);
+pub const ImGuiStyleVar_GrabMinSize = @enumToInt(enum_unnamed_24.ImGuiStyleVar_GrabMinSize);
+pub const ImGuiStyleVar_GrabRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_GrabRounding);
+pub const ImGuiStyleVar_TabRounding = @enumToInt(enum_unnamed_24.ImGuiStyleVar_TabRounding);
+pub const ImGuiStyleVar_ButtonTextAlign = @enumToInt(enum_unnamed_24.ImGuiStyleVar_ButtonTextAlign);
+pub const ImGuiStyleVar_SelectableTextAlign = @enumToInt(enum_unnamed_24.ImGuiStyleVar_SelectableTextAlign);
+pub const ImGuiStyleVar_COUNT = @enumToInt(enum_unnamed_24.ImGuiStyleVar_COUNT);
+const enum_unnamed_24 = extern enum(c_int) {
     ImGuiStyleVar_Alpha,
     ImGuiStyleVar_WindowPadding,
     ImGuiStyleVar_WindowRounding,
@@ -2030,37 +2090,53 @@ const enum_unnamed_27 = extern enum(c_int) {
     ImGuiStyleVar_COUNT,
     _,
 };
-pub const ImGuiStyleVar_ = enum_unnamed_27;
-pub const ImGuiColorEditFlags_None = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_None);
-pub const ImGuiColorEditFlags_NoAlpha = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoAlpha);
-pub const ImGuiColorEditFlags_NoPicker = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoPicker);
-pub const ImGuiColorEditFlags_NoOptions = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoOptions);
-pub const ImGuiColorEditFlags_NoSmallPreview = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoSmallPreview);
-pub const ImGuiColorEditFlags_NoInputs = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoInputs);
-pub const ImGuiColorEditFlags_NoTooltip = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoTooltip);
-pub const ImGuiColorEditFlags_NoLabel = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoLabel);
-pub const ImGuiColorEditFlags_NoSidePreview = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoSidePreview);
-pub const ImGuiColorEditFlags_NoDragDrop = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoDragDrop);
-pub const ImGuiColorEditFlags_NoBorder = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_NoBorder);
-pub const ImGuiColorEditFlags_AlphaBar = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_AlphaBar);
-pub const ImGuiColorEditFlags_AlphaPreview = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_AlphaPreview);
-pub const ImGuiColorEditFlags_AlphaPreviewHalf = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_AlphaPreviewHalf);
-pub const ImGuiColorEditFlags_HDR = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_HDR);
-pub const ImGuiColorEditFlags_DisplayRGB = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_DisplayRGB);
-pub const ImGuiColorEditFlags_DisplayHSV = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_DisplayHSV);
-pub const ImGuiColorEditFlags_DisplayHex = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_DisplayHex);
-pub const ImGuiColorEditFlags_Uint8 = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_Uint8);
-pub const ImGuiColorEditFlags_Float = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_Float);
-pub const ImGuiColorEditFlags_PickerHueBar = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_PickerHueBar);
-pub const ImGuiColorEditFlags_PickerHueWheel = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_PickerHueWheel);
-pub const ImGuiColorEditFlags_InputRGB = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_InputRGB);
-pub const ImGuiColorEditFlags_InputHSV = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags_InputHSV);
-pub const ImGuiColorEditFlags__OptionsDefault = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags__OptionsDefault);
-pub const ImGuiColorEditFlags__DisplayMask = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags__DisplayMask);
-pub const ImGuiColorEditFlags__DataTypeMask = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags__DataTypeMask);
-pub const ImGuiColorEditFlags__PickerMask = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags__PickerMask);
-pub const ImGuiColorEditFlags__InputMask = @enumToInt(enum_unnamed_28.ImGuiColorEditFlags__InputMask);
-const enum_unnamed_28 = extern enum(c_int) {
+pub const ImGuiStyleVar_ = enum_unnamed_24;
+pub const ImGuiButtonFlags_None = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_None);
+pub const ImGuiButtonFlags_MouseButtonLeft = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_MouseButtonLeft);
+pub const ImGuiButtonFlags_MouseButtonRight = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_MouseButtonRight);
+pub const ImGuiButtonFlags_MouseButtonMiddle = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_MouseButtonMiddle);
+pub const ImGuiButtonFlags_MouseButtonMask_ = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_MouseButtonMask_);
+pub const ImGuiButtonFlags_MouseButtonDefault_ = @enumToInt(enum_unnamed_25.ImGuiButtonFlags_MouseButtonDefault_);
+const enum_unnamed_25 = extern enum(c_int) {
+    ImGuiButtonFlags_None = 0,
+    ImGuiButtonFlags_MouseButtonLeft = 1,
+    ImGuiButtonFlags_MouseButtonRight = 2,
+    ImGuiButtonFlags_MouseButtonMiddle = 4,
+    ImGuiButtonFlags_MouseButtonMask_ = 7,
+    ImGuiButtonFlags_MouseButtonDefault_ = 1,
+    _,
+};
+pub const ImGuiButtonFlags_ = enum_unnamed_25;
+pub const ImGuiColorEditFlags_None = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_None);
+pub const ImGuiColorEditFlags_NoAlpha = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoAlpha);
+pub const ImGuiColorEditFlags_NoPicker = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoPicker);
+pub const ImGuiColorEditFlags_NoOptions = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoOptions);
+pub const ImGuiColorEditFlags_NoSmallPreview = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoSmallPreview);
+pub const ImGuiColorEditFlags_NoInputs = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoInputs);
+pub const ImGuiColorEditFlags_NoTooltip = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoTooltip);
+pub const ImGuiColorEditFlags_NoLabel = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoLabel);
+pub const ImGuiColorEditFlags_NoSidePreview = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoSidePreview);
+pub const ImGuiColorEditFlags_NoDragDrop = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoDragDrop);
+pub const ImGuiColorEditFlags_NoBorder = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_NoBorder);
+pub const ImGuiColorEditFlags_AlphaBar = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_AlphaBar);
+pub const ImGuiColorEditFlags_AlphaPreview = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_AlphaPreview);
+pub const ImGuiColorEditFlags_AlphaPreviewHalf = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_AlphaPreviewHalf);
+pub const ImGuiColorEditFlags_HDR = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_HDR);
+pub const ImGuiColorEditFlags_DisplayRGB = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_DisplayRGB);
+pub const ImGuiColorEditFlags_DisplayHSV = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_DisplayHSV);
+pub const ImGuiColorEditFlags_DisplayHex = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_DisplayHex);
+pub const ImGuiColorEditFlags_Uint8 = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_Uint8);
+pub const ImGuiColorEditFlags_Float = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_Float);
+pub const ImGuiColorEditFlags_PickerHueBar = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_PickerHueBar);
+pub const ImGuiColorEditFlags_PickerHueWheel = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_PickerHueWheel);
+pub const ImGuiColorEditFlags_InputRGB = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_InputRGB);
+pub const ImGuiColorEditFlags_InputHSV = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags_InputHSV);
+pub const ImGuiColorEditFlags__OptionsDefault = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags__OptionsDefault);
+pub const ImGuiColorEditFlags__DisplayMask = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags__DisplayMask);
+pub const ImGuiColorEditFlags__DataTypeMask = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags__DataTypeMask);
+pub const ImGuiColorEditFlags__PickerMask = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags__PickerMask);
+pub const ImGuiColorEditFlags__InputMask = @enumToInt(enum_unnamed_26.ImGuiColorEditFlags__InputMask);
+const enum_unnamed_26 = extern enum(c_int) {
     ImGuiColorEditFlags_None = 0,
     ImGuiColorEditFlags_NoAlpha = 2,
     ImGuiColorEditFlags_NoPicker = 4,
@@ -2092,31 +2168,47 @@ const enum_unnamed_28 = extern enum(c_int) {
     ImGuiColorEditFlags__InputMask = 402653184,
     _,
 };
-pub const ImGuiColorEditFlags_ = enum_unnamed_28;
-pub const ImGuiMouseButton_Left = @enumToInt(enum_unnamed_29.ImGuiMouseButton_Left);
-pub const ImGuiMouseButton_Right = @enumToInt(enum_unnamed_29.ImGuiMouseButton_Right);
-pub const ImGuiMouseButton_Middle = @enumToInt(enum_unnamed_29.ImGuiMouseButton_Middle);
-pub const ImGuiMouseButton_COUNT = @enumToInt(enum_unnamed_29.ImGuiMouseButton_COUNT);
-const enum_unnamed_29 = extern enum(c_int) {
+pub const ImGuiColorEditFlags_ = enum_unnamed_26;
+pub const ImGuiSliderFlags_None = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_None);
+pub const ImGuiSliderFlags_AlwaysClamp = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_AlwaysClamp);
+pub const ImGuiSliderFlags_Logarithmic = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_Logarithmic);
+pub const ImGuiSliderFlags_NoRoundToFormat = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_NoRoundToFormat);
+pub const ImGuiSliderFlags_NoInput = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_NoInput);
+pub const ImGuiSliderFlags_InvalidMask_ = @enumToInt(enum_unnamed_27.ImGuiSliderFlags_InvalidMask_);
+const enum_unnamed_27 = extern enum(c_int) {
+    ImGuiSliderFlags_None = 0,
+    ImGuiSliderFlags_AlwaysClamp = 16,
+    ImGuiSliderFlags_Logarithmic = 32,
+    ImGuiSliderFlags_NoRoundToFormat = 64,
+    ImGuiSliderFlags_NoInput = 128,
+    ImGuiSliderFlags_InvalidMask_ = 1879048207,
+    _,
+};
+pub const ImGuiSliderFlags_ = enum_unnamed_27;
+pub const ImGuiMouseButton_Left = @enumToInt(enum_unnamed_28.ImGuiMouseButton_Left);
+pub const ImGuiMouseButton_Right = @enumToInt(enum_unnamed_28.ImGuiMouseButton_Right);
+pub const ImGuiMouseButton_Middle = @enumToInt(enum_unnamed_28.ImGuiMouseButton_Middle);
+pub const ImGuiMouseButton_COUNT = @enumToInt(enum_unnamed_28.ImGuiMouseButton_COUNT);
+const enum_unnamed_28 = extern enum(c_int) {
     ImGuiMouseButton_Left = 0,
     ImGuiMouseButton_Right = 1,
     ImGuiMouseButton_Middle = 2,
     ImGuiMouseButton_COUNT = 5,
     _,
 };
-pub const ImGuiMouseButton_ = enum_unnamed_29;
-pub const ImGuiMouseCursor_None = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_None);
-pub const ImGuiMouseCursor_Arrow = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_Arrow);
-pub const ImGuiMouseCursor_TextInput = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_TextInput);
-pub const ImGuiMouseCursor_ResizeAll = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_ResizeAll);
-pub const ImGuiMouseCursor_ResizeNS = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_ResizeNS);
-pub const ImGuiMouseCursor_ResizeEW = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_ResizeEW);
-pub const ImGuiMouseCursor_ResizeNESW = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_ResizeNESW);
-pub const ImGuiMouseCursor_ResizeNWSE = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_ResizeNWSE);
-pub const ImGuiMouseCursor_Hand = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_Hand);
-pub const ImGuiMouseCursor_NotAllowed = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_NotAllowed);
-pub const ImGuiMouseCursor_COUNT = @enumToInt(enum_unnamed_30.ImGuiMouseCursor_COUNT);
-const enum_unnamed_30 = extern enum(c_int) {
+pub const ImGuiMouseButton_ = enum_unnamed_28;
+pub const ImGuiMouseCursor_None = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_None);
+pub const ImGuiMouseCursor_Arrow = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_Arrow);
+pub const ImGuiMouseCursor_TextInput = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_TextInput);
+pub const ImGuiMouseCursor_ResizeAll = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_ResizeAll);
+pub const ImGuiMouseCursor_ResizeNS = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_ResizeNS);
+pub const ImGuiMouseCursor_ResizeEW = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_ResizeEW);
+pub const ImGuiMouseCursor_ResizeNESW = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_ResizeNESW);
+pub const ImGuiMouseCursor_ResizeNWSE = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_ResizeNWSE);
+pub const ImGuiMouseCursor_Hand = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_Hand);
+pub const ImGuiMouseCursor_NotAllowed = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_NotAllowed);
+pub const ImGuiMouseCursor_COUNT = @enumToInt(enum_unnamed_29.ImGuiMouseCursor_COUNT);
+const enum_unnamed_29 = extern enum(c_int) {
     ImGuiMouseCursor_None = -1,
     ImGuiMouseCursor_Arrow = 0,
     ImGuiMouseCursor_TextInput = 1,
@@ -2130,19 +2222,21 @@ const enum_unnamed_30 = extern enum(c_int) {
     ImGuiMouseCursor_COUNT = 9,
     _,
 };
-pub const ImGuiMouseCursor_ = enum_unnamed_30;
-pub const ImGuiCond_Always = @enumToInt(enum_unnamed_31.ImGuiCond_Always);
-pub const ImGuiCond_Once = @enumToInt(enum_unnamed_31.ImGuiCond_Once);
-pub const ImGuiCond_FirstUseEver = @enumToInt(enum_unnamed_31.ImGuiCond_FirstUseEver);
-pub const ImGuiCond_Appearing = @enumToInt(enum_unnamed_31.ImGuiCond_Appearing);
-const enum_unnamed_31 = extern enum(c_int) {
+pub const ImGuiMouseCursor_ = enum_unnamed_29;
+pub const ImGuiCond_None = @enumToInt(enum_unnamed_30.ImGuiCond_None);
+pub const ImGuiCond_Always = @enumToInt(enum_unnamed_30.ImGuiCond_Always);
+pub const ImGuiCond_Once = @enumToInt(enum_unnamed_30.ImGuiCond_Once);
+pub const ImGuiCond_FirstUseEver = @enumToInt(enum_unnamed_30.ImGuiCond_FirstUseEver);
+pub const ImGuiCond_Appearing = @enumToInt(enum_unnamed_30.ImGuiCond_Appearing);
+const enum_unnamed_30 = extern enum(c_int) {
+    ImGuiCond_None = 0,
     ImGuiCond_Always = 1,
     ImGuiCond_Once = 2,
     ImGuiCond_FirstUseEver = 4,
     ImGuiCond_Appearing = 8,
     _,
 };
-pub const ImGuiCond_ = enum_unnamed_31;
+pub const ImGuiCond_ = enum_unnamed_30;
 pub const struct_ImVector_ImGuiTabBar = extern struct {
     Size: c_int,
     Capacity: c_int,
@@ -2155,17 +2249,17 @@ pub const struct_ImPool_ImGuiTabBar = extern struct {
     FreeIdx: ImPoolIdx,
 };
 pub const ImPool_ImGuiTabBar = struct_ImPool_ImGuiTabBar;
-pub const ImDrawCornerFlags_None = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_None);
-pub const ImDrawCornerFlags_TopLeft = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_TopLeft);
-pub const ImDrawCornerFlags_TopRight = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_TopRight);
-pub const ImDrawCornerFlags_BotLeft = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_BotLeft);
-pub const ImDrawCornerFlags_BotRight = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_BotRight);
-pub const ImDrawCornerFlags_Top = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_Top);
-pub const ImDrawCornerFlags_Bot = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_Bot);
-pub const ImDrawCornerFlags_Left = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_Left);
-pub const ImDrawCornerFlags_Right = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_Right);
-pub const ImDrawCornerFlags_All = @enumToInt(enum_unnamed_32.ImDrawCornerFlags_All);
-const enum_unnamed_32 = extern enum(c_int) {
+pub const ImDrawCornerFlags_None = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_None);
+pub const ImDrawCornerFlags_TopLeft = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_TopLeft);
+pub const ImDrawCornerFlags_TopRight = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_TopRight);
+pub const ImDrawCornerFlags_BotLeft = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_BotLeft);
+pub const ImDrawCornerFlags_BotRight = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_BotRight);
+pub const ImDrawCornerFlags_Top = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_Top);
+pub const ImDrawCornerFlags_Bot = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_Bot);
+pub const ImDrawCornerFlags_Left = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_Left);
+pub const ImDrawCornerFlags_Right = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_Right);
+pub const ImDrawCornerFlags_All = @enumToInt(enum_unnamed_31.ImDrawCornerFlags_All);
+const enum_unnamed_31 = extern enum(c_int) {
     ImDrawCornerFlags_None = 0,
     ImDrawCornerFlags_TopLeft = 1,
     ImDrawCornerFlags_TopRight = 2,
@@ -2178,41 +2272,45 @@ const enum_unnamed_32 = extern enum(c_int) {
     ImDrawCornerFlags_All = 15,
     _,
 };
-pub const ImDrawCornerFlags_ = enum_unnamed_32;
-pub const ImDrawListFlags_None = @enumToInt(enum_unnamed_33.ImDrawListFlags_None);
-pub const ImDrawListFlags_AntiAliasedLines = @enumToInt(enum_unnamed_33.ImDrawListFlags_AntiAliasedLines);
-pub const ImDrawListFlags_AntiAliasedFill = @enumToInt(enum_unnamed_33.ImDrawListFlags_AntiAliasedFill);
-pub const ImDrawListFlags_AllowVtxOffset = @enumToInt(enum_unnamed_33.ImDrawListFlags_AllowVtxOffset);
-const enum_unnamed_33 = extern enum(c_int) {
+pub const ImDrawCornerFlags_ = enum_unnamed_31;
+pub const ImDrawListFlags_None = @enumToInt(enum_unnamed_32.ImDrawListFlags_None);
+pub const ImDrawListFlags_AntiAliasedLines = @enumToInt(enum_unnamed_32.ImDrawListFlags_AntiAliasedLines);
+pub const ImDrawListFlags_AntiAliasedLinesUseTex = @enumToInt(enum_unnamed_32.ImDrawListFlags_AntiAliasedLinesUseTex);
+pub const ImDrawListFlags_AntiAliasedFill = @enumToInt(enum_unnamed_32.ImDrawListFlags_AntiAliasedFill);
+pub const ImDrawListFlags_AllowVtxOffset = @enumToInt(enum_unnamed_32.ImDrawListFlags_AllowVtxOffset);
+const enum_unnamed_32 = extern enum(c_int) {
     ImDrawListFlags_None = 0,
     ImDrawListFlags_AntiAliasedLines = 1,
-    ImDrawListFlags_AntiAliasedFill = 2,
-    ImDrawListFlags_AllowVtxOffset = 4,
+    ImDrawListFlags_AntiAliasedLinesUseTex = 2,
+    ImDrawListFlags_AntiAliasedFill = 4,
+    ImDrawListFlags_AllowVtxOffset = 8,
     _,
 };
-pub const ImDrawListFlags_ = enum_unnamed_33;
-pub const ImFontAtlasFlags_None = @enumToInt(enum_unnamed_34.ImFontAtlasFlags_None);
-pub const ImFontAtlasFlags_NoPowerOfTwoHeight = @enumToInt(enum_unnamed_34.ImFontAtlasFlags_NoPowerOfTwoHeight);
-pub const ImFontAtlasFlags_NoMouseCursors = @enumToInt(enum_unnamed_34.ImFontAtlasFlags_NoMouseCursors);
-const enum_unnamed_34 = extern enum(c_int) {
+pub const ImDrawListFlags_ = enum_unnamed_32;
+pub const ImFontAtlasFlags_None = @enumToInt(enum_unnamed_33.ImFontAtlasFlags_None);
+pub const ImFontAtlasFlags_NoPowerOfTwoHeight = @enumToInt(enum_unnamed_33.ImFontAtlasFlags_NoPowerOfTwoHeight);
+pub const ImFontAtlasFlags_NoMouseCursors = @enumToInt(enum_unnamed_33.ImFontAtlasFlags_NoMouseCursors);
+pub const ImFontAtlasFlags_NoBakedLines = @enumToInt(enum_unnamed_33.ImFontAtlasFlags_NoBakedLines);
+const enum_unnamed_33 = extern enum(c_int) {
     ImFontAtlasFlags_None = 0,
     ImFontAtlasFlags_NoPowerOfTwoHeight = 1,
     ImFontAtlasFlags_NoMouseCursors = 2,
+    ImFontAtlasFlags_NoBakedLines = 4,
     _,
 };
-pub const ImFontAtlasFlags_ = enum_unnamed_34;
-pub const ImGuiViewportFlags_None = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_None);
-pub const ImGuiViewportFlags_NoDecoration = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoDecoration);
-pub const ImGuiViewportFlags_NoTaskBarIcon = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoTaskBarIcon);
-pub const ImGuiViewportFlags_NoFocusOnAppearing = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoFocusOnAppearing);
-pub const ImGuiViewportFlags_NoFocusOnClick = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoFocusOnClick);
-pub const ImGuiViewportFlags_NoInputs = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoInputs);
-pub const ImGuiViewportFlags_NoRendererClear = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoRendererClear);
-pub const ImGuiViewportFlags_TopMost = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_TopMost);
-pub const ImGuiViewportFlags_Minimized = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_Minimized);
-pub const ImGuiViewportFlags_NoAutoMerge = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_NoAutoMerge);
-pub const ImGuiViewportFlags_CanHostOtherWindows = @enumToInt(enum_unnamed_35.ImGuiViewportFlags_CanHostOtherWindows);
-const enum_unnamed_35 = extern enum(c_int) {
+pub const ImFontAtlasFlags_ = enum_unnamed_33;
+pub const ImGuiViewportFlags_None = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_None);
+pub const ImGuiViewportFlags_NoDecoration = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoDecoration);
+pub const ImGuiViewportFlags_NoTaskBarIcon = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoTaskBarIcon);
+pub const ImGuiViewportFlags_NoFocusOnAppearing = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoFocusOnAppearing);
+pub const ImGuiViewportFlags_NoFocusOnClick = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoFocusOnClick);
+pub const ImGuiViewportFlags_NoInputs = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoInputs);
+pub const ImGuiViewportFlags_NoRendererClear = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoRendererClear);
+pub const ImGuiViewportFlags_TopMost = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_TopMost);
+pub const ImGuiViewportFlags_Minimized = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_Minimized);
+pub const ImGuiViewportFlags_NoAutoMerge = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_NoAutoMerge);
+pub const ImGuiViewportFlags_CanHostOtherWindows = @enumToInt(enum_unnamed_34.ImGuiViewportFlags_CanHostOtherWindows);
+const enum_unnamed_34 = extern enum(c_int) {
     ImGuiViewportFlags_None = 0,
     ImGuiViewportFlags_NoDecoration = 1,
     ImGuiViewportFlags_NoTaskBarIcon = 2,
@@ -2226,17 +2324,18 @@ const enum_unnamed_35 = extern enum(c_int) {
     ImGuiViewportFlags_CanHostOtherWindows = 512,
     _,
 };
-pub const ImGuiViewportFlags_ = enum_unnamed_35;
-pub const ImGuiItemFlags_None = @enumToInt(enum_unnamed_36.ImGuiItemFlags_None);
-pub const ImGuiItemFlags_NoTabStop = @enumToInt(enum_unnamed_36.ImGuiItemFlags_NoTabStop);
-pub const ImGuiItemFlags_ButtonRepeat = @enumToInt(enum_unnamed_36.ImGuiItemFlags_ButtonRepeat);
-pub const ImGuiItemFlags_Disabled = @enumToInt(enum_unnamed_36.ImGuiItemFlags_Disabled);
-pub const ImGuiItemFlags_NoNav = @enumToInt(enum_unnamed_36.ImGuiItemFlags_NoNav);
-pub const ImGuiItemFlags_NoNavDefaultFocus = @enumToInt(enum_unnamed_36.ImGuiItemFlags_NoNavDefaultFocus);
-pub const ImGuiItemFlags_SelectableDontClosePopup = @enumToInt(enum_unnamed_36.ImGuiItemFlags_SelectableDontClosePopup);
-pub const ImGuiItemFlags_MixedValue = @enumToInt(enum_unnamed_36.ImGuiItemFlags_MixedValue);
-pub const ImGuiItemFlags_Default_ = @enumToInt(enum_unnamed_36.ImGuiItemFlags_Default_);
-const enum_unnamed_36 = extern enum(c_int) {
+pub const ImGuiViewportFlags_ = enum_unnamed_34;
+pub const ImGuiItemFlags_None = @enumToInt(enum_unnamed_35.ImGuiItemFlags_None);
+pub const ImGuiItemFlags_NoTabStop = @enumToInt(enum_unnamed_35.ImGuiItemFlags_NoTabStop);
+pub const ImGuiItemFlags_ButtonRepeat = @enumToInt(enum_unnamed_35.ImGuiItemFlags_ButtonRepeat);
+pub const ImGuiItemFlags_Disabled = @enumToInt(enum_unnamed_35.ImGuiItemFlags_Disabled);
+pub const ImGuiItemFlags_NoNav = @enumToInt(enum_unnamed_35.ImGuiItemFlags_NoNav);
+pub const ImGuiItemFlags_NoNavDefaultFocus = @enumToInt(enum_unnamed_35.ImGuiItemFlags_NoNavDefaultFocus);
+pub const ImGuiItemFlags_SelectableDontClosePopup = @enumToInt(enum_unnamed_35.ImGuiItemFlags_SelectableDontClosePopup);
+pub const ImGuiItemFlags_MixedValue = @enumToInt(enum_unnamed_35.ImGuiItemFlags_MixedValue);
+pub const ImGuiItemFlags_ReadOnly = @enumToInt(enum_unnamed_35.ImGuiItemFlags_ReadOnly);
+pub const ImGuiItemFlags_Default_ = @enumToInt(enum_unnamed_35.ImGuiItemFlags_Default_);
+const enum_unnamed_35 = extern enum(c_int) {
     ImGuiItemFlags_None = 0,
     ImGuiItemFlags_NoTabStop = 1,
     ImGuiItemFlags_ButtonRepeat = 2,
@@ -2245,19 +2344,20 @@ const enum_unnamed_36 = extern enum(c_int) {
     ImGuiItemFlags_NoNavDefaultFocus = 16,
     ImGuiItemFlags_SelectableDontClosePopup = 32,
     ImGuiItemFlags_MixedValue = 64,
+    ImGuiItemFlags_ReadOnly = 128,
     ImGuiItemFlags_Default_ = 0,
     _,
 };
-pub const ImGuiItemFlags_ = enum_unnamed_36;
-pub const ImGuiItemStatusFlags_None = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_None);
-pub const ImGuiItemStatusFlags_HoveredRect = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_HoveredRect);
-pub const ImGuiItemStatusFlags_HasDisplayRect = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_HasDisplayRect);
-pub const ImGuiItemStatusFlags_Edited = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_Edited);
-pub const ImGuiItemStatusFlags_ToggledSelection = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_ToggledSelection);
-pub const ImGuiItemStatusFlags_ToggledOpen = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_ToggledOpen);
-pub const ImGuiItemStatusFlags_HasDeactivated = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_HasDeactivated);
-pub const ImGuiItemStatusFlags_Deactivated = @enumToInt(enum_unnamed_37.ImGuiItemStatusFlags_Deactivated);
-const enum_unnamed_37 = extern enum(c_int) {
+pub const ImGuiItemFlags_ = enum_unnamed_35;
+pub const ImGuiItemStatusFlags_None = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_None);
+pub const ImGuiItemStatusFlags_HoveredRect = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_HoveredRect);
+pub const ImGuiItemStatusFlags_HasDisplayRect = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_HasDisplayRect);
+pub const ImGuiItemStatusFlags_Edited = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_Edited);
+pub const ImGuiItemStatusFlags_ToggledSelection = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_ToggledSelection);
+pub const ImGuiItemStatusFlags_ToggledOpen = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_ToggledOpen);
+pub const ImGuiItemStatusFlags_HasDeactivated = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_HasDeactivated);
+pub const ImGuiItemStatusFlags_Deactivated = @enumToInt(enum_unnamed_36.ImGuiItemStatusFlags_Deactivated);
+const enum_unnamed_36 = extern enum(c_int) {
     ImGuiItemStatusFlags_None = 0,
     ImGuiItemStatusFlags_HoveredRect = 1,
     ImGuiItemStatusFlags_HasDisplayRect = 2,
@@ -2268,141 +2368,121 @@ const enum_unnamed_37 = extern enum(c_int) {
     ImGuiItemStatusFlags_Deactivated = 64,
     _,
 };
-pub const ImGuiItemStatusFlags_ = enum_unnamed_37;
-pub const ImGuiButtonFlags_None = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_None);
-pub const ImGuiButtonFlags_Repeat = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_Repeat);
-pub const ImGuiButtonFlags_PressedOnClick = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnClick);
-pub const ImGuiButtonFlags_PressedOnClickRelease = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnClickRelease);
-pub const ImGuiButtonFlags_PressedOnClickReleaseAnywhere = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnClickReleaseAnywhere);
-pub const ImGuiButtonFlags_PressedOnRelease = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnRelease);
-pub const ImGuiButtonFlags_PressedOnDoubleClick = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnDoubleClick);
-pub const ImGuiButtonFlags_PressedOnDragDropHold = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnDragDropHold);
-pub const ImGuiButtonFlags_FlattenChildren = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_FlattenChildren);
-pub const ImGuiButtonFlags_AllowItemOverlap = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_AllowItemOverlap);
-pub const ImGuiButtonFlags_DontClosePopups = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_DontClosePopups);
-pub const ImGuiButtonFlags_Disabled = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_Disabled);
-pub const ImGuiButtonFlags_AlignTextBaseLine = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_AlignTextBaseLine);
-pub const ImGuiButtonFlags_NoKeyModifiers = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_NoKeyModifiers);
-pub const ImGuiButtonFlags_NoHoldingActiveId = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_NoHoldingActiveId);
-pub const ImGuiButtonFlags_NoNavFocus = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_NoNavFocus);
-pub const ImGuiButtonFlags_NoHoveredOnFocus = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_NoHoveredOnFocus);
-pub const ImGuiButtonFlags_MouseButtonLeft = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonLeft);
-pub const ImGuiButtonFlags_MouseButtonRight = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonRight);
-pub const ImGuiButtonFlags_MouseButtonMiddle = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonMiddle);
-pub const ImGuiButtonFlags_MouseButtonMask_ = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonMask_);
-pub const ImGuiButtonFlags_MouseButtonShift_ = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonShift_);
-pub const ImGuiButtonFlags_MouseButtonDefault_ = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_MouseButtonDefault_);
-pub const ImGuiButtonFlags_PressedOnMask_ = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnMask_);
-pub const ImGuiButtonFlags_PressedOnDefault_ = @enumToInt(enum_unnamed_38.ImGuiButtonFlags_PressedOnDefault_);
+pub const ImGuiItemStatusFlags_ = enum_unnamed_36;
+pub const ImGuiButtonFlags_PressedOnClick = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnClick);
+pub const ImGuiButtonFlags_PressedOnClickRelease = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnClickRelease);
+pub const ImGuiButtonFlags_PressedOnClickReleaseAnywhere = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnClickReleaseAnywhere);
+pub const ImGuiButtonFlags_PressedOnRelease = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnRelease);
+pub const ImGuiButtonFlags_PressedOnDoubleClick = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnDoubleClick);
+pub const ImGuiButtonFlags_PressedOnDragDropHold = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnDragDropHold);
+pub const ImGuiButtonFlags_Repeat = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_Repeat);
+pub const ImGuiButtonFlags_FlattenChildren = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_FlattenChildren);
+pub const ImGuiButtonFlags_AllowItemOverlap = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_AllowItemOverlap);
+pub const ImGuiButtonFlags_DontClosePopups = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_DontClosePopups);
+pub const ImGuiButtonFlags_Disabled = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_Disabled);
+pub const ImGuiButtonFlags_AlignTextBaseLine = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_AlignTextBaseLine);
+pub const ImGuiButtonFlags_NoKeyModifiers = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_NoKeyModifiers);
+pub const ImGuiButtonFlags_NoHoldingActiveId = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_NoHoldingActiveId);
+pub const ImGuiButtonFlags_NoNavFocus = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_NoNavFocus);
+pub const ImGuiButtonFlags_NoHoveredOnFocus = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_NoHoveredOnFocus);
+pub const ImGuiButtonFlags_PressedOnMask_ = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnMask_);
+pub const ImGuiButtonFlags_PressedOnDefault_ = @enumToInt(enum_unnamed_37.ImGuiButtonFlags_PressedOnDefault_);
+const enum_unnamed_37 = extern enum(c_int) {
+    ImGuiButtonFlags_PressedOnClick = 16,
+    ImGuiButtonFlags_PressedOnClickRelease = 32,
+    ImGuiButtonFlags_PressedOnClickReleaseAnywhere = 64,
+    ImGuiButtonFlags_PressedOnRelease = 128,
+    ImGuiButtonFlags_PressedOnDoubleClick = 256,
+    ImGuiButtonFlags_PressedOnDragDropHold = 512,
+    ImGuiButtonFlags_Repeat = 1024,
+    ImGuiButtonFlags_FlattenChildren = 2048,
+    ImGuiButtonFlags_AllowItemOverlap = 4096,
+    ImGuiButtonFlags_DontClosePopups = 8192,
+    ImGuiButtonFlags_Disabled = 16384,
+    ImGuiButtonFlags_AlignTextBaseLine = 32768,
+    ImGuiButtonFlags_NoKeyModifiers = 65536,
+    ImGuiButtonFlags_NoHoldingActiveId = 131072,
+    ImGuiButtonFlags_NoNavFocus = 262144,
+    ImGuiButtonFlags_NoHoveredOnFocus = 524288,
+    ImGuiButtonFlags_PressedOnMask_ = 1008,
+    ImGuiButtonFlags_PressedOnDefault_ = 32,
+    _,
+};
+pub const ImGuiButtonFlagsPrivate_ = enum_unnamed_37;
+pub const ImGuiSliderFlags_Vertical = @enumToInt(enum_unnamed_38.ImGuiSliderFlags_Vertical);
+pub const ImGuiSliderFlags_ReadOnly = @enumToInt(enum_unnamed_38.ImGuiSliderFlags_ReadOnly);
 const enum_unnamed_38 = extern enum(c_int) {
-    ImGuiButtonFlags_None = 0,
-    ImGuiButtonFlags_Repeat = 1,
-    ImGuiButtonFlags_PressedOnClick = 2,
-    ImGuiButtonFlags_PressedOnClickRelease = 4,
-    ImGuiButtonFlags_PressedOnClickReleaseAnywhere = 8,
-    ImGuiButtonFlags_PressedOnRelease = 16,
-    ImGuiButtonFlags_PressedOnDoubleClick = 32,
-    ImGuiButtonFlags_PressedOnDragDropHold = 64,
-    ImGuiButtonFlags_FlattenChildren = 128,
-    ImGuiButtonFlags_AllowItemOverlap = 256,
-    ImGuiButtonFlags_DontClosePopups = 512,
-    ImGuiButtonFlags_Disabled = 1024,
-    ImGuiButtonFlags_AlignTextBaseLine = 2048,
-    ImGuiButtonFlags_NoKeyModifiers = 4096,
-    ImGuiButtonFlags_NoHoldingActiveId = 8192,
-    ImGuiButtonFlags_NoNavFocus = 16384,
-    ImGuiButtonFlags_NoHoveredOnFocus = 32768,
-    ImGuiButtonFlags_MouseButtonLeft = 65536,
-    ImGuiButtonFlags_MouseButtonRight = 131072,
-    ImGuiButtonFlags_MouseButtonMiddle = 262144,
-    ImGuiButtonFlags_MouseButtonMask_ = 458752,
-    ImGuiButtonFlags_MouseButtonShift_ = 16,
-    ImGuiButtonFlags_MouseButtonDefault_ = 65536,
-    ImGuiButtonFlags_PressedOnMask_ = 126,
-    ImGuiButtonFlags_PressedOnDefault_ = 4,
+    ImGuiSliderFlags_Vertical = 1048576,
+    ImGuiSliderFlags_ReadOnly = 2097152,
     _,
 };
-pub const ImGuiButtonFlags_ = enum_unnamed_38;
-pub const ImGuiSliderFlags_None = @enumToInt(enum_unnamed_39.ImGuiSliderFlags_None);
-pub const ImGuiSliderFlags_Vertical = @enumToInt(enum_unnamed_39.ImGuiSliderFlags_Vertical);
+pub const ImGuiSliderFlagsPrivate_ = enum_unnamed_38;
+pub const ImGuiSelectableFlags_NoHoldingActiveID = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_NoHoldingActiveID);
+pub const ImGuiSelectableFlags_SelectOnClick = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_SelectOnClick);
+pub const ImGuiSelectableFlags_SelectOnRelease = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_SelectOnRelease);
+pub const ImGuiSelectableFlags_SpanAvailWidth = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_SpanAvailWidth);
+pub const ImGuiSelectableFlags_DrawHoveredWhenHeld = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_DrawHoveredWhenHeld);
+pub const ImGuiSelectableFlags_SetNavIdOnHover = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_SetNavIdOnHover);
+pub const ImGuiSelectableFlags_NoPadWithHalfSpacing = @enumToInt(enum_unnamed_39.ImGuiSelectableFlags_NoPadWithHalfSpacing);
 const enum_unnamed_39 = extern enum(c_int) {
-    ImGuiSliderFlags_None = 0,
-    ImGuiSliderFlags_Vertical = 1,
-    _,
-};
-pub const ImGuiSliderFlags_ = enum_unnamed_39;
-pub const ImGuiDragFlags_None = @enumToInt(enum_unnamed_40.ImGuiDragFlags_None);
-pub const ImGuiDragFlags_Vertical = @enumToInt(enum_unnamed_40.ImGuiDragFlags_Vertical);
-const enum_unnamed_40 = extern enum(c_int) {
-    ImGuiDragFlags_None = 0,
-    ImGuiDragFlags_Vertical = 1,
-    _,
-};
-pub const ImGuiDragFlags_ = enum_unnamed_40;
-pub const ImGuiSelectableFlags_NoHoldingActiveID = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_NoHoldingActiveID);
-pub const ImGuiSelectableFlags_SelectOnClick = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_SelectOnClick);
-pub const ImGuiSelectableFlags_SelectOnRelease = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_SelectOnRelease);
-pub const ImGuiSelectableFlags_SpanAvailWidth = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_SpanAvailWidth);
-pub const ImGuiSelectableFlags_DrawHoveredWhenHeld = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_DrawHoveredWhenHeld);
-pub const ImGuiSelectableFlags_SetNavIdOnHover = @enumToInt(enum_unnamed_41.ImGuiSelectableFlags_SetNavIdOnHover);
-const enum_unnamed_41 = extern enum(c_int) {
     ImGuiSelectableFlags_NoHoldingActiveID = 1048576,
     ImGuiSelectableFlags_SelectOnClick = 2097152,
     ImGuiSelectableFlags_SelectOnRelease = 4194304,
     ImGuiSelectableFlags_SpanAvailWidth = 8388608,
     ImGuiSelectableFlags_DrawHoveredWhenHeld = 16777216,
     ImGuiSelectableFlags_SetNavIdOnHover = 33554432,
+    ImGuiSelectableFlags_NoPadWithHalfSpacing = 67108864,
     _,
 };
-pub const ImGuiSelectableFlagsPrivate_ = enum_unnamed_41;
-pub const ImGuiTreeNodeFlags_ClipLabelForTrailingButton = @enumToInt(enum_unnamed_42.ImGuiTreeNodeFlags_ClipLabelForTrailingButton);
-const enum_unnamed_42 = extern enum(c_int) {
+pub const ImGuiSelectableFlagsPrivate_ = enum_unnamed_39;
+pub const ImGuiTreeNodeFlags_ClipLabelForTrailingButton = @enumToInt(enum_unnamed_40.ImGuiTreeNodeFlags_ClipLabelForTrailingButton);
+const enum_unnamed_40 = extern enum(c_int) {
     ImGuiTreeNodeFlags_ClipLabelForTrailingButton = 1048576,
     _,
 };
-pub const ImGuiTreeNodeFlagsPrivate_ = enum_unnamed_42;
-pub const ImGuiSeparatorFlags_None = @enumToInt(enum_unnamed_43.ImGuiSeparatorFlags_None);
-pub const ImGuiSeparatorFlags_Horizontal = @enumToInt(enum_unnamed_43.ImGuiSeparatorFlags_Horizontal);
-pub const ImGuiSeparatorFlags_Vertical = @enumToInt(enum_unnamed_43.ImGuiSeparatorFlags_Vertical);
-pub const ImGuiSeparatorFlags_SpanAllColumns = @enumToInt(enum_unnamed_43.ImGuiSeparatorFlags_SpanAllColumns);
-const enum_unnamed_43 = extern enum(c_int) {
+pub const ImGuiTreeNodeFlagsPrivate_ = enum_unnamed_40;
+pub const ImGuiSeparatorFlags_None = @enumToInt(enum_unnamed_41.ImGuiSeparatorFlags_None);
+pub const ImGuiSeparatorFlags_Horizontal = @enumToInt(enum_unnamed_41.ImGuiSeparatorFlags_Horizontal);
+pub const ImGuiSeparatorFlags_Vertical = @enumToInt(enum_unnamed_41.ImGuiSeparatorFlags_Vertical);
+pub const ImGuiSeparatorFlags_SpanAllColumns = @enumToInt(enum_unnamed_41.ImGuiSeparatorFlags_SpanAllColumns);
+const enum_unnamed_41 = extern enum(c_int) {
     ImGuiSeparatorFlags_None = 0,
     ImGuiSeparatorFlags_Horizontal = 1,
     ImGuiSeparatorFlags_Vertical = 2,
     ImGuiSeparatorFlags_SpanAllColumns = 4,
     _,
 };
-pub const ImGuiSeparatorFlags_ = enum_unnamed_43;
-pub const ImGuiTextFlags_None = @enumToInt(enum_unnamed_44.ImGuiTextFlags_None);
-pub const ImGuiTextFlags_NoWidthForLargeClippedText = @enumToInt(enum_unnamed_44.ImGuiTextFlags_NoWidthForLargeClippedText);
-const enum_unnamed_44 = extern enum(c_int) {
+pub const ImGuiSeparatorFlags_ = enum_unnamed_41;
+pub const ImGuiTextFlags_None = @enumToInt(enum_unnamed_42.ImGuiTextFlags_None);
+pub const ImGuiTextFlags_NoWidthForLargeClippedText = @enumToInt(enum_unnamed_42.ImGuiTextFlags_NoWidthForLargeClippedText);
+const enum_unnamed_42 = extern enum(c_int) {
     ImGuiTextFlags_None = 0,
     ImGuiTextFlags_NoWidthForLargeClippedText = 1,
     _,
 };
-pub const ImGuiTextFlags_ = enum_unnamed_44;
-pub const ImGuiTooltipFlags_None = @enumToInt(enum_unnamed_45.ImGuiTooltipFlags_None);
-pub const ImGuiTooltipFlags_OverridePreviousTooltip = @enumToInt(enum_unnamed_45.ImGuiTooltipFlags_OverridePreviousTooltip);
-const enum_unnamed_45 = extern enum(c_int) {
+pub const ImGuiTextFlags_ = enum_unnamed_42;
+pub const ImGuiTooltipFlags_None = @enumToInt(enum_unnamed_43.ImGuiTooltipFlags_None);
+pub const ImGuiTooltipFlags_OverridePreviousTooltip = @enumToInt(enum_unnamed_43.ImGuiTooltipFlags_OverridePreviousTooltip);
+const enum_unnamed_43 = extern enum(c_int) {
     ImGuiTooltipFlags_None = 0,
     ImGuiTooltipFlags_OverridePreviousTooltip = 1,
     _,
 };
-pub const ImGuiTooltipFlags_ = enum_unnamed_45;
-pub const ImGuiLayoutType_Horizontal = @enumToInt(enum_unnamed_46.ImGuiLayoutType_Horizontal);
-pub const ImGuiLayoutType_Vertical = @enumToInt(enum_unnamed_46.ImGuiLayoutType_Vertical);
-const enum_unnamed_46 = extern enum(c_int) {
+pub const ImGuiTooltipFlags_ = enum_unnamed_43;
+pub const ImGuiLayoutType_Horizontal = @enumToInt(enum_unnamed_44.ImGuiLayoutType_Horizontal);
+pub const ImGuiLayoutType_Vertical = @enumToInt(enum_unnamed_44.ImGuiLayoutType_Vertical);
+const enum_unnamed_44 = extern enum(c_int) {
     ImGuiLayoutType_Horizontal = 0,
     ImGuiLayoutType_Vertical = 1,
     _,
 };
-pub const ImGuiLayoutType_ = enum_unnamed_46;
-pub const ImGuiLogType_None = @enumToInt(enum_unnamed_47.ImGuiLogType_None);
-pub const ImGuiLogType_TTY = @enumToInt(enum_unnamed_47.ImGuiLogType_TTY);
-pub const ImGuiLogType_File = @enumToInt(enum_unnamed_47.ImGuiLogType_File);
-pub const ImGuiLogType_Buffer = @enumToInt(enum_unnamed_47.ImGuiLogType_Buffer);
-pub const ImGuiLogType_Clipboard = @enumToInt(enum_unnamed_47.ImGuiLogType_Clipboard);
-const enum_unnamed_47 = extern enum(c_int) {
+pub const ImGuiLayoutType_ = enum_unnamed_44;
+pub const ImGuiLogType_None = @enumToInt(enum_unnamed_45.ImGuiLogType_None);
+pub const ImGuiLogType_TTY = @enumToInt(enum_unnamed_45.ImGuiLogType_TTY);
+pub const ImGuiLogType_File = @enumToInt(enum_unnamed_45.ImGuiLogType_File);
+pub const ImGuiLogType_Buffer = @enumToInt(enum_unnamed_45.ImGuiLogType_Buffer);
+pub const ImGuiLogType_Clipboard = @enumToInt(enum_unnamed_45.ImGuiLogType_Clipboard);
+const enum_unnamed_45 = extern enum(c_int) {
     ImGuiLogType_None = 0,
     ImGuiLogType_TTY = 1,
     ImGuiLogType_File = 2,
@@ -2410,32 +2490,32 @@ const enum_unnamed_47 = extern enum(c_int) {
     ImGuiLogType_Clipboard = 4,
     _,
 };
-pub const ImGuiLogType = enum_unnamed_47;
-pub const ImGuiAxis_None = @enumToInt(enum_unnamed_48.ImGuiAxis_None);
-pub const ImGuiAxis_X = @enumToInt(enum_unnamed_48.ImGuiAxis_X);
-pub const ImGuiAxis_Y = @enumToInt(enum_unnamed_48.ImGuiAxis_Y);
-const enum_unnamed_48 = extern enum(c_int) {
+pub const ImGuiLogType = enum_unnamed_45;
+pub const ImGuiAxis_None = @enumToInt(enum_unnamed_46.ImGuiAxis_None);
+pub const ImGuiAxis_X = @enumToInt(enum_unnamed_46.ImGuiAxis_X);
+pub const ImGuiAxis_Y = @enumToInt(enum_unnamed_46.ImGuiAxis_Y);
+const enum_unnamed_46 = extern enum(c_int) {
     ImGuiAxis_None = -1,
     ImGuiAxis_X = 0,
     ImGuiAxis_Y = 1,
     _,
 };
-pub const ImGuiAxis = enum_unnamed_48;
-pub const ImGuiPlotType_Lines = @enumToInt(enum_unnamed_49.ImGuiPlotType_Lines);
-pub const ImGuiPlotType_Histogram = @enumToInt(enum_unnamed_49.ImGuiPlotType_Histogram);
-const enum_unnamed_49 = extern enum(c_int) {
+pub const ImGuiAxis = enum_unnamed_46;
+pub const ImGuiPlotType_Lines = @enumToInt(enum_unnamed_47.ImGuiPlotType_Lines);
+pub const ImGuiPlotType_Histogram = @enumToInt(enum_unnamed_47.ImGuiPlotType_Histogram);
+const enum_unnamed_47 = extern enum(c_int) {
     ImGuiPlotType_Lines,
     ImGuiPlotType_Histogram,
     _,
 };
-pub const ImGuiPlotType = enum_unnamed_49;
-pub const ImGuiInputSource_None = @enumToInt(enum_unnamed_50.ImGuiInputSource_None);
-pub const ImGuiInputSource_Mouse = @enumToInt(enum_unnamed_50.ImGuiInputSource_Mouse);
-pub const ImGuiInputSource_Nav = @enumToInt(enum_unnamed_50.ImGuiInputSource_Nav);
-pub const ImGuiInputSource_NavKeyboard = @enumToInt(enum_unnamed_50.ImGuiInputSource_NavKeyboard);
-pub const ImGuiInputSource_NavGamepad = @enumToInt(enum_unnamed_50.ImGuiInputSource_NavGamepad);
-pub const ImGuiInputSource_COUNT = @enumToInt(enum_unnamed_50.ImGuiInputSource_COUNT);
-const enum_unnamed_50 = extern enum(c_int) {
+pub const ImGuiPlotType = enum_unnamed_47;
+pub const ImGuiInputSource_None = @enumToInt(enum_unnamed_48.ImGuiInputSource_None);
+pub const ImGuiInputSource_Mouse = @enumToInt(enum_unnamed_48.ImGuiInputSource_Mouse);
+pub const ImGuiInputSource_Nav = @enumToInt(enum_unnamed_48.ImGuiInputSource_Nav);
+pub const ImGuiInputSource_NavKeyboard = @enumToInt(enum_unnamed_48.ImGuiInputSource_NavKeyboard);
+pub const ImGuiInputSource_NavGamepad = @enumToInt(enum_unnamed_48.ImGuiInputSource_NavGamepad);
+pub const ImGuiInputSource_COUNT = @enumToInt(enum_unnamed_48.ImGuiInputSource_COUNT);
+const enum_unnamed_48 = extern enum(c_int) {
     ImGuiInputSource_None = 0,
     ImGuiInputSource_Mouse = 1,
     ImGuiInputSource_Nav = 2,
@@ -2444,14 +2524,14 @@ const enum_unnamed_50 = extern enum(c_int) {
     ImGuiInputSource_COUNT = 5,
     _,
 };
-pub const ImGuiInputSource = enum_unnamed_50;
-pub const ImGuiInputReadMode_Down = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_Down);
-pub const ImGuiInputReadMode_Pressed = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_Pressed);
-pub const ImGuiInputReadMode_Released = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_Released);
-pub const ImGuiInputReadMode_Repeat = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_Repeat);
-pub const ImGuiInputReadMode_RepeatSlow = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_RepeatSlow);
-pub const ImGuiInputReadMode_RepeatFast = @enumToInt(enum_unnamed_51.ImGuiInputReadMode_RepeatFast);
-const enum_unnamed_51 = extern enum(c_int) {
+pub const ImGuiInputSource = enum_unnamed_48;
+pub const ImGuiInputReadMode_Down = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_Down);
+pub const ImGuiInputReadMode_Pressed = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_Pressed);
+pub const ImGuiInputReadMode_Released = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_Released);
+pub const ImGuiInputReadMode_Repeat = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_Repeat);
+pub const ImGuiInputReadMode_RepeatSlow = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_RepeatSlow);
+pub const ImGuiInputReadMode_RepeatFast = @enumToInt(enum_unnamed_49.ImGuiInputReadMode_RepeatFast);
+const enum_unnamed_49 = extern enum(c_int) {
     ImGuiInputReadMode_Down,
     ImGuiInputReadMode_Pressed,
     ImGuiInputReadMode_Released,
@@ -2460,13 +2540,13 @@ const enum_unnamed_51 = extern enum(c_int) {
     ImGuiInputReadMode_RepeatFast,
     _,
 };
-pub const ImGuiInputReadMode = enum_unnamed_51;
-pub const ImGuiNavHighlightFlags_None = @enumToInt(enum_unnamed_52.ImGuiNavHighlightFlags_None);
-pub const ImGuiNavHighlightFlags_TypeDefault = @enumToInt(enum_unnamed_52.ImGuiNavHighlightFlags_TypeDefault);
-pub const ImGuiNavHighlightFlags_TypeThin = @enumToInt(enum_unnamed_52.ImGuiNavHighlightFlags_TypeThin);
-pub const ImGuiNavHighlightFlags_AlwaysDraw = @enumToInt(enum_unnamed_52.ImGuiNavHighlightFlags_AlwaysDraw);
-pub const ImGuiNavHighlightFlags_NoRounding = @enumToInt(enum_unnamed_52.ImGuiNavHighlightFlags_NoRounding);
-const enum_unnamed_52 = extern enum(c_int) {
+pub const ImGuiInputReadMode = enum_unnamed_49;
+pub const ImGuiNavHighlightFlags_None = @enumToInt(enum_unnamed_50.ImGuiNavHighlightFlags_None);
+pub const ImGuiNavHighlightFlags_TypeDefault = @enumToInt(enum_unnamed_50.ImGuiNavHighlightFlags_TypeDefault);
+pub const ImGuiNavHighlightFlags_TypeThin = @enumToInt(enum_unnamed_50.ImGuiNavHighlightFlags_TypeThin);
+pub const ImGuiNavHighlightFlags_AlwaysDraw = @enumToInt(enum_unnamed_50.ImGuiNavHighlightFlags_AlwaysDraw);
+pub const ImGuiNavHighlightFlags_NoRounding = @enumToInt(enum_unnamed_50.ImGuiNavHighlightFlags_NoRounding);
+const enum_unnamed_50 = extern enum(c_int) {
     ImGuiNavHighlightFlags_None = 0,
     ImGuiNavHighlightFlags_TypeDefault = 1,
     ImGuiNavHighlightFlags_TypeThin = 2,
@@ -2474,28 +2554,28 @@ const enum_unnamed_52 = extern enum(c_int) {
     ImGuiNavHighlightFlags_NoRounding = 8,
     _,
 };
-pub const ImGuiNavHighlightFlags_ = enum_unnamed_52;
-pub const ImGuiNavDirSourceFlags_None = @enumToInt(enum_unnamed_53.ImGuiNavDirSourceFlags_None);
-pub const ImGuiNavDirSourceFlags_Keyboard = @enumToInt(enum_unnamed_53.ImGuiNavDirSourceFlags_Keyboard);
-pub const ImGuiNavDirSourceFlags_PadDPad = @enumToInt(enum_unnamed_53.ImGuiNavDirSourceFlags_PadDPad);
-pub const ImGuiNavDirSourceFlags_PadLStick = @enumToInt(enum_unnamed_53.ImGuiNavDirSourceFlags_PadLStick);
-const enum_unnamed_53 = extern enum(c_int) {
+pub const ImGuiNavHighlightFlags_ = enum_unnamed_50;
+pub const ImGuiNavDirSourceFlags_None = @enumToInt(enum_unnamed_51.ImGuiNavDirSourceFlags_None);
+pub const ImGuiNavDirSourceFlags_Keyboard = @enumToInt(enum_unnamed_51.ImGuiNavDirSourceFlags_Keyboard);
+pub const ImGuiNavDirSourceFlags_PadDPad = @enumToInt(enum_unnamed_51.ImGuiNavDirSourceFlags_PadDPad);
+pub const ImGuiNavDirSourceFlags_PadLStick = @enumToInt(enum_unnamed_51.ImGuiNavDirSourceFlags_PadLStick);
+const enum_unnamed_51 = extern enum(c_int) {
     ImGuiNavDirSourceFlags_None = 0,
     ImGuiNavDirSourceFlags_Keyboard = 1,
     ImGuiNavDirSourceFlags_PadDPad = 2,
     ImGuiNavDirSourceFlags_PadLStick = 4,
     _,
 };
-pub const ImGuiNavDirSourceFlags_ = enum_unnamed_53;
-pub const ImGuiNavMoveFlags_None = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_None);
-pub const ImGuiNavMoveFlags_LoopX = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_LoopX);
-pub const ImGuiNavMoveFlags_LoopY = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_LoopY);
-pub const ImGuiNavMoveFlags_WrapX = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_WrapX);
-pub const ImGuiNavMoveFlags_WrapY = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_WrapY);
-pub const ImGuiNavMoveFlags_AllowCurrentNavId = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_AllowCurrentNavId);
-pub const ImGuiNavMoveFlags_AlsoScoreVisibleSet = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_AlsoScoreVisibleSet);
-pub const ImGuiNavMoveFlags_ScrollToEdge = @enumToInt(enum_unnamed_54.ImGuiNavMoveFlags_ScrollToEdge);
-const enum_unnamed_54 = extern enum(c_int) {
+pub const ImGuiNavDirSourceFlags_ = enum_unnamed_51;
+pub const ImGuiNavMoveFlags_None = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_None);
+pub const ImGuiNavMoveFlags_LoopX = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_LoopX);
+pub const ImGuiNavMoveFlags_LoopY = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_LoopY);
+pub const ImGuiNavMoveFlags_WrapX = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_WrapX);
+pub const ImGuiNavMoveFlags_WrapY = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_WrapY);
+pub const ImGuiNavMoveFlags_AllowCurrentNavId = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_AllowCurrentNavId);
+pub const ImGuiNavMoveFlags_AlsoScoreVisibleSet = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_AlsoScoreVisibleSet);
+pub const ImGuiNavMoveFlags_ScrollToEdge = @enumToInt(enum_unnamed_52.ImGuiNavMoveFlags_ScrollToEdge);
+const enum_unnamed_52 = extern enum(c_int) {
     ImGuiNavMoveFlags_None = 0,
     ImGuiNavMoveFlags_LoopX = 1,
     ImGuiNavMoveFlags_LoopY = 2,
@@ -2506,58 +2586,60 @@ const enum_unnamed_54 = extern enum(c_int) {
     ImGuiNavMoveFlags_ScrollToEdge = 64,
     _,
 };
-pub const ImGuiNavMoveFlags_ = enum_unnamed_54;
-pub const ImGuiNavForward_None = @enumToInt(enum_unnamed_55.ImGuiNavForward_None);
-pub const ImGuiNavForward_ForwardQueued = @enumToInt(enum_unnamed_55.ImGuiNavForward_ForwardQueued);
-pub const ImGuiNavForward_ForwardActive = @enumToInt(enum_unnamed_55.ImGuiNavForward_ForwardActive);
-const enum_unnamed_55 = extern enum(c_int) {
+pub const ImGuiNavMoveFlags_ = enum_unnamed_52;
+pub const ImGuiNavForward_None = @enumToInt(enum_unnamed_53.ImGuiNavForward_None);
+pub const ImGuiNavForward_ForwardQueued = @enumToInt(enum_unnamed_53.ImGuiNavForward_ForwardQueued);
+pub const ImGuiNavForward_ForwardActive = @enumToInt(enum_unnamed_53.ImGuiNavForward_ForwardActive);
+const enum_unnamed_53 = extern enum(c_int) {
     ImGuiNavForward_None,
     ImGuiNavForward_ForwardQueued,
     ImGuiNavForward_ForwardActive,
     _,
 };
-pub const ImGuiNavForward = enum_unnamed_55;
-pub const ImGuiNavLayer_Main = @enumToInt(enum_unnamed_56.ImGuiNavLayer_Main);
-pub const ImGuiNavLayer_Menu = @enumToInt(enum_unnamed_56.ImGuiNavLayer_Menu);
-pub const ImGuiNavLayer_COUNT = @enumToInt(enum_unnamed_56.ImGuiNavLayer_COUNT);
-const enum_unnamed_56 = extern enum(c_int) {
+pub const ImGuiNavForward = enum_unnamed_53;
+pub const ImGuiNavLayer_Main = @enumToInt(enum_unnamed_54.ImGuiNavLayer_Main);
+pub const ImGuiNavLayer_Menu = @enumToInt(enum_unnamed_54.ImGuiNavLayer_Menu);
+pub const ImGuiNavLayer_COUNT = @enumToInt(enum_unnamed_54.ImGuiNavLayer_COUNT);
+const enum_unnamed_54 = extern enum(c_int) {
     ImGuiNavLayer_Main = 0,
     ImGuiNavLayer_Menu = 1,
     ImGuiNavLayer_COUNT = 2,
     _,
 };
-pub const ImGuiNavLayer = enum_unnamed_56;
-pub const ImGuiPopupPositionPolicy_Default = @enumToInt(enum_unnamed_57.ImGuiPopupPositionPolicy_Default);
-pub const ImGuiPopupPositionPolicy_ComboBox = @enumToInt(enum_unnamed_57.ImGuiPopupPositionPolicy_ComboBox);
-const enum_unnamed_57 = extern enum(c_int) {
+pub const ImGuiNavLayer = enum_unnamed_54;
+pub const ImGuiPopupPositionPolicy_Default = @enumToInt(enum_unnamed_55.ImGuiPopupPositionPolicy_Default);
+pub const ImGuiPopupPositionPolicy_ComboBox = @enumToInt(enum_unnamed_55.ImGuiPopupPositionPolicy_ComboBox);
+pub const ImGuiPopupPositionPolicy_Tooltip = @enumToInt(enum_unnamed_55.ImGuiPopupPositionPolicy_Tooltip);
+const enum_unnamed_55 = extern enum(c_int) {
     ImGuiPopupPositionPolicy_Default,
     ImGuiPopupPositionPolicy_ComboBox,
+    ImGuiPopupPositionPolicy_Tooltip,
     _,
 };
-pub const ImGuiPopupPositionPolicy = enum_unnamed_57;
-pub const ImGuiDataType_String = @enumToInt(enum_unnamed_58.ImGuiDataType_String);
-pub const ImGuiDataType_Pointer = @enumToInt(enum_unnamed_58.ImGuiDataType_Pointer);
-pub const ImGuiDataType_ID = @enumToInt(enum_unnamed_58.ImGuiDataType_ID);
-const enum_unnamed_58 = extern enum(c_int) {
+pub const ImGuiPopupPositionPolicy = enum_unnamed_55;
+pub const ImGuiDataType_String = @enumToInt(enum_unnamed_56.ImGuiDataType_String);
+pub const ImGuiDataType_Pointer = @enumToInt(enum_unnamed_56.ImGuiDataType_Pointer);
+pub const ImGuiDataType_ID = @enumToInt(enum_unnamed_56.ImGuiDataType_ID);
+const enum_unnamed_56 = extern enum(c_int) {
     ImGuiDataType_String = 11,
     ImGuiDataType_Pointer = 12,
     ImGuiDataType_ID = 13,
     _,
 };
-pub const ImGuiDataTypePrivate_ = enum_unnamed_58;
-pub const ImGuiNextWindowDataFlags_None = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_None);
-pub const ImGuiNextWindowDataFlags_HasPos = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasPos);
-pub const ImGuiNextWindowDataFlags_HasSize = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasSize);
-pub const ImGuiNextWindowDataFlags_HasContentSize = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasContentSize);
-pub const ImGuiNextWindowDataFlags_HasCollapsed = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasCollapsed);
-pub const ImGuiNextWindowDataFlags_HasSizeConstraint = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasSizeConstraint);
-pub const ImGuiNextWindowDataFlags_HasFocus = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasFocus);
-pub const ImGuiNextWindowDataFlags_HasBgAlpha = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasBgAlpha);
-pub const ImGuiNextWindowDataFlags_HasScroll = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasScroll);
-pub const ImGuiNextWindowDataFlags_HasViewport = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasViewport);
-pub const ImGuiNextWindowDataFlags_HasDock = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasDock);
-pub const ImGuiNextWindowDataFlags_HasWindowClass = @enumToInt(enum_unnamed_59.ImGuiNextWindowDataFlags_HasWindowClass);
-const enum_unnamed_59 = extern enum(c_int) {
+pub const ImGuiDataTypePrivate_ = enum_unnamed_56;
+pub const ImGuiNextWindowDataFlags_None = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_None);
+pub const ImGuiNextWindowDataFlags_HasPos = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasPos);
+pub const ImGuiNextWindowDataFlags_HasSize = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasSize);
+pub const ImGuiNextWindowDataFlags_HasContentSize = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasContentSize);
+pub const ImGuiNextWindowDataFlags_HasCollapsed = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasCollapsed);
+pub const ImGuiNextWindowDataFlags_HasSizeConstraint = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasSizeConstraint);
+pub const ImGuiNextWindowDataFlags_HasFocus = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasFocus);
+pub const ImGuiNextWindowDataFlags_HasBgAlpha = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasBgAlpha);
+pub const ImGuiNextWindowDataFlags_HasScroll = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasScroll);
+pub const ImGuiNextWindowDataFlags_HasViewport = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasViewport);
+pub const ImGuiNextWindowDataFlags_HasDock = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasDock);
+pub const ImGuiNextWindowDataFlags_HasWindowClass = @enumToInt(enum_unnamed_57.ImGuiNextWindowDataFlags_HasWindowClass);
+const enum_unnamed_57 = extern enum(c_int) {
     ImGuiNextWindowDataFlags_None = 0,
     ImGuiNextWindowDataFlags_HasPos = 1,
     ImGuiNextWindowDataFlags_HasSize = 2,
@@ -2572,24 +2654,24 @@ const enum_unnamed_59 = extern enum(c_int) {
     ImGuiNextWindowDataFlags_HasWindowClass = 1024,
     _,
 };
-pub const ImGuiNextWindowDataFlags_ = enum_unnamed_59;
-pub const ImGuiNextItemDataFlags_None = @enumToInt(enum_unnamed_60.ImGuiNextItemDataFlags_None);
-pub const ImGuiNextItemDataFlags_HasWidth = @enumToInt(enum_unnamed_60.ImGuiNextItemDataFlags_HasWidth);
-pub const ImGuiNextItemDataFlags_HasOpen = @enumToInt(enum_unnamed_60.ImGuiNextItemDataFlags_HasOpen);
-const enum_unnamed_60 = extern enum(c_int) {
+pub const ImGuiNextWindowDataFlags_ = enum_unnamed_57;
+pub const ImGuiNextItemDataFlags_None = @enumToInt(enum_unnamed_58.ImGuiNextItemDataFlags_None);
+pub const ImGuiNextItemDataFlags_HasWidth = @enumToInt(enum_unnamed_58.ImGuiNextItemDataFlags_HasWidth);
+pub const ImGuiNextItemDataFlags_HasOpen = @enumToInt(enum_unnamed_58.ImGuiNextItemDataFlags_HasOpen);
+const enum_unnamed_58 = extern enum(c_int) {
     ImGuiNextItemDataFlags_None = 0,
     ImGuiNextItemDataFlags_HasWidth = 1,
     ImGuiNextItemDataFlags_HasOpen = 2,
     _,
 };
-pub const ImGuiNextItemDataFlags_ = enum_unnamed_60;
-pub const ImGuiColumnsFlags_None = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_None);
-pub const ImGuiColumnsFlags_NoBorder = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_NoBorder);
-pub const ImGuiColumnsFlags_NoResize = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_NoResize);
-pub const ImGuiColumnsFlags_NoPreserveWidths = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_NoPreserveWidths);
-pub const ImGuiColumnsFlags_NoForceWithinWindow = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_NoForceWithinWindow);
-pub const ImGuiColumnsFlags_GrowParentContentsSize = @enumToInt(enum_unnamed_61.ImGuiColumnsFlags_GrowParentContentsSize);
-const enum_unnamed_61 = extern enum(c_int) {
+pub const ImGuiNextItemDataFlags_ = enum_unnamed_58;
+pub const ImGuiColumnsFlags_None = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_None);
+pub const ImGuiColumnsFlags_NoBorder = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_NoBorder);
+pub const ImGuiColumnsFlags_NoResize = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_NoResize);
+pub const ImGuiColumnsFlags_NoPreserveWidths = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_NoPreserveWidths);
+pub const ImGuiColumnsFlags_NoForceWithinWindow = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_NoForceWithinWindow);
+pub const ImGuiColumnsFlags_GrowParentContentsSize = @enumToInt(enum_unnamed_59.ImGuiColumnsFlags_GrowParentContentsSize);
+const enum_unnamed_59 = extern enum(c_int) {
     ImGuiColumnsFlags_None = 0,
     ImGuiColumnsFlags_NoBorder = 1,
     ImGuiColumnsFlags_NoResize = 2,
@@ -2598,19 +2680,26 @@ const enum_unnamed_61 = extern enum(c_int) {
     ImGuiColumnsFlags_GrowParentContentsSize = 16,
     _,
 };
-pub const ImGuiColumnsFlags_ = enum_unnamed_61;
-pub const ImGuiDockNodeFlags_DockSpace = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_DockSpace);
-pub const ImGuiDockNodeFlags_CentralNode = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_CentralNode);
-pub const ImGuiDockNodeFlags_NoTabBar = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_NoTabBar);
-pub const ImGuiDockNodeFlags_HiddenTabBar = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_HiddenTabBar);
-pub const ImGuiDockNodeFlags_NoWindowMenuButton = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_NoWindowMenuButton);
-pub const ImGuiDockNodeFlags_NoCloseButton = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_NoCloseButton);
-pub const ImGuiDockNodeFlags_NoDocking = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_NoDocking);
-pub const ImGuiDockNodeFlags_SharedFlagsInheritMask_ = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_SharedFlagsInheritMask_);
-pub const ImGuiDockNodeFlags_LocalFlagsMask_ = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_LocalFlagsMask_);
-pub const ImGuiDockNodeFlags_LocalFlagsTransferMask_ = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_LocalFlagsTransferMask_);
-pub const ImGuiDockNodeFlags_SavedFlagsMask_ = @enumToInt(enum_unnamed_62.ImGuiDockNodeFlags_SavedFlagsMask_);
-const enum_unnamed_62 = extern enum(c_int) {
+pub const ImGuiColumnsFlags_ = enum_unnamed_59;
+pub const ImGuiDockNodeFlags_DockSpace = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_DockSpace);
+pub const ImGuiDockNodeFlags_CentralNode = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_CentralNode);
+pub const ImGuiDockNodeFlags_NoTabBar = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoTabBar);
+pub const ImGuiDockNodeFlags_HiddenTabBar = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_HiddenTabBar);
+pub const ImGuiDockNodeFlags_NoWindowMenuButton = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoWindowMenuButton);
+pub const ImGuiDockNodeFlags_NoCloseButton = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoCloseButton);
+pub const ImGuiDockNodeFlags_NoDocking = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoDocking);
+pub const ImGuiDockNodeFlags_NoDockingSplitMe = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoDockingSplitMe);
+pub const ImGuiDockNodeFlags_NoDockingSplitOther = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoDockingSplitOther);
+pub const ImGuiDockNodeFlags_NoDockingOverMe = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoDockingOverMe);
+pub const ImGuiDockNodeFlags_NoDockingOverOther = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoDockingOverOther);
+pub const ImGuiDockNodeFlags_NoResizeX = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoResizeX);
+pub const ImGuiDockNodeFlags_NoResizeY = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoResizeY);
+pub const ImGuiDockNodeFlags_SharedFlagsInheritMask_ = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_SharedFlagsInheritMask_);
+pub const ImGuiDockNodeFlags_NoResizeFlagsMask_ = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_NoResizeFlagsMask_);
+pub const ImGuiDockNodeFlags_LocalFlagsMask_ = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_LocalFlagsMask_);
+pub const ImGuiDockNodeFlags_LocalFlagsTransferMask_ = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_LocalFlagsTransferMask_);
+pub const ImGuiDockNodeFlags_SavedFlagsMask_ = @enumToInt(enum_unnamed_60.ImGuiDockNodeFlags_SavedFlagsMask_);
+const enum_unnamed_60 = extern enum(c_int) {
     ImGuiDockNodeFlags_DockSpace = 1024,
     ImGuiDockNodeFlags_CentralNode = 2048,
     ImGuiDockNodeFlags_NoTabBar = 4096,
@@ -2618,55 +2707,64 @@ const enum_unnamed_62 = extern enum(c_int) {
     ImGuiDockNodeFlags_NoWindowMenuButton = 16384,
     ImGuiDockNodeFlags_NoCloseButton = 32768,
     ImGuiDockNodeFlags_NoDocking = 65536,
+    ImGuiDockNodeFlags_NoDockingSplitMe = 131072,
+    ImGuiDockNodeFlags_NoDockingSplitOther = 262144,
+    ImGuiDockNodeFlags_NoDockingOverMe = 524288,
+    ImGuiDockNodeFlags_NoDockingOverOther = 1048576,
+    ImGuiDockNodeFlags_NoResizeX = 2097152,
+    ImGuiDockNodeFlags_NoResizeY = 4194304,
     ImGuiDockNodeFlags_SharedFlagsInheritMask_ = -1,
-    ImGuiDockNodeFlags_LocalFlagsMask_ = 130160,
-    ImGuiDockNodeFlags_LocalFlagsTransferMask_ = 129136,
-    ImGuiDockNodeFlags_SavedFlagsMask_ = 130080,
+    ImGuiDockNodeFlags_NoResizeFlagsMask_ = 6291488,
+    ImGuiDockNodeFlags_LocalFlagsMask_ = 6421616,
+    ImGuiDockNodeFlags_LocalFlagsTransferMask_ = 6420592,
+    ImGuiDockNodeFlags_SavedFlagsMask_ = 6421536,
     _,
 };
-pub const ImGuiDockNodeFlagsPrivate_ = enum_unnamed_62;
-pub const ImGuiDataAuthority_Auto = @enumToInt(enum_unnamed_63.ImGuiDataAuthority_Auto);
-pub const ImGuiDataAuthority_DockNode = @enumToInt(enum_unnamed_63.ImGuiDataAuthority_DockNode);
-pub const ImGuiDataAuthority_Window = @enumToInt(enum_unnamed_63.ImGuiDataAuthority_Window);
-const enum_unnamed_63 = extern enum(c_int) {
+pub const ImGuiDockNodeFlagsPrivate_ = enum_unnamed_60;
+pub const ImGuiDataAuthority_Auto = @enumToInt(enum_unnamed_61.ImGuiDataAuthority_Auto);
+pub const ImGuiDataAuthority_DockNode = @enumToInt(enum_unnamed_61.ImGuiDataAuthority_DockNode);
+pub const ImGuiDataAuthority_Window = @enumToInt(enum_unnamed_61.ImGuiDataAuthority_Window);
+const enum_unnamed_61 = extern enum(c_int) {
     ImGuiDataAuthority_Auto,
     ImGuiDataAuthority_DockNode,
     ImGuiDataAuthority_Window,
     _,
 };
-pub const ImGuiDataAuthority_ = enum_unnamed_63;
-pub const ImGuiDockNodeState_Unknown = @enumToInt(enum_unnamed_64.ImGuiDockNodeState_Unknown);
-pub const ImGuiDockNodeState_HostWindowHiddenBecauseSingleWindow = @enumToInt(enum_unnamed_64.ImGuiDockNodeState_HostWindowHiddenBecauseSingleWindow);
-pub const ImGuiDockNodeState_HostWindowHiddenBecauseWindowsAreResizing = @enumToInt(enum_unnamed_64.ImGuiDockNodeState_HostWindowHiddenBecauseWindowsAreResizing);
-pub const ImGuiDockNodeState_HostWindowVisible = @enumToInt(enum_unnamed_64.ImGuiDockNodeState_HostWindowVisible);
-const enum_unnamed_64 = extern enum(c_int) {
+pub const ImGuiDataAuthority_ = enum_unnamed_61;
+pub const ImGuiDockNodeState_Unknown = @enumToInt(enum_unnamed_62.ImGuiDockNodeState_Unknown);
+pub const ImGuiDockNodeState_HostWindowHiddenBecauseSingleWindow = @enumToInt(enum_unnamed_62.ImGuiDockNodeState_HostWindowHiddenBecauseSingleWindow);
+pub const ImGuiDockNodeState_HostWindowHiddenBecauseWindowsAreResizing = @enumToInt(enum_unnamed_62.ImGuiDockNodeState_HostWindowHiddenBecauseWindowsAreResizing);
+pub const ImGuiDockNodeState_HostWindowVisible = @enumToInt(enum_unnamed_62.ImGuiDockNodeState_HostWindowVisible);
+const enum_unnamed_62 = extern enum(c_int) {
     ImGuiDockNodeState_Unknown,
     ImGuiDockNodeState_HostWindowHiddenBecauseSingleWindow,
     ImGuiDockNodeState_HostWindowHiddenBecauseWindowsAreResizing,
     ImGuiDockNodeState_HostWindowVisible,
     _,
 };
-pub const ImGuiDockNodeState = enum_unnamed_64;
-pub const ImGuiTabBarFlags_DockNode = @enumToInt(enum_unnamed_65.ImGuiTabBarFlags_DockNode);
-pub const ImGuiTabBarFlags_IsFocused = @enumToInt(enum_unnamed_65.ImGuiTabBarFlags_IsFocused);
-pub const ImGuiTabBarFlags_SaveSettings = @enumToInt(enum_unnamed_65.ImGuiTabBarFlags_SaveSettings);
-const enum_unnamed_65 = extern enum(c_int) {
+pub const ImGuiDockNodeState = enum_unnamed_62;
+pub const ImGuiTabBarFlags_DockNode = @enumToInt(enum_unnamed_63.ImGuiTabBarFlags_DockNode);
+pub const ImGuiTabBarFlags_IsFocused = @enumToInt(enum_unnamed_63.ImGuiTabBarFlags_IsFocused);
+pub const ImGuiTabBarFlags_SaveSettings = @enumToInt(enum_unnamed_63.ImGuiTabBarFlags_SaveSettings);
+const enum_unnamed_63 = extern enum(c_int) {
     ImGuiTabBarFlags_DockNode = 1048576,
     ImGuiTabBarFlags_IsFocused = 2097152,
     ImGuiTabBarFlags_SaveSettings = 4194304,
     _,
 };
-pub const ImGuiTabBarFlagsPrivate_ = enum_unnamed_65;
-pub const ImGuiTabItemFlags_NoCloseButton = @enumToInt(enum_unnamed_66.ImGuiTabItemFlags_NoCloseButton);
-pub const ImGuiTabItemFlags_Unsorted = @enumToInt(enum_unnamed_66.ImGuiTabItemFlags_Unsorted);
-pub const ImGuiTabItemFlags_Preview = @enumToInt(enum_unnamed_66.ImGuiTabItemFlags_Preview);
-const enum_unnamed_66 = extern enum(c_int) {
+pub const ImGuiTabBarFlagsPrivate_ = enum_unnamed_63;
+pub const ImGuiTabItemFlags_NoCloseButton = @enumToInt(enum_unnamed_64.ImGuiTabItemFlags_NoCloseButton);
+pub const ImGuiTabItemFlags_Button = @enumToInt(enum_unnamed_64.ImGuiTabItemFlags_Button);
+pub const ImGuiTabItemFlags_Unsorted = @enumToInt(enum_unnamed_64.ImGuiTabItemFlags_Unsorted);
+pub const ImGuiTabItemFlags_Preview = @enumToInt(enum_unnamed_64.ImGuiTabItemFlags_Preview);
+const enum_unnamed_64 = extern enum(c_int) {
     ImGuiTabItemFlags_NoCloseButton = 1048576,
-    ImGuiTabItemFlags_Unsorted = 2097152,
-    ImGuiTabItemFlags_Preview = 4194304,
+    ImGuiTabItemFlags_Button = 2097152,
+    ImGuiTabItemFlags_Unsorted = 4194304,
+    ImGuiTabItemFlags_Preview = 8388608,
     _,
 };
-pub const ImGuiTabItemFlagsPrivate_ = enum_unnamed_66;
+pub const ImGuiTabItemFlagsPrivate_ = enum_unnamed_64;
 pub extern fn ImVec2_ImVec2Nil() [*c]ImVec2;
 pub extern fn ImVec2_destroy(self: [*c]ImVec2) void;
 pub extern fn ImVec2_ImVec2Float(_x: f32, _y: f32) [*c]ImVec2;
@@ -2675,14 +2773,14 @@ pub extern fn ImVec4_destroy(self: [*c]ImVec4) void;
 pub extern fn ImVec4_ImVec4Float(_x: f32, _y: f32, _z: f32, _w: f32) [*c]ImVec4;
 pub extern fn igCreateContext(shared_font_atlas: [*c]ImFontAtlas) [*c]ImGuiContext;
 pub extern fn igDestroyContext(ctx: [*c]ImGuiContext) void;
-pub extern fn igGetCurrentContext() *ImGuiContext;
+pub extern fn igGetCurrentContext() [*c]ImGuiContext;
 pub extern fn igSetCurrentContext(ctx: [*c]ImGuiContext) void;
 pub extern fn igGetIO() *ImGuiIO;
 pub extern fn igGetStyle() *ImGuiStyle;
-pub extern fn igNewFrame() callconv(.C) void;
-pub extern fn igEndFrame() callconv(.C) void;
+pub extern fn igNewFrame() void;
+pub extern fn igEndFrame() void;
 pub extern fn igRender() void;
-pub extern fn igGetDrawData() *ImDrawData;
+pub extern fn igGetDrawData() [*c]ImDrawData;
 pub extern fn igShowDemoWindow(p_open: [*c]bool) void;
 pub extern fn igShowAboutWindow(p_open: [*c]bool) void;
 pub extern fn igShowMetricsWindow(p_open: [*c]bool) void;
@@ -2813,7 +2911,7 @@ pub extern fn igBulletText(fmt: [*c]const u8, ...) void;
 pub extern fn igBulletTextV(fmt: [*c]const u8, args: [*c]struct___va_list_tag) void;
 pub extern fn igButton(label: [*c]const u8, size: ImVec2) bool;
 pub extern fn igSmallButton(label: [*c]const u8) bool;
-pub extern fn igInvisibleButton(str_id: [*c]const u8, size: ImVec2) bool;
+pub extern fn igInvisibleButton(str_id: [*c]const u8, size: ImVec2, flags: ImGuiButtonFlags) bool;
 pub extern fn igArrowButton(str_id: [*c]const u8, dir: ImGuiDir) bool;
 pub extern fn igImage(user_texture_id: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, tint_col: ImVec4, border_col: ImVec4) void;
 pub extern fn igImageButton(user_texture_id: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, frame_padding: c_int, bg_col: ImVec4, tint_col: ImVec4) bool;
@@ -2828,32 +2926,32 @@ pub extern fn igEndCombo() void;
 pub extern fn igComboStr_arr(label: [*c]const u8, current_item: [*c]c_int, items: [*c]const [*c]const u8, items_count: c_int, popup_max_height_in_items: c_int) bool;
 pub extern fn igComboStr(label: [*c]const u8, current_item: [*c]c_int, items_separated_by_zeros: [*c]const u8, popup_max_height_in_items: c_int) bool;
 pub extern fn igComboFnBoolPtr(label: [*c]const u8, current_item: [*c]c_int, items_getter: ?fn (?*c_void, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*c_void, items_count: c_int, popup_max_height_in_items: c_int) bool;
-pub extern fn igDragFloat(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igDragFloat2(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igDragFloat3(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igDragFloat4(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igDragFloatRange2(label: [*c]const u8, v_current_min: [*c]f32, v_current_max: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, format_max: [*c]const u8, power: f32) bool;
-pub extern fn igDragInt(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igDragInt2(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igDragInt3(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igDragInt4(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igDragIntRange2(label: [*c]const u8, v_current_min: [*c]c_int, v_current_max: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, format_max: [*c]const u8) bool;
-pub extern fn igDragScalar(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32) bool;
-pub extern fn igDragScalarN(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, components: c_int, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderFloat(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderFloat2(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderFloat3(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderFloat4(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderAngle(label: [*c]const u8, v_rad: [*c]f32, v_degrees_min: f32, v_degrees_max: f32, format: [*c]const u8) bool;
-pub extern fn igSliderInt(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igSliderInt2(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igSliderInt3(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igSliderInt4(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igSliderScalar(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32) bool;
-pub extern fn igSliderScalarN(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, components: c_int, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32) bool;
-pub extern fn igVSliderFloat(label: [*c]const u8, size: ImVec2, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, power: f32) bool;
-pub extern fn igVSliderInt(label: [*c]const u8, size: ImVec2, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8) bool;
-pub extern fn igVSliderScalar(label: [*c]const u8, size: ImVec2, data_type: ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32) bool;
+pub extern fn igDragFloat(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragFloat2(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragFloat3(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragFloat4(label: [*c]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragFloatRange2(label: [*c]const u8, v_current_min: [*c]f32, v_current_max: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*c]const u8, format_max: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragInt(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragInt2(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragInt3(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragInt4(label: [*c]const u8, v: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragIntRange2(label: [*c]const u8, v_current_min: [*c]c_int, v_current_max: [*c]c_int, v_speed: f32, v_min: c_int, v_max: c_int, format: [*c]const u8, format_max: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragScalar(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igDragScalarN(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, components: c_int, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderFloat(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderFloat2(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderFloat3(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderFloat4(label: [*c]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderAngle(label: [*c]const u8, v_rad: [*c]f32, v_degrees_min: f32, v_degrees_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderInt(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderInt2(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderInt3(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderInt4(label: [*c]const u8, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderScalar(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderScalarN(label: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, components: c_int, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igVSliderFloat(label: [*c]const u8, size: ImVec2, v: [*c]f32, v_min: f32, v_max: f32, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igVSliderInt(label: [*c]const u8, size: ImVec2, v: [*c]c_int, v_min: c_int, v_max: c_int, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igVSliderScalar(label: [*c]const u8, size: ImVec2, data_type: ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
 pub extern fn igInputText(label: [*c]const u8, buf: [*c]u8, buf_size: usize, flags: ImGuiInputTextFlags, callback: ImGuiInputTextCallback, user_data: ?*c_void) bool;
 pub extern fn igInputTextMultiline(label: [*c]const u8, buf: [*c]u8, buf_size: usize, size: ImVec2, flags: ImGuiInputTextFlags, callback: ImGuiInputTextCallback, user_data: ?*c_void) bool;
 pub extern fn igInputTextWithHint(label: [*c]const u8, hint: [*c]const u8, buf: [*c]u8, buf_size: usize, flags: ImGuiInputTextFlags, callback: ImGuiInputTextCallback, user_data: ?*c_void) bool;
@@ -2918,16 +3016,16 @@ pub extern fn igBeginTooltip() void;
 pub extern fn igEndTooltip() void;
 pub extern fn igSetTooltip(fmt: [*c]const u8, ...) void;
 pub extern fn igSetTooltipV(fmt: [*c]const u8, args: [*c]struct___va_list_tag) void;
-pub extern fn igOpenPopup(str_id: [*c]const u8) void;
 pub extern fn igBeginPopup(str_id: [*c]const u8, flags: ImGuiWindowFlags) bool;
-pub extern fn igBeginPopupContextItem(str_id: [*c]const u8, mouse_button: ImGuiMouseButton) bool;
-pub extern fn igBeginPopupContextWindow(str_id: [*c]const u8, mouse_button: ImGuiMouseButton, also_over_items: bool) bool;
-pub extern fn igBeginPopupContextVoid(str_id: [*c]const u8, mouse_button: ImGuiMouseButton) bool;
 pub extern fn igBeginPopupModal(name: [*c]const u8, p_open: [*c]bool, flags: ImGuiWindowFlags) bool;
 pub extern fn igEndPopup() void;
-pub extern fn igOpenPopupOnItemClick(str_id: [*c]const u8, mouse_button: ImGuiMouseButton) bool;
-pub extern fn igIsPopupOpenStr(str_id: [*c]const u8) bool;
+pub extern fn igOpenPopup(str_id: [*c]const u8, popup_flags: ImGuiPopupFlags) void;
+pub extern fn igOpenPopupOnItemClick(str_id: [*c]const u8, popup_flags: ImGuiPopupFlags) void;
 pub extern fn igCloseCurrentPopup() void;
+pub extern fn igBeginPopupContextItem(str_id: [*c]const u8, popup_flags: ImGuiPopupFlags) bool;
+pub extern fn igBeginPopupContextWindow(str_id: [*c]const u8, popup_flags: ImGuiPopupFlags) bool;
+pub extern fn igBeginPopupContextVoid(str_id: [*c]const u8, popup_flags: ImGuiPopupFlags) bool;
+pub extern fn igIsPopupOpenStr(str_id: [*c]const u8, flags: ImGuiPopupFlags) bool;
 pub extern fn igColumns(count: c_int, id: [*c]const u8, border: bool) void;
 pub extern fn igNextColumn() void;
 pub extern fn igGetColumnIndex() c_int;
@@ -2940,6 +3038,7 @@ pub extern fn igBeginTabBar(str_id: [*c]const u8, flags: ImGuiTabBarFlags) bool;
 pub extern fn igEndTabBar() void;
 pub extern fn igBeginTabItem(label: [*c]const u8, p_open: [*c]bool, flags: ImGuiTabItemFlags) bool;
 pub extern fn igEndTabItem() void;
+pub extern fn igTabItemButton(label: [*c]const u8, flags: ImGuiTabItemFlags) bool;
 pub extern fn igSetTabItemClosed(tab_or_docked_window_label: [*c]const u8) void;
 pub extern fn igDockSpace(id: ImGuiID, size: ImVec2, flags: ImGuiDockNodeFlags, window_class: [*c]const ImGuiWindowClass) void;
 pub extern fn igDockSpaceOverViewport(viewport: [*c]ImGuiViewport, flags: ImGuiDockNodeFlags, window_class: [*c]const ImGuiWindowClass) ImGuiID;
@@ -2956,7 +3055,7 @@ pub extern fn igBeginDragDropSource(flags: ImGuiDragDropFlags) bool;
 pub extern fn igSetDragDropPayload(type: [*c]const u8, data: ?*const c_void, sz: usize, cond: ImGuiCond) bool;
 pub extern fn igEndDragDropSource() void;
 pub extern fn igBeginDragDropTarget() bool;
-pub extern fn igAcceptDragDropPayload(type: [*c]const u8, flags: ImGuiDragDropFlags) ?*const ImGuiPayload;
+pub extern fn igAcceptDragDropPayload(type: [*c]const u8, flags: ImGuiDragDropFlags) [*c]const ImGuiPayload;
 pub extern fn igEndDragDropTarget() void;
 pub extern fn igGetDragDropPayload() [*c]const ImGuiPayload;
 pub extern fn igPushClipRect(clip_rect_min: ImVec2, clip_rect_max: ImVec2, intersect_with_current_clip_rect: bool) void;
@@ -3032,12 +3131,12 @@ pub extern fn igSetAllocatorFunctions(alloc_func: ?fn (usize, ?*c_void) callconv
 pub extern fn igMemAlloc(size: usize) ?*c_void;
 pub extern fn igMemFree(ptr: ?*c_void) void;
 pub extern fn igGetPlatformIO() [*c]ImGuiPlatformIO;
-pub extern fn igGetMainViewport() *ImGuiViewport;
+pub extern fn igGetMainViewport() [*c]ImGuiViewport;
 pub extern fn igUpdatePlatformWindows() void;
 pub extern fn igRenderPlatformWindowsDefault(platform_render_arg: ?*c_void, renderer_render_arg: ?*c_void) void;
 pub extern fn igDestroyPlatformWindows() void;
 pub extern fn igFindViewportByID(id: ImGuiID) [*c]ImGuiViewport;
-pub extern fn igFindViewportByPlatformHandle(platform_handle: ?*c_void) ?*ImGuiViewport;
+pub extern fn igFindViewportByPlatformHandle(platform_handle: ?*c_void) [*c]ImGuiViewport;
 pub extern fn ImGuiStyle_ImGuiStyle() [*c]ImGuiStyle;
 pub extern fn ImGuiStyle_destroy(self: [*c]ImGuiStyle) void;
 pub extern fn ImGuiStyle_ScaleAllSizes(self: [*c]ImGuiStyle, scale_factor: f32) void;
@@ -3051,6 +3150,8 @@ pub extern fn ImGuiInputTextCallbackData_ImGuiInputTextCallbackData() [*c]ImGuiI
 pub extern fn ImGuiInputTextCallbackData_destroy(self: [*c]ImGuiInputTextCallbackData) void;
 pub extern fn ImGuiInputTextCallbackData_DeleteChars(self: [*c]ImGuiInputTextCallbackData, pos: c_int, bytes_count: c_int) void;
 pub extern fn ImGuiInputTextCallbackData_InsertChars(self: [*c]ImGuiInputTextCallbackData, pos: c_int, text: [*c]const u8, text_end: [*c]const u8) void;
+pub extern fn ImGuiInputTextCallbackData_SelectAll(self: [*c]ImGuiInputTextCallbackData) void;
+pub extern fn ImGuiInputTextCallbackData_ClearSelection(self: [*c]ImGuiInputTextCallbackData) void;
 pub extern fn ImGuiInputTextCallbackData_HasSelection(self: [*c]ImGuiInputTextCallbackData) bool;
 pub extern fn ImGuiWindowClass_ImGuiWindowClass() [*c]ImGuiWindowClass;
 pub extern fn ImGuiWindowClass_destroy(self: [*c]ImGuiWindowClass) void;
@@ -3104,11 +3205,11 @@ pub extern fn ImGuiStorage_GetFloatRef(self: [*c]ImGuiStorage, key: ImGuiID, def
 pub extern fn ImGuiStorage_GetVoidPtrRef(self: [*c]ImGuiStorage, key: ImGuiID, default_val: ?*c_void) [*c]?*c_void;
 pub extern fn ImGuiStorage_SetAllInt(self: [*c]ImGuiStorage, val: c_int) void;
 pub extern fn ImGuiStorage_BuildSortByKey(self: [*c]ImGuiStorage) void;
-pub extern fn ImGuiListClipper_ImGuiListClipper(items_count: c_int, items_height: f32) [*c]ImGuiListClipper;
+pub extern fn ImGuiListClipper_ImGuiListClipper() [*c]ImGuiListClipper;
 pub extern fn ImGuiListClipper_destroy(self: [*c]ImGuiListClipper) void;
-pub extern fn ImGuiListClipper_Step(self: [*c]ImGuiListClipper) bool;
 pub extern fn ImGuiListClipper_Begin(self: [*c]ImGuiListClipper, items_count: c_int, items_height: f32) void;
 pub extern fn ImGuiListClipper_End(self: [*c]ImGuiListClipper) void;
+pub extern fn ImGuiListClipper_Step(self: [*c]ImGuiListClipper) bool;
 pub extern fn ImColor_ImColorNil() [*c]ImColor;
 pub extern fn ImColor_destroy(self: [*c]ImColor) void;
 pub extern fn ImColor_ImColorInt(r: c_int, g: c_int, b: c_int, a: c_int) [*c]ImColor;
@@ -3116,7 +3217,7 @@ pub extern fn ImColor_ImColorU32(rgba: ImU32) [*c]ImColor;
 pub extern fn ImColor_ImColorFloat(r: f32, g: f32, b: f32, a: f32) [*c]ImColor;
 pub extern fn ImColor_ImColorVec4(col: ImVec4) [*c]ImColor;
 pub extern fn ImColor_SetHSV(self: [*c]ImColor, h: f32, s: f32, v: f32, a: f32) void;
-pub extern fn ImColor_HSV(pOut: [*c]ImColor, self: [*c]ImColor, h: f32, s: f32, v: f32, a: f32) void;
+pub extern fn ImColor_HSV(pOut: [*c]ImColor, h: f32, s: f32, v: f32, a: f32) void;
 pub extern fn ImDrawCmd_ImDrawCmd() [*c]ImDrawCmd;
 pub extern fn ImDrawCmd_destroy(self: [*c]ImDrawCmd) void;
 pub extern fn ImDrawListSplitter_ImDrawListSplitter() [*c]ImDrawListSplitter;
@@ -3170,8 +3271,6 @@ pub extern fn ImDrawList_CloneOutput(self: [*c]ImDrawList) [*c]ImDrawList;
 pub extern fn ImDrawList_ChannelsSplit(self: [*c]ImDrawList, count: c_int) void;
 pub extern fn ImDrawList_ChannelsMerge(self: [*c]ImDrawList) void;
 pub extern fn ImDrawList_ChannelsSetCurrent(self: [*c]ImDrawList, n: c_int) void;
-pub extern fn ImDrawList_Clear(self: [*c]ImDrawList) void;
-pub extern fn ImDrawList_ClearFreeMemory(self: [*c]ImDrawList) void;
 pub extern fn ImDrawList_PrimReserve(self: [*c]ImDrawList, idx_count: c_int, vtx_count: c_int) void;
 pub extern fn ImDrawList_PrimUnreserve(self: [*c]ImDrawList, idx_count: c_int, vtx_count: c_int) void;
 pub extern fn ImDrawList_PrimRect(self: [*c]ImDrawList, a: ImVec2, b: ImVec2, col: ImU32) void;
@@ -3180,8 +3279,12 @@ pub extern fn ImDrawList_PrimQuadUV(self: [*c]ImDrawList, a: ImVec2, b: ImVec2, 
 pub extern fn ImDrawList_PrimWriteVtx(self: [*c]ImDrawList, pos: ImVec2, uv: ImVec2, col: ImU32) void;
 pub extern fn ImDrawList_PrimWriteIdx(self: [*c]ImDrawList, idx: ImDrawIdx) void;
 pub extern fn ImDrawList_PrimVtx(self: [*c]ImDrawList, pos: ImVec2, uv: ImVec2, col: ImU32) void;
-pub extern fn ImDrawList_UpdateClipRect(self: [*c]ImDrawList) void;
-pub extern fn ImDrawList_UpdateTextureID(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__ResetForNewFrame(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__ClearFreeMemory(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__PopUnusedDrawCmd(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__OnChangedClipRect(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__OnChangedTextureID(self: [*c]ImDrawList) void;
+pub extern fn ImDrawList__OnChangedVtxOffset(self: [*c]ImDrawList) void;
 pub extern fn ImDrawData_ImDrawData() [*c]ImDrawData;
 pub extern fn ImDrawData_destroy(self: [*c]ImDrawData) void;
 pub extern fn ImDrawData_Clear(self: [*c]ImDrawData) void;
@@ -3206,7 +3309,7 @@ pub extern fn ImFontAtlas_destroy(self: [*c]ImFontAtlas) void;
 pub extern fn ImFontAtlas_AddFont(self: [*c]ImFontAtlas, font_cfg: [*c]const ImFontConfig) [*c]ImFont;
 pub extern fn ImFontAtlas_AddFontDefault(self: [*c]ImFontAtlas, font_cfg: [*c]const ImFontConfig) [*c]ImFont;
 pub extern fn ImFontAtlas_AddFontFromFileTTF(self: [*c]ImFontAtlas, filename: [*c]const u8, size_pixels: f32, font_cfg: [*c]const ImFontConfig, glyph_ranges: [*c]const ImWchar) [*c]ImFont;
-pub extern fn ImFontAtlas_AddFontFromMemoryTTF(self: [*c]ImFontAtlas, font_data: ?*const c_void, font_size: c_int, size_pixels: f32, font_cfg: [*c]const ImFontConfig, glyph_ranges: [*c]const ImWchar) [*c]ImFont;
+pub extern fn ImFontAtlas_AddFontFromMemoryTTF(self: [*c]ImFontAtlas, font_data: ?*c_void, font_size: c_int, size_pixels: f32, font_cfg: [*c]const ImFontConfig, glyph_ranges: [*c]const ImWchar) [*c]ImFont;
 pub extern fn ImFontAtlas_AddFontFromMemoryCompressedTTF(self: [*c]ImFontAtlas, compressed_font_data: ?*const c_void, compressed_font_size: c_int, size_pixels: f32, font_cfg: [*c]const ImFontConfig, glyph_ranges: [*c]const ImWchar) [*c]ImFont;
 pub extern fn ImFontAtlas_AddFontFromMemoryCompressedBase85TTF(self: [*c]ImFontAtlas, compressed_font_data_base85: [*c]const u8, size_pixels: f32, font_cfg: [*c]const ImFontConfig, glyph_ranges: [*c]const ImWchar) [*c]ImFont;
 pub extern fn ImFontAtlas_ClearInputData(self: [*c]ImFontAtlas) void;
@@ -3228,7 +3331,7 @@ pub extern fn ImFontAtlas_GetGlyphRangesThai(self: [*c]ImFontAtlas) [*c]const Im
 pub extern fn ImFontAtlas_GetGlyphRangesVietnamese(self: [*c]ImFontAtlas) [*c]const ImWchar;
 pub extern fn ImFontAtlas_AddCustomRectRegular(self: [*c]ImFontAtlas, width: c_int, height: c_int) c_int;
 pub extern fn ImFontAtlas_AddCustomRectFontGlyph(self: [*c]ImFontAtlas, font: [*c]ImFont, id: ImWchar, width: c_int, height: c_int, advance_x: f32, offset: ImVec2) c_int;
-pub extern fn ImFontAtlas_GetCustomRectByIndex(self: [*c]ImFontAtlas, index: c_int) [*c]const ImFontAtlasCustomRect;
+pub extern fn ImFontAtlas_GetCustomRectByIndex(self: [*c]ImFontAtlas, index: c_int) [*c]ImFontAtlasCustomRect;
 pub extern fn ImFontAtlas_CalcCustomRectUV(self: [*c]ImFontAtlas, rect: [*c]const ImFontAtlasCustomRect, out_uv_min: [*c]ImVec2, out_uv_max: [*c]ImVec2) void;
 pub extern fn ImFontAtlas_GetMouseCursorTexData(self: [*c]ImFontAtlas, cursor: ImGuiMouseCursor, out_offset: [*c]ImVec2, out_size: [*c]ImVec2, out_uv_border: [*c]ImVec2, out_uv_fill: [*c]ImVec2) bool;
 pub extern fn ImFont_ImFont() [*c]ImFont;
@@ -3245,7 +3348,7 @@ pub extern fn ImFont_RenderText(self: [*c]ImFont, draw_list: [*c]ImDrawList, siz
 pub extern fn ImFont_BuildLookupTable(self: [*c]ImFont) void;
 pub extern fn ImFont_ClearOutputData(self: [*c]ImFont) void;
 pub extern fn ImFont_GrowIndex(self: [*c]ImFont, new_size: c_int) void;
-pub extern fn ImFont_AddGlyph(self: [*c]ImFont, c: ImWchar, x0: f32, y0: f32, x1: f32, y1: f32, u0: f32, v0: f32, u1: f32, v1: f32, advance_x: f32) void;
+pub extern fn ImFont_AddGlyph(self: [*c]ImFont, src_cfg: [*c]const ImFontConfig, c: ImWchar, x0: f32, y0: f32, x1: f32, y1: f32, u0: f32, v0: f32, u1: f32, v1: f32, advance_x: f32) void;
 pub extern fn ImFont_AddRemapChar(self: [*c]ImFont, dst: ImWchar, src: ImWchar, overwrite_dst: bool) void;
 pub extern fn ImFont_SetGlyphVisible(self: [*c]ImFont, c: ImWchar, visible: bool) void;
 pub extern fn ImFont_SetFallbackChar(self: [*c]ImFont, c: ImWchar) void;
@@ -3256,6 +3359,7 @@ pub extern fn ImGuiPlatformMonitor_ImGuiPlatformMonitor() [*c]ImGuiPlatformMonit
 pub extern fn ImGuiPlatformMonitor_destroy(self: [*c]ImGuiPlatformMonitor) void;
 pub extern fn ImGuiViewport_ImGuiViewport() [*c]ImGuiViewport;
 pub extern fn ImGuiViewport_destroy(self: [*c]ImGuiViewport) void;
+pub extern fn ImGuiViewport_GetCenter(pOut: [*c]ImVec2, self: [*c]ImGuiViewport) void;
 pub extern fn ImGuiViewport_GetWorkPos(pOut: [*c]ImVec2, self: [*c]ImGuiViewport) void;
 pub extern fn ImGuiViewport_GetWorkSize(pOut: [*c]ImVec2, self: [*c]ImGuiViewport) void;
 pub extern fn igImHashData(data: ?*const c_void, data_size: usize, seed: ImU32) ImU32;
@@ -3297,6 +3401,12 @@ pub extern fn igImFileWrite(data: ?*const c_void, size: ImU64, count: ImU64, fil
 pub extern fn igImFileLoadToMemory(filename: [*c]const u8, mode: [*c]const u8, out_file_size: [*c]usize, padding_bytes: c_int) ?*c_void;
 pub extern fn igImPowFloat(x: f32, y: f32) f32;
 pub extern fn igImPowdouble(x: f64, y: f64) f64;
+pub extern fn igImLogFloat(x: f32) f32;
+pub extern fn igImLogdouble(x: f64) f64;
+pub extern fn igImAbsFloat(x: f32) f32;
+pub extern fn igImAbsdouble(x: f64) f64;
+pub extern fn igImSignFloat(x: f32) f32;
+pub extern fn igImSigndouble(x: f64) f64;
 pub extern fn igImMin(pOut: [*c]ImVec2, lhs: ImVec2, rhs: ImVec2) void;
 pub extern fn igImMax(pOut: [*c]ImVec2, lhs: ImVec2, rhs: ImVec2) void;
 pub extern fn igImClamp(pOut: [*c]ImVec2, v: ImVec2, mn: ImVec2, mx: ImVec2) void;
@@ -3357,6 +3467,7 @@ pub extern fn ImRect_ClipWith(self: [*c]ImRect, r: ImRect) void;
 pub extern fn ImRect_ClipWithFull(self: [*c]ImRect, r: ImRect) void;
 pub extern fn ImRect_Floor(self: [*c]ImRect) void;
 pub extern fn ImRect_IsInverted(self: [*c]ImRect) bool;
+pub extern fn ImRect_ToVec4(pOut: [*c]ImVec4, self: [*c]ImRect) void;
 pub extern fn igImBitArrayTestBit(arr: [*c]const ImU32, n: c_int) bool;
 pub extern fn igImBitArrayClearBit(arr: [*c]ImU32, n: c_int) void;
 pub extern fn igImBitArraySetBit(arr: [*c]ImU32, n: c_int) void;
@@ -3435,8 +3546,8 @@ pub extern fn ImGuiViewportP_ClearRequestFlags(self: [*c]ImGuiViewportP) void;
 pub extern fn ImGuiWindowSettings_ImGuiWindowSettings() [*c]ImGuiWindowSettings;
 pub extern fn ImGuiWindowSettings_destroy(self: [*c]ImGuiWindowSettings) void;
 pub extern fn ImGuiWindowSettings_GetName(self: [*c]ImGuiWindowSettings) [*c]u8;
-pub extern fn ImGuiSettingsHandler_ImGuiSettingsHandler() *ImGuiSettingsHandler;
-pub extern fn ImGuiSettingsHandler_destroy(self: *ImGuiSettingsHandler) void;
+pub extern fn ImGuiSettingsHandler_ImGuiSettingsHandler() [*c]ImGuiSettingsHandler;
+pub extern fn ImGuiSettingsHandler_destroy(self: [*c]ImGuiSettingsHandler) void;
 pub extern fn ImGuiContext_ImGuiContext(shared_font_atlas: [*c]ImFontAtlas) [*c]ImGuiContext;
 pub extern fn ImGuiContext_destroy(self: [*c]ImGuiContext) void;
 pub extern fn ImGuiWindowTempData_ImGuiWindowTempData() [*c]ImGuiWindowTempData;
@@ -3456,10 +3567,10 @@ pub extern fn ImGuiWindow_TitleBarHeight(self: ?*ImGuiWindow) f32;
 pub extern fn ImGuiWindow_TitleBarRect(pOut: [*c]ImRect, self: ?*ImGuiWindow) void;
 pub extern fn ImGuiWindow_MenuBarHeight(self: ?*ImGuiWindow) f32;
 pub extern fn ImGuiWindow_MenuBarRect(pOut: [*c]ImRect, self: ?*ImGuiWindow) void;
-pub extern fn ImGuiItemHoveredDataBackup_ImGuiItemHoveredDataBackup() [*c]ImGuiItemHoveredDataBackup;
-pub extern fn ImGuiItemHoveredDataBackup_destroy(self: [*c]ImGuiItemHoveredDataBackup) void;
-pub extern fn ImGuiItemHoveredDataBackup_Backup(self: [*c]ImGuiItemHoveredDataBackup) void;
-pub extern fn ImGuiItemHoveredDataBackup_Restore(self: [*c]ImGuiItemHoveredDataBackup) void;
+pub extern fn ImGuiLastItemDataBackup_ImGuiLastItemDataBackup() [*c]ImGuiLastItemDataBackup;
+pub extern fn ImGuiLastItemDataBackup_destroy(self: [*c]ImGuiLastItemDataBackup) void;
+pub extern fn ImGuiLastItemDataBackup_Backup(self: [*c]ImGuiLastItemDataBackup) void;
+pub extern fn ImGuiLastItemDataBackup_Restore(self: [*c]ImGuiLastItemDataBackup) void;
 pub extern fn ImGuiTabItem_ImGuiTabItem() [*c]ImGuiTabItem;
 pub extern fn ImGuiTabItem_destroy(self: [*c]ImGuiTabItem) void;
 pub extern fn ImGuiTabBar_ImGuiTabBar() [*c]ImGuiTabBar;
@@ -3503,11 +3614,11 @@ pub extern fn igMarkIniSettingsDirtyWindowPtr(window: ?*ImGuiWindow) void;
 pub extern fn igClearIniSettings() void;
 pub extern fn igCreateNewWindowSettings(name: [*c]const u8) [*c]ImGuiWindowSettings;
 pub extern fn igFindWindowSettings(id: ImGuiID) [*c]ImGuiWindowSettings;
-pub extern fn igFindOrCreateWindowSettings(name: [*c]const u8) *ImGuiWindowSettings;
-pub extern fn igFindSettingsHandler(type_name: [*c]const u8) *ImGuiSettingsHandler;
+pub extern fn igFindOrCreateWindowSettings(name: [*c]const u8) [*c]ImGuiWindowSettings;
+pub extern fn igFindSettingsHandler(type_name: [*c]const u8) [*c]ImGuiSettingsHandler;
 pub extern fn igSetNextWindowScroll(scroll: ImVec2) void;
-pub extern fn igSetScrollXWindowPtr(window: ?*ImGuiWindow, new_scroll_x: f32) void;
-pub extern fn igSetScrollYWindowPtr(window: ?*ImGuiWindow, new_scroll_y: f32) void;
+pub extern fn igSetScrollXWindowPtr(window: ?*ImGuiWindow, scroll_x: f32) void;
+pub extern fn igSetScrollYWindowPtr(window: ?*ImGuiWindow, scroll_y: f32) void;
 pub extern fn igSetScrollFromPosXWindowPtr(window: ?*ImGuiWindow, local_x: f32, center_x_ratio: f32) void;
 pub extern fn igSetScrollFromPosYWindowPtr(window: ?*ImGuiWindow, local_y: f32, center_y_ratio: f32) void;
 pub extern fn igScrollToBringRectIntoView(pOut: [*c]ImVec2, window: ?*ImGuiWindow, item_rect: ImRect) void;
@@ -3523,11 +3634,13 @@ pub extern fn igSetHoveredID(id: ImGuiID) void;
 pub extern fn igKeepAliveID(id: ImGuiID) void;
 pub extern fn igMarkItemEdited(id: ImGuiID) void;
 pub extern fn igPushOverrideID(id: ImGuiID) void;
+pub extern fn igGetIDWithSeed(str_id_begin: [*c]const u8, str_id_end: [*c]const u8, seed: ImGuiID) ImGuiID;
 pub extern fn igItemSizeVec2(size: ImVec2, text_baseline_y: f32) void;
 pub extern fn igItemSizeRect(bb: ImRect, text_baseline_y: f32) void;
 pub extern fn igItemAdd(bb: ImRect, id: ImGuiID, nav_bb: [*c]const ImRect) bool;
 pub extern fn igItemHoverable(bb: ImRect, id: ImGuiID) bool;
 pub extern fn igIsClippedEx(bb: ImRect, id: ImGuiID, clip_even_when_logged: bool) bool;
+pub extern fn igSetLastItemData(window: ?*ImGuiWindow, item_id: ImGuiID, status_flags: ImGuiItemStatusFlags, item_rect: ImRect) void;
 pub extern fn igFocusableItemRegister(window: ?*ImGuiWindow, id: ImGuiID) bool;
 pub extern fn igFocusableItemUnregister(window: ?*ImGuiWindow) void;
 pub extern fn igCalcItemSize(pOut: [*c]ImVec2, size: ImVec2, default_w: f32, default_h: f32) void;
@@ -3541,10 +3654,10 @@ pub extern fn igShrinkWidths(items: [*c]ImGuiShrinkWidthItem, count: c_int, widt
 pub extern fn igLogBegin(type: ImGuiLogType, auto_open_depth: c_int) void;
 pub extern fn igLogToBuffer(auto_open_depth: c_int) void;
 pub extern fn igBeginChildEx(name: [*c]const u8, id: ImGuiID, size_arg: ImVec2, border: bool, flags: ImGuiWindowFlags) bool;
-pub extern fn igOpenPopupEx(id: ImGuiID) void;
+pub extern fn igOpenPopupEx(id: ImGuiID, popup_flags: ImGuiPopupFlags) void;
 pub extern fn igClosePopupToLevel(remaining: c_int, restore_focus_to_window_under_popup: bool) void;
 pub extern fn igClosePopupsOverWindow(ref_window: ?*ImGuiWindow, restore_focus_to_window_under_popup: bool) void;
-pub extern fn igIsPopupOpenID(id: ImGuiID) bool;
+pub extern fn igIsPopupOpenID(id: ImGuiID, popup_flags: ImGuiPopupFlags) bool;
 pub extern fn igBeginPopupEx(id: ImGuiID, extra_flags: ImGuiWindowFlags) bool;
 pub extern fn igBeginTooltipEx(extra_flags: ImGuiWindowFlags, tooltip_flags: ImGuiTooltipFlags) void;
 pub extern fn igGetTopMostPopupModal() ?*ImGuiWindow;
@@ -3608,6 +3721,7 @@ pub extern fn igDockBuilderFinish(node_id: ImGuiID) void;
 pub extern fn igBeginDragDropTargetCustom(bb: ImRect, id: ImGuiID) bool;
 pub extern fn igClearDragDrop() void;
 pub extern fn igIsDragDropPayloadBeingAccepted() bool;
+pub extern fn igSetWindowClipRectBeforeSetChannel(window: ?*ImGuiWindow, clip_rect: ImRect) void;
 pub extern fn igBeginColumns(str_id: [*c]const u8, count: c_int, flags: ImGuiColumnsFlags) void;
 pub extern fn igEndColumns() void;
 pub extern fn igPushColumnClipRect(column_index: c_int) void;
@@ -3623,7 +3737,8 @@ pub extern fn igTabBarFindMostRecentlySelectedTabForActiveWindow(tab_bar: [*c]Im
 pub extern fn igTabBarAddTab(tab_bar: [*c]ImGuiTabBar, tab_flags: ImGuiTabItemFlags, window: ?*ImGuiWindow) void;
 pub extern fn igTabBarRemoveTab(tab_bar: [*c]ImGuiTabBar, tab_id: ImGuiID) void;
 pub extern fn igTabBarCloseTab(tab_bar: [*c]ImGuiTabBar, tab: [*c]ImGuiTabItem) void;
-pub extern fn igTabBarQueueChangeTabOrder(tab_bar: [*c]ImGuiTabBar, tab: [*c]const ImGuiTabItem, dir: c_int) void;
+pub extern fn igTabBarQueueReorder(tab_bar: [*c]ImGuiTabBar, tab: [*c]const ImGuiTabItem, dir: c_int) void;
+pub extern fn igTabBarProcessReorder(tab_bar: [*c]ImGuiTabBar) bool;
 pub extern fn igTabItemEx(tab_bar: [*c]ImGuiTabBar, label: [*c]const u8, p_open: [*c]bool, flags: ImGuiTabItemFlags, docked_window: ?*ImGuiWindow) bool;
 pub extern fn igTabItemCalcSize(pOut: [*c]ImVec2, label: [*c]const u8, has_close_button: bool) void;
 pub extern fn igTabItemBackground(draw_list: [*c]ImDrawList, bb: ImRect, flags: ImGuiTabItemFlags, col: ImU32) void;
@@ -3654,21 +3769,23 @@ pub extern fn igCollapseButton(id: ImGuiID, pos: ImVec2, dock_node: ?*ImGuiDockN
 pub extern fn igArrowButtonEx(str_id: [*c]const u8, dir: ImGuiDir, size_arg: ImVec2, flags: ImGuiButtonFlags) bool;
 pub extern fn igScrollbar(axis: ImGuiAxis) void;
 pub extern fn igScrollbarEx(bb: ImRect, id: ImGuiID, axis: ImGuiAxis, p_scroll_v: [*c]f32, avail_v: f32, contents_v: f32, rounding_corners: ImDrawCornerFlags) bool;
+pub extern fn igImageButtonEx(id: ImGuiID, texture_id: ImTextureID, size: ImVec2, uv0: ImVec2, uv1: ImVec2, padding: ImVec2, bg_col: ImVec4, tint_col: ImVec4) bool;
 pub extern fn igGetWindowScrollbarRect(pOut: [*c]ImRect, window: ?*ImGuiWindow, axis: ImGuiAxis) void;
 pub extern fn igGetWindowScrollbarID(window: ?*ImGuiWindow, axis: ImGuiAxis) ImGuiID;
 pub extern fn igGetWindowResizeID(window: ?*ImGuiWindow, n: c_int) ImGuiID;
 pub extern fn igSeparatorEx(flags: ImGuiSeparatorFlags) void;
 pub extern fn igButtonBehavior(bb: ImRect, id: ImGuiID, out_hovered: [*c]bool, out_held: [*c]bool, flags: ImGuiButtonFlags) bool;
-pub extern fn igDragBehavior(id: ImGuiID, data_type: ImGuiDataType, p_v: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32, flags: ImGuiDragFlags) bool;
-pub extern fn igSliderBehavior(bb: ImRect, id: ImGuiID, data_type: ImGuiDataType, p_v: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, power: f32, flags: ImGuiSliderFlags, out_grab_bb: [*c]ImRect) bool;
+pub extern fn igDragBehavior(id: ImGuiID, data_type: ImGuiDataType, p_v: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags) bool;
+pub extern fn igSliderBehavior(bb: ImRect, id: ImGuiID, data_type: ImGuiDataType, p_v: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*c]const u8, flags: ImGuiSliderFlags, out_grab_bb: [*c]ImRect) bool;
 pub extern fn igSplitterBehavior(bb: ImRect, id: ImGuiID, axis: ImGuiAxis, size1: [*c]f32, size2: [*c]f32, min_size1: f32, min_size2: f32, hover_extend: f32, hover_visibility_delay: f32) bool;
 pub extern fn igTreeNodeBehavior(id: ImGuiID, flags: ImGuiTreeNodeFlags, label: [*c]const u8, label_end: [*c]const u8) bool;
 pub extern fn igTreeNodeBehaviorIsOpen(id: ImGuiID, flags: ImGuiTreeNodeFlags) bool;
 pub extern fn igTreePushOverrideID(id: ImGuiID) void;
 pub extern fn igDataTypeGetInfo(data_type: ImGuiDataType) [*c]const ImGuiDataTypeInfo;
 pub extern fn igDataTypeFormatString(buf: [*c]u8, buf_size: c_int, data_type: ImGuiDataType, p_data: ?*const c_void, format: [*c]const u8) c_int;
-pub extern fn igDataTypeApplyOp(data_type: ImGuiDataType, op: c_int, output: ?*c_void, arg_1: ?*c_void, arg_2: ?*const c_void) void;
+pub extern fn igDataTypeApplyOp(data_type: ImGuiDataType, op: c_int, output: ?*c_void, arg_1: ?*const c_void, arg_2: ?*const c_void) void;
 pub extern fn igDataTypeApplyOpFromText(buf: [*c]const u8, initial_value_buf: [*c]const u8, data_type: ImGuiDataType, p_data: ?*c_void, format: [*c]const u8) bool;
+pub extern fn igDataTypeCompare(data_type: ImGuiDataType, arg_1: ?*const c_void, arg_2: ?*const c_void) c_int;
 pub extern fn igDataTypeClamp(data_type: ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void) bool;
 pub extern fn igInputTextEx(label: [*c]const u8, hint: [*c]const u8, buf: [*c]u8, buf_size: c_int, size_arg: ImVec2, flags: ImGuiInputTextFlags, callback: ImGuiInputTextCallback, user_data: ?*c_void) bool;
 pub extern fn igTempInputText(bb: ImRect, id: ImGuiID, label: [*c]const u8, buf: [*c]u8, buf_size: c_int, flags: ImGuiInputTextFlags) bool;
@@ -3690,6 +3807,7 @@ pub extern fn igImFontAtlasBuildInit(atlas: [*c]ImFontAtlas) void;
 pub extern fn igImFontAtlasBuildSetupFont(atlas: [*c]ImFontAtlas, font: [*c]ImFont, font_config: [*c]ImFontConfig, ascent: f32, descent: f32) void;
 pub extern fn igImFontAtlasBuildPackCustomRects(atlas: [*c]ImFontAtlas, stbrp_context_opaque: ?*c_void) void;
 pub extern fn igImFontAtlasBuildFinish(atlas: [*c]ImFontAtlas) void;
+pub extern fn igImFontAtlasBuildRender1bppRectFromString(atlas: [*c]ImFontAtlas, atlas_x: c_int, atlas_y: c_int, w: c_int, h: c_int, in_str: [*c]const u8, in_marker_char: u8, in_marker_pixel_value: u8) void;
 pub extern fn igImFontAtlasBuildMultiplyCalcLookupTable(out_table: [*c]u8, in_multiply_factor: f32) void;
 pub extern fn igImFontAtlasBuildMultiplyRectAlpha8(table: [*c]const u8, pixels: [*c]u8, x: c_int, y: c_int, w: c_int, h: c_int, stride: c_int) void;
 pub extern fn igLogText(fmt: [*c]const u8, ...) void;

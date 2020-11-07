@@ -1,6 +1,6 @@
 const std = @import("std");
 const aya = @import("aya");
-const sdl = @import("sdl");
+const ig = @import("imgui");
 const gfx = @import("gfx");
 const math = gfx.math;
 
