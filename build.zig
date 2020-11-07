@@ -8,14 +8,14 @@ pub fn linkArtifact(b: *Builder, artifact: *std.build.LibExeObjStep, target: std
     artifact.addPackagePath("gfx", rel_path ++ "src/gfx.zig");
 }
 
-pub fn build(b: *Builder) void {
+pub fn build(b: *Builder) !void {
     const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
 
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
         [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "meshes", "examples/meshes.zig" },
@@ -32,6 +32,7 @@ pub fn build(b: *Builder) void {
         var exe = b.addExecutable(name, source);
         exe.setBuildMode(b.standardReleaseOptions());
         exe.setOutputDir("zig-cache/bin");
+        exe.addBuildOption(Renderer, "renderer", renderer);
         examples_step.dependOn(&exe.step);
 
         if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
@@ -62,11 +63,20 @@ pub fn build(b: *Builder) void {
         // imgui
         @import("src/deps/imgui/build.zig").linkArtifact(b, exe, target);
 
-        // aya gets access to everything
+        // aya gets access to everything + build_options
+        const build_pkg = std.build.Pkg{
+            .name = "build_options",
+            .path = try std.fmt.allocPrint(b.allocator, "zig-cache/{}_build_options.zig", .{name}),
+        };
+
+        var tmp = try b.allocator.alloc(std.build.Pkg, exe.packages.items.len + 1);
+        std.mem.copy(std.build.Pkg, tmp, exe.packages.items);
+        tmp[exe.packages.items.len] = build_pkg;
+
         exe.addPackage(.{
             .name = "aya",
             .path = "examples/core/aya.zig",
-            .dependencies = exe.packages.items,
+            .dependencies = tmp,
         });
 
         const run_cmd = exe.run();
@@ -82,7 +92,6 @@ pub fn build(b: *Builder) void {
 }
 
 fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
-    std.debug.print("------ linking opengl ----------\n", .{});
     if (target.isDarwin()) {
         artifact.linkFramework("OpenGL");
     } else if (target.isWindows()) {
