@@ -102,12 +102,6 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     backend.setShaderProgramUniform(T, shader, name, value);
 }
 
-// rendering functions
-// void sg_apply_bindings(const sg_bindings* bindings);
-// void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
-// void sg_draw(int base_element, int num_elements, int num_instances);
-// void sg_commit(void);
-
 // setup, state
 pub fn setup(desc: RendererDesc) void {
     backend.setup(desc);

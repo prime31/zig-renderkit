@@ -9,6 +9,7 @@ pub const RendererDesc = struct {
         texture: u8 = 64,
         offscreen_pass: u8 = 8,
         buffers: u8 = 16,
+        shaders: u8 = 16,
     } = .{},
 };
 

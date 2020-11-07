@@ -11,12 +11,14 @@ var image_cache: HandledCache(GLImage) = undefined;
 var pass_cache: HandledCache(GLOffscreenPass) = undefined;
 var buffer_cache: HandledCache(GLBuffer) = undefined;
 var binding_cache: HandledCache(GLBufferBindings) = undefined;
+var shader_cache: HandledCache(GLShaderProgram) = undefined;
 
 pub fn init(desc: RendererDesc) void {
     image_cache = HandledCache(GLImage).init(desc.allocator, desc.pool_sizes.texture);
     pass_cache = HandledCache(GLOffscreenPass).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     buffer_cache = HandledCache(GLBuffer).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     binding_cache = HandledCache(GLBufferBindings).init(desc.allocator, desc.pool_sizes.offscreen_pass);
+    shader_cache = HandledCache(GLShaderProgram).init(desc.allocator, desc.pool_sizes.shaders);
 }
 
 pub fn shutdown() void {
@@ -25,6 +27,7 @@ pub fn shutdown() void {
     pass_cache.deinit();
     buffer_cache.deinit();
     binding_cache.deinit();
+    shader_cache.deinit();
 }
 
 fn checkError(src: std.builtin.SourceLocation) void {
@@ -356,7 +359,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
-pub const ShaderProgram = *GLShaderProgram;
+pub const ShaderProgram = u16;
 const GLShaderProgram = struct {
     program: GLuint,
 };
@@ -374,13 +377,12 @@ fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
 }
 
 pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
-    var shader = @ptrCast(*GLShaderProgram, @alignCast(@alignOf(*GLShaderProgram), std.c.malloc(@sizeOf(GLShaderProgram)).?));
-    shader.* = std.mem.zeroes(GLShaderProgram);
+    var shader = std.mem.zeroes(GLShaderProgram);
 
     const vertex_shader = compileShader(GL_VERTEX_SHADER, desc.vs);
     const frag_shader = compileShader(GL_FRAGMENT_SHADER, desc.fs);
 
-    if (vertex_shader == 0 and frag_shader == 0) return shader;
+    if (vertex_shader == 0 and frag_shader == 0) return 0;
 
     const id = glCreateProgram();
     glAttachShader(id, vertex_shader);
@@ -391,7 +393,7 @@ pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
 
     if (!checkProgramError(id)) {
         glDeleteProgram(id);
-        return shader;
+        return 0;
     }
 
     shader.program = id;
@@ -410,21 +412,23 @@ pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
 
     glUseProgram(@intCast(GLuint, cur_prog));
 
-    return shader;
+    return shader_cache.append(shader);
 }
 
 pub fn destroyShaderProgram(shader: ShaderProgram) void {
-    cache.invalidateProgram(shader.program);
-    glDeleteProgram(shader.program);
-    std.c.free(shader);
+    const shdr = shader_cache.free(shader);
+    cache.invalidateProgram(shdr.program);
+    glDeleteProgram(shdr.program);
 }
 
 pub fn useShaderProgram(shader: ShaderProgram) void {
-    cache.useShaderProgram(shader.program);
+    const shdr = shader_cache.get(shader);
+    cache.useShaderProgram(shdr.program);
 }
 
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
-    const location = glGetUniformLocation(shader.program, name);
+    const shdr = shader_cache.get(shader);
+    const location = glGetUniformLocation(shdr.program, name);
     if (location == -1) {
         std.debug.print("could not location uniform {}\n", .{name});
         return;
@@ -434,7 +438,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     if (std.builtin.mode == .Debug) {
         var cur_prog: GLint = 0;
         glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
-        std.debug.assert(cur_prog == shader.program);
+        std.debug.assert(cur_prog == shdr.program);
     }
 
     const ti = @typeInfo(T);
@@ -443,14 +447,14 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     // cover common cases before we go down the rabbit hold
     if (ti == .Struct and std.mem.eql(u8, type_name, "Mat32") and ti.Struct.fields.len == 1 and std.mem.eql(u8, ti.Struct.fields[0].name, "data")) {
         var data = @field(value, ti.Struct.fields[0].name);
-        glUniformMatrix3x2fv(glGetUniformLocation(shader.program, name), 1, GL_FALSE, &data);
+        glUniformMatrix3x2fv(location, 1, GL_FALSE, &data);
     } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec2")) {
         var val = @field(value, ti.Struct.fields[0].name);
         glUniform1fv(location, 2, &val);
     } else if (ti == .Int) {
         glUniform1i(location, value);
     } else if (ti == .Float) {
-        glUniform1f(glGetUniformLocation(shader.program, name), value);
+        glUniform1f(location, value);
     } else if (ti == .Array) {
         switch (@typeInfo(ti.Array.child)) {
             .Int => |type_info| {
