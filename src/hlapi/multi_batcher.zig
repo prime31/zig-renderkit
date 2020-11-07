@@ -15,8 +15,7 @@ pub const MultiVertex = extern struct {
 pub const MultiBatcher = struct {
     mesh: gfx.DynamicMesh(MultiVertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    texture: gfx.backend.ImageId = std.math.maxInt(gfx.backend.ImageId),
-    textures: [8]gfx.backend.ImageId = undefined,
+    textures: [8]gfx.backend.Image = undefined,
     last_texture: usize = 0,
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) MultiBatcher {
@@ -35,7 +34,7 @@ pub const MultiBatcher = struct {
 
         return .{
             .mesh = gfx.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
-            .textures = [_]gfx.backend.ImageId{0} ** 8,
+            .textures = [_]gfx.backend.Image{0} ** 8,
         };
     }
 
@@ -60,7 +59,7 @@ pub const MultiBatcher = struct {
         // bind textures
         for (self.textures) |tid, i| {
             if (i == self.last_texture) break;
-            gfx.bindTexture.bindTexture(tid, @intCast(c_uint, i));
+            gfx.backend.bindImage(tid, @intCast(c_uint, i));
         }
 
         // draw
@@ -70,7 +69,7 @@ pub const MultiBatcher = struct {
         // reset state
         for (self.textures) |*tid, i| {
             if (i == self.last_texture) break;
-            gfx.bindTexture.bindTexture(0, @intCast(c_uint, i));
+            gfx.backend.bindImage(0, @intCast(c_uint, i));
             tid.* = 0;
         }
 
@@ -78,10 +77,10 @@ pub const MultiBatcher = struct {
         self.last_texture = 0;
     }
 
-    inline fn submitTexture(self: *MultiBatcher, tid: gfx.backend.ImageId) f32 {
-        if (std.mem.indexOfScalar(gfx.backend.ImageId, &self.textures, tid)) |index| return @intToFloat(f32, index);
+    inline fn submitTexture(self: *MultiBatcher, img: gfx.backend.Image) f32 {
+        if (std.mem.indexOfScalar(gfx.backend.Image, &self.textures, img)) |index| return @intToFloat(f32, index);
 
-        self.textures[self.last_texture] = tid;
+        self.textures[self.last_texture] = img;
         self.last_texture += 1;
         return @intToFloat(f32, self.last_texture - 1);
     }
@@ -91,7 +90,7 @@ pub const MultiBatcher = struct {
             self.flush();
         }
 
-        const tid = self.submitTexture(texture.img.tid);
+        const tid = self.submitTexture(texture.img);
 
         var verts = self.mesh.verts[self.vert_index .. self.vert_index + 4];
         verts[0].pos = pos; // bl

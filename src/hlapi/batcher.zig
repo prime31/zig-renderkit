@@ -9,7 +9,7 @@ const Vertex = gfx.Vertex;
 pub const Batcher = struct {
     mesh: gfx.DynamicMesh(Vertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    texture: gfx.backend.ImageId = std.math.maxInt(gfx.backend.ImageId),
+    current_image: gfx.backend.Image = std.math.maxInt(gfx.backend.Image),
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) Batcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
@@ -50,7 +50,7 @@ pub const Batcher = struct {
         self.mesh.updateVertSlice(0, self.vert_index);
 
         // bind textures
-        gfx.bindTexture(self.texture, 0);
+        gfx.bindImage(self.current_image, 0);
 
         // draw
         const quads = self.vert_index / 4;
@@ -61,11 +61,11 @@ pub const Batcher = struct {
     }
 
     pub fn drawPoint(self: *Batcher, texture: gfx.Texture, pos: math.Vec2, size: f32, col: u32) void {
-        if (self.vert_index >= self.mesh.verts.len or self.texture != texture.img.tid) {
+        if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
 
-        self.texture = texture.img.tid;
+        self.current_image = texture.img;
         const offset = if (size == 1) 0 else size * 0.5;
         const tl: math.Vec2 = .{ .x = pos.x - offset, .y = pos.y - offset };
 
@@ -90,11 +90,11 @@ pub const Batcher = struct {
     }
 
     pub fn drawRect(self: *Batcher, texture: gfx.Texture, pos: math.Vec2, size: math.Vec2) void {
-        if (self.vert_index >= self.mesh.verts.len or self.texture != texture.img.tid) {
+        if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
 
-        self.texture = texture.img.tid;
+        self.current_image = texture.img;
 
         var verts = self.mesh.verts[self.vert_index .. self.vert_index + 4];
         verts[0].pos = pos; // bl
@@ -117,11 +117,11 @@ pub const Batcher = struct {
     }
 
     pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: gfx.Texture) void {
-        if (self.vert_index >= self.mesh.verts.len or self.texture != texture.img.tid) {
+        if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
 
-        self.texture = texture.img.tid;
+        self.current_image = texture.img;
 
         var verts = self.mesh.verts[self.vert_index .. self.vert_index + 4];
         verts[0].pos = pos; // bl

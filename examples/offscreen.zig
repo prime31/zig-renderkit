@@ -7,8 +7,6 @@ const math = gfx.math;
 var rng = std.rand.DefaultPrng.init(0x12345678);
 pub const imgui = true;
 
-const total_objects = 8;
-
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {
         return rng.random.intRangeLessThanBiased(T, at_least, less_than);
@@ -68,7 +66,7 @@ fn render() !void {
     var white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
     defer white_tex.deinit();
 
-    var things = makeThings(total_objects, texture);
+    var things = makeThings(12, texture);
     defer std.testing.allocator.free(things);
 
     shader.bind();

@@ -44,11 +44,10 @@ fn render() !void {
     while (!aya.pollEvents()) {
         gfx.clear(.{});
 
-        // shader.bind();
-        gfx.bindTexture(tex.img.tid, 0);
+        gfx.bindImage(tex.img, 0);
         mesh.draw();
 
-        gfx.bindTexture(red_tex.img.tid, 0);
+        gfx.bindImage(red_tex.img, 0);
         dyn_mesh.drawAllVerts();
 
         aya.swapWindow();

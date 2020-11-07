@@ -33,6 +33,10 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
+pub fn bindImage(tid: backend.Image, slot: c_uint) void {
+    backend.bindImage(tid, slot);
+}
+
 // passes
 pub const OffscreenPass = backend.OffscreenPass;
 
@@ -99,10 +103,6 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     backend.setShaderProgramUniform(T, shader, name, value);
 }
 
-pub fn bindTexture(tid: c_uint, slot: c_uint) void {
-    backend.bindTexture(tid, slot);
-}
-
 // rendering functions
 // void sg_apply_bindings(const sg_bindings* bindings);
 // void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
@@ -112,6 +112,7 @@ pub fn bindTexture(tid: c_uint, slot: c_uint) void {
 // setup, state
 pub fn setup(desc: RendererDesc) void {
     backend.setup(desc);
+    backend.init(desc);
     backend.setRenderState(.{});
 }
 

@@ -51,7 +51,7 @@ pub const TriangleBatcher = struct {
         if (self.vert_index == 0) return;
 
         self.mesh.updateVertSlice(0, self.vert_index);
-        gfx.bindTexture(self.white_tex.img.tid, 0);
+        gfx.bindImage(self.white_tex.img, 0);
 
         // draw
         const tris = self.vert_index / 3;

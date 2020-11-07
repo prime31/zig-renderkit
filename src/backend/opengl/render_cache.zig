@@ -66,7 +66,7 @@ pub const RenderCache = struct {
         }
     }
 
-    pub fn bindTexture(self: *@This(), tid: c_uint, slot: c_uint) void {
+    pub fn bindImage(self: *@This(), tid: c_uint, slot: c_uint) void {
         if (self.textures[slot] != tid) {
             self.textures[slot] = tid;
             glActiveTexture(GL_TEXTURE0 + slot);

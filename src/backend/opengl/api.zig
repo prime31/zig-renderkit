@@ -2,6 +2,13 @@ const std = @import("std");
 usingnamespace @import("gl_decls.zig");
 usingnamespace @import("../descriptions.zig");
 usingnamespace @import("../types.zig");
+const HandledCache = @import("../handles.zig").HandledCache;
+
+var image_cache: HandledCache(GLImage) = undefined;
+
+pub fn init(desc: RendererDesc) void {
+    image_cache = HandledCache(GLImage).init(desc.allocator, desc.max_textures);
+}
 
 const RenderCache = @import("render_cache.zig").RenderCache;
 var cache = RenderCache.init();
@@ -61,10 +68,9 @@ fn checkProgramError(shader: GLuint) bool {
     return true;
 }
 
-pub const ImageId = GLuint;
-pub const Image = *GLImage;
+pub const Image = u16;
 pub const GLImage = struct {
-    tid: ImageId,
+    tid: GLuint,
     width: i32,
     height: i32,
     depth: bool,
@@ -72,8 +78,7 @@ pub const GLImage = struct {
 };
 
 pub fn createImage(desc: ImageDesc) Image {
-    var img = @ptrCast(*GLImage, @alignCast(@alignOf(*GLImage), std.c.malloc(@sizeOf(GLImage)).?));
-    img.* = std.mem.zeroes(GLImage);
+    var img = std.mem.zeroes(GLImage);
     img.width = desc.width;
     img.height = desc.height;
 
@@ -113,20 +118,26 @@ pub fn createImage(desc: ImageDesc) Image {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    return img;
+    return image_cache.append(img);
 }
 
 pub fn destroyImage(image: Image) void {
-    cache.invalidateTexture(image.tid);
-    glDeleteTextures(1, &image.tid);
-    std.c.free(image);
+    var img = image_cache.free(image);
+    cache.invalidateTexture(img.tid);
+    glDeleteTextures(1, &img.tid);
 }
 
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     std.debug.assert(@sizeOf(T) == image.width * image.height);
-    glBindTexture(GL_TEXTURE_2D, image.tid);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content.ptr);
+    var img = image_cache.get(image);
+    glBindTexture(GL_TEXTURE_2D, img.tid);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content.ptr);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+pub fn bindImage(image: Image, slot: c_uint) void {
+    const img = image_cache.get(image);
+    cache.bindImage(img.tid, slot);
 }
 
 pub const OffscreenPass = *GLOffscreenPass;
@@ -152,15 +163,18 @@ pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
     defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // bind depth-stencil
-    if (desc.depth_stencil_img) |depth_stencil| {
+    if (desc.depth_stencil_img) |depth_stencil_handle| {
+        const depth_stencil = image_cache.get(depth_stencil_handle);
         if (depth_stencil.depth) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_stencil.tid);
         if (depth_stencil.stencil) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depth_stencil.tid);
+        pass.depth_stencil_img = depth_stencil_handle;
     }
 
-    // Set color_img as our colour attachement #0
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, desc.color_img.tid, 0);
+    // Set color_img as our color attachement #0
+    const color_img = image_cache.get(desc.color_img);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_img.tid, 0);
 
-    // Set the list of draw buffers.
+    // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT };
     glDrawBuffers(1, &draw_buffers);
 
@@ -171,13 +185,17 @@ pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
 
 pub fn destroyOffscreenPass(pass: OffscreenPass) void {
     glDeleteFramebuffers(1, &pass.framebuffer_tid);
-    if (pass.depth_stencil_img != null) glDeleteRenderbuffers(1, &pass.depth_stencil_img.?.tid);
+    if (pass.depth_stencil_img) |depth_stencil_handle| {
+        var depth_stencil = image_cache.get(depth_stencil_handle);
+        glDeleteRenderbuffers(1, &depth_stencil.tid);
+    }
     std.c.free(pass);
 }
 
 pub fn beginOffscreenPass(pass: OffscreenPass) void {
+    var img = image_cache.get(pass.color_img);
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer_tid);
-    glViewport(0, 0, pass.color_img.width, pass.color_img.height);
+    glViewport(0, 0, img.width, img.height);
 }
 
 pub fn endOffscreenPass(pass: OffscreenPass) void {
@@ -472,8 +490,4 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     } else {
         unreachable;
     }
-}
-
-pub fn bindTexture(tid: c_uint, slot: c_uint) void {
-    cache.bindTexture(tid, slot);
 }
