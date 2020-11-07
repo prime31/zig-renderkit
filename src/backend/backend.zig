@@ -32,7 +32,7 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
-pub fn bindImage(tid: backend.Image, slot: c_uint) void {
+pub fn bindImage(tid: Image, slot: c_uint) void {
     backend.bindImage(tid, slot);
 }
 
@@ -55,9 +55,8 @@ pub fn endOffscreenPass(pass: OffscreenPass) void {
     backend.endOffscreenPass(pass);
 }
 
-// buffers and Bindings
+// buffers
 pub const Buffer = backend.Buffer;
-pub const BufferBindings = backend.BufferBindings;
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
     return backend.createBuffer(T, desc);
@@ -66,6 +65,13 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
 pub fn destroyBuffer(buffer: Buffer) void {
     backend.destroyBuffer(buffer);
 }
+
+pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
+    backend.updateBuffer(T, buffer, verts);
+}
+
+// buffer bindings
+pub const BufferBindings = backend.BufferBindings;
 
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
     return backend.createBufferBindings(index_buffer, vert_buffer);
@@ -77,10 +83,6 @@ pub fn destroyBufferBindings(bindings: BufferBindings) void {
 
 pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {
     return backend.drawBufferBindings(bindings, element_count);
-}
-
-pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
-    backend.updateBuffer(T, buffer, verts);
 }
 
 // shaders
@@ -107,6 +109,10 @@ pub fn setup(desc: RendererDesc) void {
     backend.setup(desc);
     backend.init(desc);
     backend.setRenderState(.{});
+}
+
+pub fn shutdown() void {
+    backend.shutdown();
 }
 
 pub fn setRenderState(state: gfx_types.RenderState) void {

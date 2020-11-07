@@ -1,4 +1,4 @@
-// TODO: instead of exposing all of backing only expose the render state functions (clear, scissor, etc)
+// TODO: instead of exposing all of backend only expose the render state functions (clear, scissor, etc) and types
 pub usingnamespace @import("backend");
 pub usingnamespace @import("backend").gfx_types;
 

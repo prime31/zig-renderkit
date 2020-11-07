@@ -2,12 +2,19 @@ const builtin = @import("builtin");
 const std = @import("std");
 const Builder = std.build.Builder;
 
-pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
     exe.linkLibC();
     exe.addIncludeDir("src/deps/stb/src");
 
     const lib_cflags = &[_][]const u8{"-std=c99"};
-    exe.addCSourceFile("src/deps/stb/src/stb_impl.c", lib_cflags);
+    exe.addCSourceFile(prefix_path ++ "src/deps/stb/src/stb_impl.c", lib_cflags);
 
-    exe.addPackagePath("stb", "src/deps/stb/stb.zig");
+    exe.addPackage(getPackage(prefix_path));
+}
+
+pub fn getPackage(comptime prefix_path: []const u8) std.build.Pkg {
+    return .{
+        .name = "stb",
+        .path = prefix_path ++ "src/deps/stb/stb.zig",
+    };
 }

@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("../../gfx.zig");
+const gfx = @import("../types.zig");
 usingnamespace @import("gl_decls.zig");
 
 usingnamespace @import("api.zig");

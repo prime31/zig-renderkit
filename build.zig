@@ -2,13 +2,31 @@ const std = @import("std");
 const Builder = @import("std").build.Builder;
 const Renderer = @import("src/backend/backend.zig").Renderer;
 
-/// rel_path is the path to the gfx build.zig file relative to your build.zig.
-/// rel_path is used to add package paths. It should be the the same path used to include this build file
-pub fn linkArtifact(b: *Builder, artifact: *std.build.LibExeObjStep, target: std.build.Target, comptime rel_path: []const u8) void {
-    artifact.addPackagePath("gfx", rel_path ++ "src/gfx.zig");
+/// prefix_path is the path to the gfx build.zig file relative to your build.zig.
+/// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
+pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    // stb
+    @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
+    const stb_pkg = @import("src/deps/stb/build.zig").getPackage(prefix_path);
+
+    // backend package, LLAPI
+    const backend_pkg = std.build.Pkg{
+        .name = "backend",
+        .path = prefix_path ++ "src/backend/backend.zig",
+        .dependencies = &[_]std.build.Pkg{stb_pkg},
+    };
+    exe.addPackage(backend_pkg);
+
+    // gfx package, HLAPI. gets access to stb and backend
+    exe.addPackage(.{
+        .name = "gfx",
+        .path = prefix_path ++ "src/gfx.zig",
+        .dependencies = &[_]std.build.Pkg{ stb_pkg, backend_pkg },
+    });
 }
 
 pub fn build(b: *Builder) !void {
+    const prefix_path = "";
     const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
 
     const target = b.standardTargetOptions(.{});
@@ -29,66 +47,44 @@ pub fn build(b: *Builder) !void {
         const name = example[0];
         const source = example[1];
 
-        var exe = b.addExecutable(name, source);
-        exe.setBuildMode(b.standardReleaseOptions());
-        exe.setOutputDir("zig-cache/bin");
-        exe.addBuildOption(Renderer, "renderer", renderer);
+        var exe = createExe(b, target, name, source, prefix_path);
         examples_step.dependOn(&exe.step);
-
-        if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
-
-        // TODO: why dont we need to link OpenGL?
-        // if (renderer == .opengl) addOpenGlToArtifact(exe, target);
-
-        // stb package
-        @import("src/deps/stb/build.zig").linkArtifact(b, exe, target);
-
-        // backend package. this can probably just go straight to the actual opengl/backend.zig file
-        exe.addPackage(.{
-            .name = "backend",
-            .path = "src/backend/backend.zig",
-            .dependencies = exe.packages.items, // includes just stb
-        });
-
-        // gfx gets access to stb and backend
-        exe.addPackage(.{
-            .name = "gfx",
-            .path = "src/gfx.zig",
-            .dependencies = exe.packages.items,
-        });
-
-        // sdl package
-        @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
-
-        // imgui
-        @import("src/deps/imgui/build.zig").linkArtifact(b, exe, target);
-
-        // aya gets access to everything + build_options
-        const build_pkg = std.build.Pkg{
-            .name = "build_options",
-            .path = try std.fmt.allocPrint(b.allocator, "zig-cache/{}_build_options.zig", .{name}),
-        };
-
-        var tmp = try b.allocator.alloc(std.build.Pkg, exe.packages.items.len + 1);
-        std.mem.copy(std.build.Pkg, tmp, exe.packages.items);
-        tmp[exe.packages.items.len] = build_pkg;
-
-        exe.addPackage(.{
-            .name = "aya",
-            .path = "examples/core/aya.zig",
-            .dependencies = tmp,
-        });
-
-        const run_cmd = exe.run();
-        const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));
-        exe_step.dependOn(&run_cmd.step);
 
         // first element in the list is added as "run" so "zig build run" works
         if (i == 0) {
-            const run_exe_step = b.step("run", b.fmt("run {}.zig", .{name}));
-            run_exe_step.dependOn(&run_cmd.step);
+            _ = createExe(b, target, "run", source, prefix_path);
         }
     }
+}
+
+fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []const u8, comptime prefix_path: []const u8) *std.build.LibExeObjStep {
+    var exe = b.addExecutable(name, source);
+    exe.setBuildMode(b.standardReleaseOptions());
+    exe.setOutputDir("zig-cache/bin");
+
+    if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
+
+    // TODO: why dont we need to link OpenGL?
+    linkArtifact(b, exe, target, prefix_path);
+
+    // sdl package
+    @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
+
+    // imgui
+    @import("src/deps/imgui/build.zig").linkArtifact(b, exe, target);
+
+    // aya gets access to everything
+    exe.addPackage(.{
+        .name = "aya",
+        .path = "examples/core/aya.zig",
+        .dependencies = exe.packages.items,
+    });
+
+    const run_cmd = exe.run();
+    const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));
+    exe_step.dependOn(&run_cmd.step);
+
+    return exe;
 }
 
 fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {

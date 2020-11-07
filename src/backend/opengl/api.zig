@@ -228,13 +228,6 @@ const GLBuffer = struct {
     setVertexAttributes: ?fn () void,
 };
 
-pub const BufferBindings = u16;
-const GLBufferBindings = struct {
-    vao: GLuint,
-    index_buffer: Buffer,
-    vert_buffer: Buffer,
-};
-
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
     var buffer = std.mem.zeroes(GLBuffer);
     buffer.stream = desc.usage == .stream;
@@ -310,6 +303,23 @@ pub fn destroyBuffer(buffer: Buffer) void {
     glDeleteBuffers(1, &buff.vbo);
 }
 
+pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
+    const buff = buffer_cache.get(buffer);
+    cache.bindBuffer(GL_ARRAY_BUFFER, buff.vbo);
+
+    // orphan the buffer for streamed
+    if (buff.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
+}
+
+
+pub const BufferBindings = u16;
+const GLBufferBindings = struct {
+    vao: GLuint,
+    index_buffer: Buffer,
+    vert_buffer: Buffer,
+};
+
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
     const ibuffer = buffer_cache.get(index_buffer);
     const vbuffer = buffer_cache.get(vert_buffer);
@@ -348,15 +358,6 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, element_count: c_int)
 
     cache.bindVertexArray(bindings.vao);
     glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, null);
-}
-
-pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
-    const buff = buffer_cache.get(buffer);
-    cache.bindBuffer(GL_ARRAY_BUFFER, buff.vbo);
-
-    // orphan the buffer for streamed
-    if (buff.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
 pub const ShaderProgram = u16;
