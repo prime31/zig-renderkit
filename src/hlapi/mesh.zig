@@ -1,6 +1,6 @@
 const std = @import("std");
 const backend = @import("backend");
-const gfx = @import("gfx.zig");
+const gfx = @import("../gfx.zig");
 const math = aya.math;
 
 pub const Mesh = struct {

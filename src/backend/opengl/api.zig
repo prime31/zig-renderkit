@@ -197,10 +197,6 @@ pub const GLBufferBindings = struct {
     vao: GLuint,
     index_buffer: Buffer,
     vert_buffer: Buffer,
-
-    pub fn bindTexture(self: GLBufferBindings, tid: c_uint, slot: c_uint) void {
-        cache.bindTexture(tid, slot);
-    }
 };
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
@@ -393,6 +389,13 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
         return;
     }
 
+    // in debug builds ensure the shader we are setting the uniform on is bound
+    if (std.builtin.mode == .Debug) {
+        var cur_prog: GLint = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
+        std.debug.assert(cur_prog == shader.program);
+    }
+
     const ti = @typeInfo(T);
     const type_name = @typeName(T);
 
@@ -469,4 +472,8 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     } else {
         unreachable;
     }
+}
+
+pub fn bindTexture(tid: c_uint, slot: c_uint) void {
+    cache.bindTexture(tid, slot);
 }

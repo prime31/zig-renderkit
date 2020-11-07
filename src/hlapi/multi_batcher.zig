@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("gfx.zig");
+const gfx = @import("../gfx.zig");
 const math = gfx.math;
 
 const IndexBuffer = gfx.IndexBuffer;
@@ -60,7 +60,7 @@ pub const MultiBatcher = struct {
         // bind textures
         for (self.textures) |tid, i| {
             if (i == self.last_texture) break;
-            self.mesh.bindings.bindTexture(tid, @intCast(c_uint, i));
+            gfx.bindTexture.bindTexture(tid, @intCast(c_uint, i));
         }
 
         // draw
@@ -70,7 +70,7 @@ pub const MultiBatcher = struct {
         // reset state
         for (self.textures) |*tid, i| {
             if (i == self.last_texture) break;
-            self.mesh.bindings.bindTexture(0, @intCast(c_uint, i));
+            gfx.bindTexture.bindTexture(0, @intCast(c_uint, i));
             tid.* = 0;
         }
 

@@ -33,7 +33,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
-
 // passes
 pub const OffscreenPass = backend.OffscreenPass;
 
@@ -53,8 +52,7 @@ pub fn endOffscreenPass(pass: OffscreenPass) void {
     backend.endOffscreenPass(pass);
 }
 
-
-// buffers
+// buffers and Bindings
 pub const Buffer = backend.Buffer;
 pub const Bindings = backend.Bindings;
 
@@ -82,7 +80,6 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
-
 // shaders
 pub const ShaderProgram = backend.ShaderProgram;
 
@@ -102,15 +99,17 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     backend.setShaderProgramUniform(T, shader, name, value);
 }
 
+pub fn bindTexture(tid: c_uint, slot: c_uint) void {
+    backend.bindTexture(tid, slot);
+}
+
 // rendering functions
 // void sg_apply_bindings(const sg_bindings* bindings);
 // void sg_apply_uniforms(sg_shader_stage stage, int ub_index, const void* data, int num_bytes);
 // void sg_draw(int base_element, int num_elements, int num_instances);
 // void sg_commit(void);
 
-
-
-// the backend must provide all of the following types/funcs
+// setup, state
 pub fn setup(desc: RendererDesc) void {
     backend.setup(desc);
     backend.setRenderState(.{});

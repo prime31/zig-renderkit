@@ -45,10 +45,10 @@ fn render() !void {
         gfx.clear(.{});
 
         // shader.bind();
-        mesh.bindings.bindTexture(tex.img.tid, 0);
+        gfx.bindTexture(tex.img.tid, 0);
         mesh.draw();
 
-        mesh.bindings.bindTexture(red_tex.img.tid, 0);
+        gfx.bindTexture(red_tex.img.tid, 0);
         dyn_mesh.drawAllVerts();
 
         aya.swapWindow();

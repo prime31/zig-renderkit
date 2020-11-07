@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("gfx.zig");
+const gfx = @import("../gfx.zig");
 const math = gfx.math;
 
 const IndexBuffer = gfx.IndexBuffer;
@@ -50,7 +50,7 @@ pub const Batcher = struct {
         self.mesh.updateVertSlice(0, self.vert_index);
 
         // bind textures
-        self.mesh.bindings.bindTexture(self.texture, 0);
+        gfx.bindTexture(self.texture, 0);
 
         // draw
         const quads = self.vert_index / 4;

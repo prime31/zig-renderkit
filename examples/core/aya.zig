@@ -39,7 +39,10 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     gl_ctx = sdl.SDL_GL_CreateContext(window);
     defer sdl.SDL_GL_DeleteContext(gl_ctx);
 
-    gfx.setup(.{ .gl_loader = sdl.SDL_GL_GetProcAddress });
+    gfx.setup(.{
+        .allocator = std.testing.allocator,
+        .gl_loader = sdl.SDL_GL_GetProcAddress,
+    });
 
     if (has_imgui) {
         _ = imgui.igCreateContext(null);

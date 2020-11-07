@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("gfx.zig");
+const gfx = @import("../gfx.zig");
 const math = gfx.math;
 
 const Vertex = gfx.Vertex;
@@ -51,7 +51,7 @@ pub const TriangleBatcher = struct {
         if (self.vert_index == 0) return;
 
         self.mesh.updateVertSlice(0, self.vert_index);
-        self.mesh.bindings.bindTexture(self.white_tex.img.tid, 0);
+        gfx.bindTexture(self.white_tex.img.tid, 0);
 
         // draw
         const tris = self.vert_index / 3;
