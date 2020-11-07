@@ -5,6 +5,7 @@ const gfx = @import("gfx");
 const math = gfx.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
+pub const imgui = true;
 
 const total_objects = 8;
 

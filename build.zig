@@ -59,6 +59,9 @@ pub fn build(b: *Builder) void {
         // sdl package
         @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
 
+        // imgui
+        @import("src/deps/imgui/build.zig").linkArtifact(b, exe, target);
+
         // aya gets access to everything
         exe.addPackage(.{
             .name = "aya",
