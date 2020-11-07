@@ -38,11 +38,12 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         const Self = @This();
 
         bindings: backend.BufferBindings,
+        vertex_buffer: backend.Buffer,
         verts: []VertT,
         allocator: *std.mem.Allocator,
 
         pub fn init(allocator: *std.mem.Allocator, vertex_count: usize, indices: []IndexT) !Self {
-            var vbuffer = backend.createBuffer(VertT, .{
+            var vertex_buffer = backend.createBuffer(VertT, .{
                 .usage = .stream,
                 .size = @intCast(c_long, vertex_count * @sizeOf(VertT)),
             });
@@ -50,29 +51,31 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
                 .type = .index,
                 .content = indices,
             });
-            var bindings = backend.createBufferBindings(ibuffer, vbuffer);
+            var bindings = backend.createBufferBindings(ibuffer, vertex_buffer);
 
             return Self{
                 .bindings = bindings,
+                .vertex_buffer = vertex_buffer,
                 .verts = try allocator.alloc(VertT, vertex_count),
                 .allocator = allocator,
             };
         }
 
         pub fn deinit(self: *Self) void {
+            // vertex_buffer is owned by BufferBindings so we dont deinit it here
             backend.destroyBufferBindings(self.bindings);
             self.allocator.free(self.verts);
         }
 
         pub fn updateAllVerts(self: *Self) void {
-            backend.updateBuffer(VertT, self.bindings.vert_buffer, self.verts);
+            backend.updateBuffer(VertT, self.vertex_buffer, self.verts);
         }
 
         /// uploads to the GPU the slice from start_index with num_verts
         pub fn updateVertSlice(self: *Self, start_index: usize, num_verts: usize) void {
             std.debug.assert(start_index + num_verts <= self.verts.len);
             const vert_slice = self.verts[start_index .. start_index + num_verts];
-            backend.updateBuffer(VertT, self.bindings.vert_buffer, vert_slice);
+            backend.updateBuffer(VertT, self.vertex_buffer, vert_slice);
         }
 
         pub fn draw(self: Self, element_count: c_int) void {

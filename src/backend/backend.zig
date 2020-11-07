@@ -17,7 +17,6 @@ pub const Renderer = enum {
 pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // textures
-pub const ImageId = backend.ImageId;
 pub const Image = backend.Image;
 
 pub fn createImage(desc: ImageDesc) Image {

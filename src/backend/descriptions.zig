@@ -5,8 +5,11 @@ const backend = @import("backend.zig");
 pub const RendererDesc = struct {
     allocator: *std.mem.Allocator,
     gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
-    max_textures: u8 = 64,
-    max_offscreen_passes: u8 = 8,
+    pool_sizes: struct {
+        texture: u8 = 64,
+        offscreen_pass: u8 = 8,
+        buffers: u8 = 16,
+    } = .{},
 };
 
 pub const ImageDesc = struct {
