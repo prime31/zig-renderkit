@@ -2,42 +2,6 @@ const std = @import("std");
 const Builder = @import("std").build.Builder;
 const Renderer = @import("src/backend/backend.zig").Renderer;
 
-/// prefix_path is the path to the gfx build.zig file relative to your build.zig.
-/// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
-pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
-    // stb
-    @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
-    const stb_pkg = @import("src/deps/stb/build.zig").getPackage(prefix_path);
-
-    // backend package, LLAPI
-    const backend_pkg = std.build.Pkg{
-        .name = "backend",
-        .path = prefix_path ++ "src/backend/backend.zig",
-        .dependencies = &[_]std.build.Pkg{stb_pkg},
-    };
-    exe.addPackage(backend_pkg);
-
-    // gfx package, HLAPI. gets access to stb and backend
-    exe.addPackage(.{
-        .name = "gfx",
-        .path = prefix_path ++ "src/gfx.zig",
-        .dependencies = &[_]std.build.Pkg{ stb_pkg, backend_pkg },
-    });
-}
-
-fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
-    if (target.isDarwin()) {
-        artifact.linkFramework("OpenGL");
-    } else if (target.isWindows()) {
-        artifact.linkSystemLibrary("kernel32");
-        artifact.linkSystemLibrary("user32");
-        artifact.linkSystemLibrary("shell32");
-        artifact.linkSystemLibrary("gdi32");
-    } else if (target.isLinux()) {
-        artifact.linkSystemLibrary("GL");
-    }
-}
-
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
     const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
@@ -46,10 +10,11 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
-        [_][]const u8{ "batcher", "examples/batcher.zig" },
-        [_][]const u8{ "meshes", "examples/meshes.zig" },
+        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        // [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
+        // [_][]const u8{ "batcher", "examples/batcher.zig" },
+        // [_][]const u8{ "meshes", "examples/meshes.zig" },
+        // [_][]const u8{ "clear_imgui", "examples/clear_imgui.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
     };
 
@@ -101,4 +66,40 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     exe_step.dependOn(&run_cmd.step);
 
     return exe;
+}
+
+/// prefix_path is the path to the gfx build.zig file relative to your build.zig.
+/// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
+pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    // stb
+    @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
+    const stb_pkg = @import("src/deps/stb/build.zig").getPackage(prefix_path);
+
+    // backend package, LLAPI
+    const backend_pkg = std.build.Pkg{
+        .name = "backend",
+        .path = prefix_path ++ "src/backend/backend.zig",
+        .dependencies = &[_]std.build.Pkg{stb_pkg},
+    };
+    exe.addPackage(backend_pkg);
+
+    // gfx package, HLAPI. gets access to stb and backend
+    exe.addPackage(.{
+        .name = "gfx",
+        .path = prefix_path ++ "src/gfx.zig",
+        .dependencies = &[_]std.build.Pkg{ stb_pkg, backend_pkg },
+    });
+}
+
+fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
+    if (target.isDarwin()) {
+        artifact.linkFramework("OpenGL");
+    } else if (target.isWindows()) {
+        artifact.linkSystemLibrary("kernel32");
+        artifact.linkSystemLibrary("user32");
+        artifact.linkSystemLibrary("shell32");
+        artifact.linkSystemLibrary("gdi32");
+    } else if (target.isLinux()) {
+        artifact.linkSystemLibrary("GL");
+    }
 }
