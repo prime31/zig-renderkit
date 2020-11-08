@@ -41,7 +41,7 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     exe.addIncludeDir("src/deps/imgui/cimgui/imgui");
     exe.addIncludeDir("src/deps/imgui/cimgui/imgui/examples");
 
-    const cpp_args = [_][]const u8{"-Wno-return-type-c-linkage", "-DIMGUI_IMPL_API=extern \"C\""};
+    const cpp_args = [_][]const u8{ "-Wno-return-type-c-linkage", "-DIMGUI_IMPL_API=extern \"C\"", "-DIMGUI_IMPL_OPENGL_LOADER_GL3W" };
     exe.addCSourceFile("src/deps/imgui/cimgui/imgui/imgui.cpp", &cpp_args);
     exe.addCSourceFile("src/deps/imgui/cimgui/imgui/imgui_demo.cpp", &cpp_args);
     exe.addCSourceFile("src/deps/imgui/cimgui/imgui/imgui_draw.cpp", &cpp_args);
@@ -50,12 +50,41 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     exe.addCSourceFile("src/deps/imgui/temporary_hacks.cpp", &cpp_args);
 
     // OpenGL/SDL imgui implementation
-    exe.addIncludeDir("src/deps/imgui/cimgui/imgui/examples/libs/gl3w");
-    exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/libs/gl3w/GL/gl3w.c", &cpp_args);
+    // TODO: why doesnt gl3w/imgui_impl_opengl3 compile correctly?
+    const build_impl_type: enum { exe, static_lib, object_files } = .static_lib;
+    if (build_impl_type == .static_lib) {
+        const lib = b.addStaticLibrary("gl3w", null);
+        lib.setBuildMode(b.standardReleaseOptions());
+        lib.setTarget(target);
 
-    // exe.addIncludeDir("/usr/local/include/SDL2");
-    exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_opengl3.cpp", &cpp_args);
-    exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_sdl.cpp", &cpp_args);
+        // wtf?
+        const frameworks_dir = macosFrameworksDir(b) catch unreachable;
+        const x11_include_dir = std.mem.concat(b.allocator, u8, &[_][]const u8{ frameworks_dir, "/Tk.framework/Headers" }) catch unreachable;
+        lib.addIncludeDir(x11_include_dir);
+        lib.addIncludeDir("src/deps/imgui/cimgui/imgui");
+        lib.addIncludeDir("src/deps/imgui/cimgui/imgui/examples/libs/gl3w");
+        lib.addIncludeDir("/usr/local/include/SDL2");
+
+        lib.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/libs/gl3w/GL/gl3w.c", &cpp_args);
+        lib.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_opengl3.cpp", &cpp_args);
+        lib.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_sdl.cpp", &cpp_args);
+        lib.install();
+        exe.linkLibrary(lib);
+    } else if (build_impl_type == .object_files) {
+        // use make to build the object files then include them
+        _ = b.exec(&[_][]const u8{ "make", "-C", "src/deps/imgui" }) catch unreachable;
+        exe.addObjectFile("src/deps/imgui/build/gl3w.o");
+        exe.addObjectFile("src/deps/imgui/build/imgui_impl_opengl3.o");
+        exe.addObjectFile("src/deps/imgui/build/imgui_impl_sdl.o");
+        exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_sdl.cpp", &cpp_args);
+    } else if (build_impl_type == .exe) {
+        exe.addIncludeDir("src/deps/imgui/cimgui/imgui/examples/libs/gl3w");
+        exe.addIncludeDir("/usr/local/include/SDL2");
+
+        exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/libs/gl3w/GL/gl3w.c", &cpp_args);
+        exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_opengl3.cpp", &cpp_args);
+        exe.addCSourceFile("src/deps/imgui/cimgui/imgui/examples/imgui_impl_sdl.cpp", &cpp_args);
+    }
 }
 
 // helper function to get SDK path on Mac
@@ -65,6 +94,5 @@ fn macosFrameworksDir(b: *Builder) ![]u8 {
     if (strip_newline) |index| {
         str = str[0..index];
     }
-    const frameworks_dir = try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
-    return frameworks_dir;
+    return try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
 }
