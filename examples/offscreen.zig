@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("aya");
+pub const aya = @import("aya");
 const ig = @import("imgui");
 const gfx = @import("gfx");
 const math = gfx.math;
@@ -101,7 +101,8 @@ fn render() !void {
             thing.pos.y += thing.vel.y * 0.016;
         }
 
-        gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
+        const size = aya.getRenderableSize();
+        gfx.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
 
         // render
         batcher.begin();
@@ -123,6 +124,7 @@ fn render() !void {
 
         batcher.end();
 
+        gfx.endPass();
         aya.swapWindow();
     }
 }

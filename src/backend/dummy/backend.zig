@@ -22,8 +22,10 @@ pub fn bindImage(tid: Image, slot: c_uint) void {}
 pub const OffscreenPass = u2;
 pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass { return 0; }
 pub fn destroyOffscreenPass(pass: OffscreenPass) void {}
+pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {}
 pub fn beginOffscreenPass(pass: OffscreenPass) void {}
-pub fn endOffscreenPass(pass: OffscreenPass) void {}
+pub fn endPass() void {}
+pub fn commitFrame() void {}
 
 // buffers
 pub const Buffer = u2;

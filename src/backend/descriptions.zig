@@ -2,15 +2,22 @@ const std = @import("std");
 const gfx = @import("types.zig");
 const backend = @import("backend.zig");
 
-pub const RendererDesc = struct {
-    allocator: *std.mem.Allocator,
-    gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
-    pool_sizes: struct {
+pub const MetalSetup = extern struct {
+    ca_layer: ?*const c_void = null,
+};
+
+pub const RendererDesc = extern struct {
+    const PoolSizes = extern struct {
         texture: u8 = 64,
         offscreen_pass: u8 = 8,
         buffers: u8 = 16,
         shaders: u8 = 16,
-    } = .{},
+    };
+
+    allocator: *std.mem.Allocator,
+    gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
+    pool_sizes: PoolSizes = .{},
+    metal: MetalSetup = .{},
 };
 
 pub const ImageDesc = struct {

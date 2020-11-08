@@ -13,8 +13,8 @@ pub const Renderer = enum {
     vulkan,
 };
 
-// pub const backend = @import(@tagName(aya.renderer) ++ "/backend.zig"); // zls cant auto-complete these
-pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
+pub const backend = @import(@tagName(@import("root").aya.renderer) ++ "/backend.zig"); // zls cant auto-complete these
+// pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // textures
 pub const Image = backend.Image;
@@ -47,12 +47,20 @@ pub fn destroyOffscreenPass(pass: OffscreenPass) void {
     backend.destroyOffscreenPass(pass);
 }
 
+pub fn beginDefaultPass(action: gfx_types.ClearCommand, width: c_int, height: c_int) void {
+    backend.beginDefaultPass(action, width, height);
+}
+
 pub fn beginOffscreenPass(pass: OffscreenPass) void {
     backend.beginOffscreenPass(pass);
 }
 
-pub fn endOffscreenPass(pass: OffscreenPass) void {
-    backend.endOffscreenPass(pass);
+pub fn endPass() void {
+    backend.endPass();
+}
+
+pub fn commitFrame() void {
+    backend.commitFrame();
 }
 
 // buffers

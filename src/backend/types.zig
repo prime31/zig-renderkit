@@ -1,37 +1,37 @@
-pub const TextureFilter = enum {
+pub const TextureFilter = extern enum {
     nearest,
     linear,
 };
 
-pub const TextureWrap = enum {
+pub const TextureWrap = extern enum {
     clamp,
     repeat,
 };
 
-pub const PixelFormat = enum {
+pub const PixelFormat = extern enum {
     rgba,
     stencil,
     depth_stencil,
 };
 
-pub const Usage = enum {
+pub const Usage = extern enum {
     immutable,
     dynamic,
     stream,
 };
 
-pub const BufferType = enum {
+pub const BufferType = extern enum {
     vertex,
     index,
 };
 
-pub const VertexBufferUsage = enum {
+pub const VertexBufferUsage = extern enum {
     stream_draw,
     static_draw,
     dynamic_draw,
 };
 
-pub const PrimitiveType = enum {
+pub const PrimitiveType = extern enum {
     points,
     line_strip,
     lines,
@@ -39,13 +39,13 @@ pub const PrimitiveType = enum {
     triangles,
 };
 
-pub const ElementType = enum {
+pub const ElementType = extern enum {
     u8,
     u16,
     u32,
 };
 
-pub const CompareFunc = enum {
+pub const CompareFunc = extern enum {
     never,
     less,
     equal,
@@ -56,7 +56,7 @@ pub const CompareFunc = enum {
     always,
 };
 
-pub const StencilOp = enum {
+pub const StencilOp = extern enum {
     keep,
     zero,
     replace,
@@ -67,7 +67,7 @@ pub const StencilOp = enum {
     decr_wrap,
 };
 
-pub const BlendFactor = enum {
+pub const BlendFactor = extern enum {
     zero,
     one,
     src_color,
@@ -85,18 +85,18 @@ pub const BlendFactor = enum {
     one_minus_blend_alpha,
 };
 
-pub const BlendOp = enum {
+pub const BlendOp = extern enum {
     add,
     subtract,
     reverse_subtract,
 };
 
-pub const ClearAction = enum {
+pub const ClearAction = extern enum {
     clear,
     dontcare,
 };
 
-pub const ColorMask = enum(u32) {
+pub const ColorMask = extern enum(u32) {
     none,
     r = (1 << 0),
     g = (1 << 1),
@@ -107,12 +107,12 @@ pub const ColorMask = enum(u32) {
     force_u32 = 0x7FFFFFFF,
 };
 
-pub const RenderState = struct {
-    depth: struct {
+pub const RenderState = extern struct {
+    const Depth = extern struct {
         enabled: bool = false,
         compare_func: CompareFunc = .always,
-    } = .{},
-    stencil: struct {
+    };
+    const Stencil = extern struct {
         enabled: bool = false,
         fail_op: StencilOp = .keep,
         depth_fail_op: StencilOp = .keep,
@@ -121,8 +121,8 @@ pub const RenderState = struct {
         read_mask: u8 = 0,
         write_mask: u8 = 0,
         ref: u8 = 0,
-    } = .{},
-    blend: struct {
+    };
+    const Blend = extern struct {
         enabled: bool = true,
         src_factor_rgb: BlendFactor = .src_alpha,
         dst_factor_rgb: BlendFactor = .one_minus_src_alpha,
@@ -132,11 +132,15 @@ pub const RenderState = struct {
         op_alpha: BlendOp = .add,
         color_write_mask: ColorMask = .rgba,
         color: [4]f32 = [_]f32{ 0, 0, 0, 0 },
-    } = .{},
+    };
+
+    depth: Depth = .{},
+    stencil: Stencil = .{},
+    blend: Blend = .{},
     scissor: bool = false,
 };
 
-pub const ClearCommand = struct {
+pub const ClearCommand = extern struct {
     color_action: ClearAction = .clear,
     color: [4]f32 = [_]f32{ 0.8, 0.2, 0.3, 1.0 },
     stencil_action: ClearAction = .dontcare,

@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("aya");
+pub const aya = @import("aya");
 const gfx = aya.gfx;
 
 pub fn main() !void {
@@ -8,7 +8,11 @@ pub fn main() !void {
 
 fn render() !void {
     while (!aya.pollEvents()) {
-        gfx.clear(.{});
+        const size = aya.getRenderableSize();
+        gfx.beginDefaultPass(.{}, size.w, size.h);
+        gfx.endPass();
         aya.swapWindow();
     }
 }
+
+extern fn metal_tick() void;

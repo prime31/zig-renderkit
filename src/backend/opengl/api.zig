@@ -2,9 +2,10 @@ const std = @import("std");
 usingnamespace @import("gl_decls.zig");
 usingnamespace @import("../descriptions.zig");
 usingnamespace @import("../types.zig");
-const HandledCache = @import("../handles.zig").HandledCache;
 
+const HandledCache = @import("../handles.zig").HandledCache;
 const RenderCache = @import("render_cache.zig").RenderCache;
+
 var cache = RenderCache.init();
 
 var image_cache: HandledCache(GLImage) = undefined;
@@ -209,6 +210,26 @@ pub fn destroyOffscreenPass(offscreen_pass: OffscreenPass) void {
     }
 }
 
+pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
+    glViewport(0, 0, width, height);
+
+    var clear_mask: GLbitfield = 0;
+    if (action.color_action == .clear) {
+        clear_mask |= GL_COLOR_BUFFER_BIT;
+        glClearColor(action.color[0], action.color[1], action.color[2], action.color[3]);
+    }
+    if (action.stencil_action == .clear) {
+        clear_mask |= GL_STENCIL_BUFFER_BIT;
+        glClearStencil(@intCast(GLint, action.stencil));
+    }
+    if (action.depth_action == .clear) {
+        clear_mask |= GL_DEPTH_BUFFER_BIT;
+        glClearDepth(action.depth);
+    }
+
+    glClear(clear_mask);
+}
+
 pub fn beginOffscreenPass(offscreen_pass: OffscreenPass) void {
     const pass = pass_cache.get(offscreen_pass);
     const img = image_cache.get(pass.color_img);
@@ -216,9 +237,11 @@ pub fn beginOffscreenPass(offscreen_pass: OffscreenPass) void {
     glViewport(0, 0, img.width, img.height);
 }
 
-pub fn endOffscreenPass(pass: OffscreenPass) void {
+pub fn endPass() void {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+pub fn commitFrame() void {}
 
 pub const Buffer = u16;
 const GLBuffer = struct {

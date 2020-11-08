@@ -45,6 +45,6 @@ pub const RenderTexture = struct {
     }
 
     pub fn unbind(self: *RenderTexture) void {
-        backend.endOffscreenPass(self.pass);
+        backend.endPass();
     }
 };
