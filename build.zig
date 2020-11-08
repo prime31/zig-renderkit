@@ -25,6 +25,19 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     });
 }
 
+fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
+    if (target.isDarwin()) {
+        artifact.linkFramework("OpenGL");
+    } else if (target.isWindows()) {
+        artifact.linkSystemLibrary("kernel32");
+        artifact.linkSystemLibrary("user32");
+        artifact.linkSystemLibrary("shell32");
+        artifact.linkSystemLibrary("gdi32");
+    } else if (target.isLinux()) {
+        artifact.linkSystemLibrary("GL");
+    }
+}
+
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
     const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
@@ -67,6 +80,9 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     // TODO: why dont we need to link OpenGL?
     linkArtifact(b, exe, target, prefix_path);
 
+    // renderer specific linkage
+    addOpenGlToArtifact(exe, target);
+
     // sdl package
     @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
 
@@ -85,17 +101,4 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     exe_step.dependOn(&run_cmd.step);
 
     return exe;
-}
-
-fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
-    if (target.isDarwin()) {
-        artifact.linkFramework("OpenGL");
-    } else if (target.isWindows()) {
-        artifact.linkSystemLibrary("kernel32");
-        artifact.linkSystemLibrary("user32");
-        artifact.linkSystemLibrary("shell32");
-        artifact.linkSystemLibrary("gdi32");
-    } else if (target.isLinux()) {
-        artifact.linkSystemLibrary("GL");
-    }
 }
