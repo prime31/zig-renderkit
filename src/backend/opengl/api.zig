@@ -211,7 +211,22 @@ pub fn destroyOffscreenPass(offscreen_pass: OffscreenPass) void {
 }
 
 pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
-    glViewport(0, 0, width, height);
+    beginPass(0, action, width, height);
+}
+
+pub fn beginOffscreenPass(offscreen_pass: OffscreenPass, action: ClearCommand) void {
+    beginPass(offscreen_pass, action, -1, -1);
+}
+
+fn beginPass(offscreen_pass: OffscreenPass, action: ClearCommand, width: c_int, height: c_int) void {
+    if (width < 0) {
+        const pass = pass_cache.get(offscreen_pass);
+        const img = image_cache.get(pass.color_img);
+        glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer_tid);
+        glViewport(0, 0, img.width, img.height);
+    } else {
+        glViewport(0, 0, width, height);
+    }
 
     var clear_mask: GLbitfield = 0;
     if (action.color_action == .clear) {
@@ -228,13 +243,6 @@ pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void 
     }
 
     glClear(clear_mask);
-}
-
-pub fn beginOffscreenPass(offscreen_pass: OffscreenPass) void {
-    const pass = pass_cache.get(offscreen_pass);
-    const img = image_cache.get(pass.color_img);
-    glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer_tid);
-    glViewport(0, 0, img.width, img.height);
 }
 
 pub fn endPass() void {
@@ -334,7 +342,6 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     if (buff.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
-
 
 pub const BufferBindings = u16;
 const GLBufferBindings = struct {

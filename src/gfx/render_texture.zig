@@ -2,6 +2,7 @@ const std = @import("std");
 const backend = @import("backend");
 const gfx = @import("../gfx.zig");
 
+// TODO: perhaps rename this to OffscreenPass and remove the bind/unbinds?
 pub const RenderTexture = struct {
     pass: backend.OffscreenPass,
     color_texture: gfx.Texture,
@@ -40,8 +41,8 @@ pub const RenderTexture = struct {
         }
     }
 
-    pub fn bind(self: *RenderTexture) void {
-        backend.beginOffscreenPass(self.pass);
+    pub fn bind(self: *RenderTexture, action: gfx.ClearCommand) void {
+        backend.beginOffscreenPass(self.pass, action);
     }
 
     pub fn unbind(self: *RenderTexture) void {

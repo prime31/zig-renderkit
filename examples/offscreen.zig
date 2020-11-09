@@ -78,8 +78,7 @@ fn render() !void {
     defer rt.deinit();
 
     // render something to the render texture
-    rt.bind();
-    gfx.clear(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
+    rt.bind(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
 
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();

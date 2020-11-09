@@ -9,7 +9,6 @@ pub fn shutdown() void {}
 pub fn setRenderState(state: RenderState) void {}
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {}
-pub fn clear(action: ClearCommand) void {}
 
 // images
 pub const Image = u2;
@@ -23,7 +22,7 @@ pub const OffscreenPass = u2;
 pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass { return 0; }
 pub fn destroyOffscreenPass(pass: OffscreenPass) void {}
 pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {}
-pub fn beginOffscreenPass(pass: OffscreenPass) void {}
+pub fn beginOffscreenPass(pass: OffscreenPass, action: ClearCommand) void {}
 pub fn endPass() void {}
 pub fn commitFrame() void {}
 

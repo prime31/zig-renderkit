@@ -93,7 +93,8 @@ pub const BlendOp = extern enum {
 
 pub const ClearAction = extern enum {
     clear,
-    dontcare,
+    dontcare, // if all the render target pixels are rendered to, choose the DontCare action
+    load, // if the previous contents of the render target need to be preserved and only some of its pixels are rendered to, choose the load action
 };
 
 pub const ColorMask = extern enum(u32) {

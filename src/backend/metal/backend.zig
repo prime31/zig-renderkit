@@ -73,7 +73,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
 
 pub extern fn metal_init(arg0: RendererDesc) void;
 pub extern fn metal_setup(arg0: RendererDesc) void;
-pub extern fn metal_shutdown(...) void;
+pub extern fn metal_shutdown() void;
 pub extern fn metal_setRenderState(arg0: RenderState) void;
 pub extern fn metal_viewport(arg0: c_int, arg1: c_int, w: c_int, h: c_int) void;
 pub extern fn metal_scissor(arg0: c_int, arg1: c_int, w: c_int, h: c_int) void;

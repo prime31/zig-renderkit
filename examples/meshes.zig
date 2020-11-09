@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("aya");
+pub const aya = @import("aya");
 const gfx = @import("gfx");
 const math = gfx.math;
 
@@ -42,7 +42,8 @@ fn render() !void {
     gfx.viewport(0, 0, 800, 600);
 
     while (!aya.pollEvents()) {
-        gfx.clear(.{});
+        const size = aya.getRenderableSize();
+        gfx.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
 
         gfx.bindImage(tex.img, 0);
         mesh.draw();
@@ -50,6 +51,7 @@ fn render() !void {
         gfx.bindImage(red_tex.img, 0);
         dyn_mesh.drawAllVerts();
 
+        gfx.endPass();
         aya.swapWindow();
     }
 }

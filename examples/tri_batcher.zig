@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("aya");
+pub const aya = @import("aya");
 const gfx = aya.gfx;
 const Color = gfx.math.Color;
 

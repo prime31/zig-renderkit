@@ -1,5 +1,5 @@
 const std = @import("std");
-const aya = @import("aya");
+pub const aya = @import("aya");
 const sdl = @import("sdl");
 const gfx = @import("gfx");
 const math = gfx.math;
@@ -94,7 +94,7 @@ pub fn main() !void {
 }
 
 fn render() !void {
-    _ = sdl.SDL_GL_SetSwapInterval(1);
+    _ = sdl.SDL_GL_SetSwapInterval(0);
 
     var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
@@ -147,7 +147,8 @@ fn render() !void {
             }
         }
 
-        gfx.clear(.{ .color = math.Color.beige.asArray() });
+        const size = aya.getRenderableSize();
+        gfx.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
 
         // render
         batcher.begin();
@@ -157,6 +158,7 @@ fn render() !void {
         }
 
         batcher.end();
+        gfx.endPass();
 
         aya.swapWindow();
     }

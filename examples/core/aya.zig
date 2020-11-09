@@ -5,7 +5,7 @@ const window_impl = @import("window.zig");
 pub const imgui = @import("imgui");
 pub const gfx = @import("gfx");
 
-pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
+pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .metal;
 pub const has_imgui: bool = if (@hasDecl(@import("root"), "imgui")) @import("root").imgui else false;
 
 const build_options = @import("build_options");
@@ -49,6 +49,9 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     } else {
         try render();
         if (has_imgui) imgui_gl.shutdown();
+        gfx.shutdown();
+        sdl.SDL_DestroyWindow(window_impl.window);
+        sdl.SDL_Quit();
         return;
     }
 

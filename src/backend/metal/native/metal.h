@@ -100,13 +100,14 @@ enum BlendOp_t {
 enum ClearAction_t {
     clear_action_clear,
     clear_action_dontcare,
+    clear_action_load,
 };
 
 MTLLoadAction _mtl_load_action(enum ClearAction_t a) {
     switch (a) {
         case clear_action_clear:    return MTLLoadActionClear;
         case clear_action_dontcare: return MTLLoadActionDontCare;
-        // case 666:                   return MTLLoadActionLoad;
+        case clear_action_load:     return MTLLoadActionLoad;
         default: return (MTLLoadAction)0;
     }
 }
@@ -216,7 +217,6 @@ void metal_shutdown();
 void metal_setRenderState(RenderState_t arg0);
 void metal_viewport(int arg0, int arg1, int arg2, int arg3);
 void metal_scissor(int arg0, int arg1, int arg2, int arg3);
-void metal_clear(ClearCommand_t arg0);
 
 uint16_t metal_createImage(ImageDesc_t arg0);
 void metal_destroyImage(uint16_t arg0);

@@ -116,25 +116,6 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
     glScissor(x, y, width, height);
 }
 
-pub fn clear(action: gfx.ClearCommand) void {
-    var clear_mask: GLbitfield = 0;
-
-    if (action.color_action == .clear) {
-        clear_mask |= GL_COLOR_BUFFER_BIT;
-        glClearColor(action.color[0], action.color[1], action.color[2], action.color[3]);
-    }
-    if (action.stencil_action == .clear) {
-        clear_mask |= GL_STENCIL_BUFFER_BIT;
-        glClearStencil(@intCast(GLint, action.stencil));
-    }
-    if (action.depth_action == .clear) {
-        clear_mask |= GL_DEPTH_BUFFER_BIT;
-        glClearDepth(action.depth);
-    }
-
-    glClear(clear_mask);
-}
-
 // translations from our enumsm to OpenGL
 fn blendFactorToGl(state: gfx.BlendFactor) GLenum {
     return switch (state) {
