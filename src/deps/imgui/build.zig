@@ -57,10 +57,10 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
         lib.setBuildMode(b.standardReleaseOptions());
         lib.setTarget(target);
 
-        // wtf?
-        const frameworks_dir = macosFrameworksDir(b) catch unreachable;
-        const x11_include_dir = std.mem.concat(b.allocator, u8, &[_][]const u8{ frameworks_dir, "/Tk.framework/Headers" }) catch unreachable;
-        lib.addIncludeDir(x11_include_dir);
+        if (target.isDarwin()) {
+            const frameworks_dir = macosFrameworksDir(b) catch unreachable;
+            lib.addFrameworkDir(frameworks_dir);
+        }
         lib.addIncludeDir("src/deps/imgui/cimgui/imgui");
         lib.addIncludeDir("src/deps/imgui/cimgui/imgui/examples/libs/gl3w");
         lib.addIncludeDir("/usr/local/include/SDL2");
