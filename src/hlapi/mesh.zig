@@ -37,8 +37,8 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
     return struct {
         const Self = @This();
 
-        bindings: backend.BufferBindings,
-        vertex_buffer: backend.Buffer,
+        bindings: gfx.BufferBindings,
+        vertex_buffer: gfx.Buffer,
         verts: []VertT,
         allocator: *std.mem.Allocator,
 

@@ -1,6 +1,5 @@
 const std = @import("std");
 const gfx = @import("types.zig");
-const backend = @import("backend.zig");
 
 pub const MetalSetup = extern struct {
     ca_layer: ?*const c_void = null,
@@ -33,9 +32,9 @@ pub const ImageDesc = struct {
     content: ?[]const u8 = null,
 };
 
-pub const OffscreenPassDesc = struct {
-    color_img: backend.Image,
-    depth_stencil_img: ?backend.Image = null,
+pub const PassDesc = struct {
+    color_img: gfx.Image,
+    depth_stencil_img: ?gfx.Image = null,
 };
 
 pub fn BufferDesc(comptime T: type) type {

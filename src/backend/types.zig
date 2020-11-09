@@ -1,3 +1,9 @@
+pub const Image = u16;
+pub const ShaderProgram = u16;
+pub const BufferBindings = u16;
+pub const Pass = u16;
+pub const Buffer = u16;
+
 pub const TextureFilter = extern enum {
     nearest,
     linear,
@@ -93,7 +99,7 @@ pub const BlendOp = extern enum {
 
 pub const ClearAction = extern enum {
     clear,
-    dontcare, // if all the render target pixels are rendered to, choose the DontCare action
+    dont_care, // if all the render target pixels are rendered to, choose the DontCare action
     load, // if the previous contents of the render target need to be preserved and only some of its pixels are rendered to, choose the load action
 };
 
@@ -144,8 +150,8 @@ pub const RenderState = extern struct {
 pub const ClearCommand = extern struct {
     color_action: ClearAction = .clear,
     color: [4]f32 = [_]f32{ 0.8, 0.2, 0.3, 1.0 },
-    stencil_action: ClearAction = .dontcare,
+    stencil_action: ClearAction = .dont_care,
     stencil: u8 = 0,
-    depth_action: ClearAction = .dontcare,
+    depth_action: ClearAction = .dont_care,
     depth: f64 = 0,
 };

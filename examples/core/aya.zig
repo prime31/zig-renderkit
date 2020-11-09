@@ -5,7 +5,7 @@ const window_impl = @import("window.zig");
 pub const imgui = @import("imgui");
 pub const gfx = @import("gfx");
 
-pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .metal;
+pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
 pub const has_imgui: bool = if (@hasDecl(@import("root"), "imgui")) @import("root").imgui else false;
 
 const build_options = @import("build_options");
@@ -26,7 +26,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         metal_setup.ca_layer = sdl.SDL_Metal_GetLayer(metal_view);
     }
 
-    gfx.setup(.{
+    gfx.backend.setup(.{
         .allocator = std.testing.allocator,
         .gl_loader = sdl.SDL_GL_GetProcAddress,
         .metal = metal_setup,
@@ -49,7 +49,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     } else {
         try render();
         if (has_imgui) imgui_gl.shutdown();
-        gfx.shutdown();
+        gfx.backend.shutdown();
         sdl.SDL_DestroyWindow(window_impl.window);
         sdl.SDL_Quit();
         return;
@@ -60,7 +60,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         sdl.SDL_GL_SwapWindow(window_impl.window);
     }
     if (has_imgui) imgui_gl.shutdown();
-    gfx.shutdown();
+    gfx.backend.shutdown();
     sdl.SDL_DestroyWindow(window_impl.window);
     sdl.SDL_Quit();
 }
@@ -97,14 +97,14 @@ fn imguiHandleEvent(evt: *sdl.SDL_Event) bool {
 pub fn swapWindow() void {
     if (has_imgui) {
         const size = window_impl.getRenderableSize();
-        gfx.backend.viewport(0, 0, size.w, size.h);
+        gfx.viewport(0, 0, size.w, size.h);
 
         imgui_gl.render();
         _ = sdl.SDL_GL_MakeCurrent(window_impl.window, window_impl.gl_ctx);
     }
 
     if (renderer == .opengl) sdl.SDL_GL_SwapWindow(window_impl.window);
-    gfx.backend.commitFrame();
+    gfx.commitFrame();
 }
 
 pub const getRenderableSize = window_impl.getRenderableSize;

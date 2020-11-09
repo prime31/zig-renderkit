@@ -1,6 +1,9 @@
 const std = @import("std");
+// export the types and descriptions and also import all of them for use in this file
 pub const gfx_types = @import("types.zig");
-pub usingnamespace @import("descriptions.zig");
+usingnamespace @import("types.zig");
+pub const descriptions = @import("descriptions.zig");
+usingnamespace @import("descriptions.zig");
 
 // this is the entrypoint for all renderer specific types. They are loaded based on the chosen Renderer
 // and exposed via this interface.
@@ -14,12 +17,32 @@ pub const Renderer = enum {
 };
 
 // zls cant auto-complete when implemented like this
-pub const backend = @import(@tagName(@import("root").aya.renderer) ++ "/backend.zig");
+const backend = @import(@tagName(@import("root").aya.renderer) ++ "/backend.zig");
 // pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
-// textures
-pub const Image = backend.Image;
+// setup and state
+pub fn setup(desc: RendererDesc) void {
+    backend.setup(desc);
+}
 
+pub fn shutdown() void {
+    backend.shutdown();
+}
+
+pub fn setRenderState(state: RenderState) void {
+    backend.setRenderState(state);
+}
+
+pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    backend.viewport(x, y, width, height);
+}
+
+pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    backend.scissor(x, y, width, height);
+}
+
+
+// textures
 pub fn createImage(desc: ImageDesc) Image {
     return backend.createImage(desc);
 }
@@ -38,22 +61,20 @@ pub fn bindImage(tid: Image, slot: c_uint) void {
 }
 
 // passes
-pub const OffscreenPass = backend.OffscreenPass;
-
-pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass {
-    return backend.createOffscreenPass(desc);
+pub fn createPass(desc: PassDesc) Pass {
+    return backend.createPass(desc);
 }
 
-pub fn destroyOffscreenPass(pass: OffscreenPass) void {
-    backend.destroyOffscreenPass(pass);
+pub fn destroyPass(pass: Pass) void {
+    backend.destroyPass(pass);
 }
 
-pub fn beginDefaultPass(action: gfx_types.ClearCommand, width: c_int, height: c_int) void {
+pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
     backend.beginDefaultPass(action, width, height);
 }
 
-pub fn beginOffscreenPass(pass: OffscreenPass, action: gfx_types.ClearCommand) void {
-    backend.beginOffscreenPass(pass, action);
+pub fn beginPass(pass: Pass, action: ClearCommand) void {
+    backend.beginPass(pass, action);
 }
 
 pub fn endPass() void {
@@ -65,8 +86,6 @@ pub fn commitFrame() void {
 }
 
 // buffers
-pub const Buffer = backend.Buffer;
-
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
     return backend.createBuffer(T, desc);
 }
@@ -80,8 +99,6 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 }
 
 // buffer bindings
-pub const BufferBindings = backend.BufferBindings;
-
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
     return backend.createBufferBindings(index_buffer, vert_buffer);
 }
@@ -95,8 +112,6 @@ pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {
 }
 
 // shaders
-pub const ShaderProgram = backend.ShaderProgram;
-
 pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
     return backend.createShaderProgram(desc);
 }
@@ -112,27 +127,3 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
     backend.setShaderProgramUniform(T, shader, name, value);
 }
-
-// setup, state
-pub fn setup(desc: RendererDesc) void {
-    backend.setup(desc);
-    backend.init(desc);
-    backend.setRenderState(.{});
-}
-
-pub fn shutdown() void {
-    backend.shutdown();
-}
-
-pub fn setRenderState(state: gfx_types.RenderState) void {
-    backend.setRenderState(state);
-}
-
-pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    backend.viewport(x, y, width, height);
-}
-
-pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    backend.scissor(x, y, width, height);
-}
-

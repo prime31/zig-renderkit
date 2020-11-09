@@ -4,7 +4,7 @@ const gfx = @import("../gfx.zig");
 const fs = @import("../fs.zig");
 
 pub const Shader = struct {
-    shader: backend.ShaderProgram,
+    shader: gfx.ShaderProgram,
 
     pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
         var vert = try fs.readZ(allocator, vert_path);

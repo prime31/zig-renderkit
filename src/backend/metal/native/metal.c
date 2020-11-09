@@ -34,6 +34,7 @@ CAMetalLayer* layer;
 id<MTLCommandQueue> cmd_queue;
 id<MTLCommandBuffer> cmd_buffer;
 id<MTLRenderCommandEncoder> cmd_encoder;
+id<CAMetalDrawable> cur_drawable;
 dispatch_semaphore_t render_semaphore;
 
 bool origin_top_left = true;
@@ -43,17 +44,13 @@ int cur_width;
 int cur_height;
 
 // setup
-void metal_init(RendererDesc_t desc) {
+void metal_setup(RendererDesc_t desc) {
     render_semaphore = dispatch_semaphore_create(NUM_INFLIGHT_FRAMES);
     layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
     layer.device = MTLCreateSystemDefaultDevice();
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 
     cmd_queue = [layer.device newCommandQueue];
-}
-
-void metal_setup(RendererDesc_t desc) {
-    printf("----- setup\n");
 }
 
 void metal_shutdown() {
@@ -72,8 +69,8 @@ void metal_shutdown() {
 }
 
 // render state
-void metal_setRenderState(RenderState_t state) {
-    printf("metal_setRenderState\n");
+void metal_set_render_state(RenderState_t state) {
+    printf("metal_set_render_state\n");
     assert(!in_pass);
     if (!pass_valid) return;
     assert(cmd_encoder != nil);
@@ -128,7 +125,7 @@ void metal_scissor(int x, int y, int w, int h) {
 
 
 // images
-uint16_t metal_createImage(ImageDesc_t desc) {
+uint16_t metal_create_image(ImageDesc_t desc) {
     MTLTextureDescriptor* mtl_desc = [[MTLTextureDescriptor alloc] init];
     mtl_desc.textureType = MTLTextureType2D;
     mtl_desc.pixelFormat = MTLPixelFormatRGBA8Unorm;
@@ -168,15 +165,14 @@ uint16_t metal_createImage(ImageDesc_t desc) {
     }
 }
 
+void metal_destroy_image(uint16_t img_index) {}
 
-void metal_destroyImage(uint16_t img_index) {}
+void metal_update_image(uint16_t img_index, void* arg1) {}
 
-void metal_updateImage(uint16_t img_index, void* arg1) {}
-
-void metal_bindImage(uint16_t img_index, uint32_t arg1) {}
+void metal_bind_image(uint16_t img_index, uint32_t arg1) {}
 
 
-void metal_beginPass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
+void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     in_pass = true;
     cur_width = w;
     cur_height = h;
@@ -193,8 +189,11 @@ void metal_beginPass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     if (pass_index > 0) { // offscreen render pass
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
     } else {
-        // TODO: use cached RenderPassDescriptor
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
+        // only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.
+        if (cur_drawable == nil)
+            cur_drawable = [layer nextDrawable];
+        pass_desc.colorAttachments[0].texture = cur_drawable.texture;
     }
 
     // default pass descriptor will not be valid if window is minimized
@@ -202,6 +201,7 @@ void metal_beginPass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
         pass_valid = false;
         return;
     }
+    pass_valid = true;
 
     // setup pass descriptor for backbuffer or offscreen rendering
     if (pass_index > 0) {
@@ -222,7 +222,7 @@ void metal_beginPass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     }
 }
 
-void metal_endPass() {
+void metal_end_pass() {
     in_pass = false;
     pass_valid = false;
     if (cmd_encoder != nil) {
@@ -237,11 +237,12 @@ void metal_commit_frame() {
     assert(cmd_buffer != nil);
 
     // present, commit and signal semaphore when done
-    id<CAMetalDrawable> drawable = [layer nextDrawable];
-    [cmd_buffer presentDrawable:drawable];
+    // id<CAMetalDrawable> drawable = [layer nextDrawable];
+    [cmd_buffer presentDrawable:cur_drawable];
     [cmd_buffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
         dispatch_semaphore_signal(render_semaphore);
     }];
     [cmd_buffer commit];
     cmd_buffer = nil;
+    cur_drawable = nil;
 }

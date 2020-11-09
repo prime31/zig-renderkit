@@ -1,10 +1,24 @@
-// TODO: instead of exposing all of backend only expose the render state functions (clear, scissor, etc) and types
-pub usingnamespace @import("backend");
+// export all the types and descriptors for ease of use
 pub usingnamespace @import("backend").gfx_types;
+pub usingnamespace @import("backend").descriptions;
+
+// export the backend only explicitly (leaving gfx object methods only via backend.METHOD)
+// and some select, higher level types and methods
+pub const backend = @import("backend");
+pub const Renderer = backend.Renderer;
+pub const setRenderState = backend.setRenderState;
+pub const viewport = backend.viewport;
+pub const scissor = backend.scissor;
+pub const beginDefaultPass = backend.beginDefaultPass;
+pub const beginPass = backend.beginPass;
+pub const endPass = backend.endPass;
+pub const commitFrame = backend.commitFrame;
+pub const bindImage = backend.bindImage;
 
 pub const math = @import("math/math.zig");
 pub const fs = @import("fs.zig");
 
+// high level wrapper objects that use the low-level backend api
 pub const Texture = @import("gfx/texture.zig").Texture;
 pub const RenderTexture = @import("gfx/render_texture.zig").RenderTexture;
 pub const Shader = @import("gfx/shader.zig").Shader;

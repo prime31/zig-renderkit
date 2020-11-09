@@ -154,10 +154,10 @@ typedef struct ImageDesc_t {
    uint8_t* content;
 } ImageDesc_t;
 
-typedef struct OffscreenPassDesc_t {
+typedef struct PassDesc_t {
    uint16_t color_img;
    uint16_t depth_stencil_img;
-} OffscreenPassDesc_t;
+} PassDesc_t;
 
 typedef struct ShaderDesc_t {
    uint8_t* vs;
@@ -210,33 +210,32 @@ typedef struct ClearCommand_t {
 } ClearCommand_t;
 
 
-void metal_init(RendererDesc_t arg0);
-void metal_setup(RendererDesc_t arg0);
+void metal_setup(RendererDesc_t desc);
 void metal_shutdown();
 
-void metal_setRenderState(RenderState_t arg0);
+void metal_set_render_state(RenderState_t arg0);
 void metal_viewport(int arg0, int arg1, int arg2, int arg3);
 void metal_scissor(int arg0, int arg1, int arg2, int arg3);
 
-uint16_t metal_createImage(ImageDesc_t arg0);
-void metal_destroyImage(uint16_t arg0);
-void metal_updateImage(uint16_t arg0, void* arg1);
-void metal_bindImage(uint16_t arg0, uint32_t arg1);
+uint16_t metal_create_image(ImageDesc_t arg0);
+void metal_destroy_image(uint16_t arg0);
+void metal_update_image(uint16_t arg0, void* arg1);
+void metal_bind_image(uint16_t arg0, uint32_t arg1);
 
-uint16_t metal_createOffscreenPass(OffscreenPassDesc_t desc);
-void metal_destroyOffscreenPass(uint16_t pass);
-void metal_beginPass(uint16_t pass, ClearCommand_t clear, int w, int h);
-void metal_endPass();
+uint16_t metal_create_pass(PassDesc_t desc);
+void mmetal_destroy_pass(uint16_t pass);
+void metal_begin_pass(uint16_t pass, ClearCommand_t clear, int w, int h);
+void metal_end_pass();
 void metal_commit_frame();
 
-void metal_destroyBuffer(uint16_t arg0);
-void metal_updateBuffer(uint16_t arg0, void* arg1);
+void metal_destroy_buffer(uint16_t arg0);
+void metal_update_buffer(uint16_t arg0, void* arg1);
 
-uint16_t metal_createBufferBindings(uint16_t arg0, uint16_t arg1);
-void metal_destroyBufferBindings(uint16_t arg0);
-void metal_drawBufferBindings(uint16_t arg0, int arg1);
+uint16_t metal_create_buffer_bindings(uint16_t arg0, uint16_t arg1);
+void metal_destroy_buffer_bindings(uint16_t arg0);
+void metal_draw_buffer_bindings(uint16_t arg0, int arg1);
 
-uint16_t metal_createShaderProgram(ShaderDesc_t arg0);
-void metal_destroyShaderProgram(uint16_t arg0);
-void metal_useShaderProgram(uint16_t arg0);
-void metal_setShaderProgramUniform(uint16_t arg0, uint8_t* arg1, void* arg2);
+uint16_t metal_create_shader(ShaderDesc_t arg0);
+void metal_destroy_shader(uint16_t arg0);
+void metal_use_shader(uint16_t arg0);
+void metal_set_shader_uniform(uint16_t arg0, uint8_t* arg1, void* arg2);

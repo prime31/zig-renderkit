@@ -59,11 +59,3 @@ pub fn getRenderableSize() struct { w: c_int, h: c_int } {
     return .{ .w = w, .h = h };
 }
 
-pub extern fn metal_init(ca_layer: ?*c_void) void;
-// pub extern fn SDL_Metal_CreateView(window: ?*SDL_Window) SDL_MetalView;
-// pub extern fn SDL_Metal_DestroyView(view: SDL_MetalView) void;
-// pub extern fn SDL_Metal_GetLayer(view: SDL_MetalView) ?*c_void;
-// pub extern fn SDL_Metal_GetDrawableSize(window: ?*SDL_Window, w: [*c]c_int, h: [*c]c_int) void;
-
-// pub extern fn SDL_RenderGetMetalLayer(renderer: ?*SDL_Renderer) ?*c_void;
-// pub extern fn SDL_RenderGetMetalCommandEncoder(renderer: ?*SDL_Renderer) ?*c_void;

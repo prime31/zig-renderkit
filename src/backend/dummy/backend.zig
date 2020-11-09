@@ -18,11 +18,11 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {}
 pub fn bindImage(tid: Image, slot: c_uint) void {}
 
 // passes
-pub const OffscreenPass = u2;
-pub fn createOffscreenPass(desc: OffscreenPassDesc) OffscreenPass { return 0; }
-pub fn destroyOffscreenPass(pass: OffscreenPass) void {}
+pub const Pass = u2;
+pub fn createPass(desc: PassDesc) Pass { return 0; }
+pub fn destroyPass(pass: Pass) void {}
 pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {}
-pub fn beginOffscreenPass(pass: OffscreenPass, action: ClearCommand) void {}
+pub fn beginPass(pass: Pass, action: ClearCommand) void {}
 pub fn endPass() void {}
 pub fn commitFrame() void {}
 
