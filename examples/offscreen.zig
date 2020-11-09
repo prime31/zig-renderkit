@@ -74,11 +74,11 @@ fn render() !void {
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
     gfx.viewport(0, 0, 800, 600);
 
-    var rt = gfx.RenderTexture.init(300, 200);
-    defer rt.deinit();
+    var pass = gfx.OffscreenPass.init(300, 200);
+    defer pass.deinit();
 
     // render something to the render texture
-    rt.bind(.{ .color = (math.Color{ .value = randomColor() }).asArray() });
+    pass.bind(.{ .color = math.Color.purple.asArray() });
 
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
     batcher.begin();
@@ -87,7 +87,7 @@ fn render() !void {
     batcher.drawTex(.{ .x = 90 }, 0xFFFFFFFF, texture);
     batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
     batcher.end();
-    rt.unbind();
+    pass.unbind();
 
     gfx.viewport(0, 0, 800, 600);
     var rt_pos: math.Vec2 = .{};
@@ -105,7 +105,7 @@ fn render() !void {
 
         // render
         batcher.begin();
-        batcher.drawTex(rt_pos, 0xFFFFFFFF, rt.color_texture);
+        batcher.drawTex(rt_pos, 0xFFFFFFFF, pass.color_texture);
         rt_pos.x += 0.5;
         rt_pos.y += 0.5;
 

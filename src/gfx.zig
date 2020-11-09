@@ -20,7 +20,7 @@ pub const fs = @import("fs.zig");
 
 // high level wrapper objects that use the low-level backend api
 pub const Texture = @import("gfx/texture.zig").Texture;
-pub const RenderTexture = @import("gfx/render_texture.zig").RenderTexture;
+pub const OffscreenPass = @import("gfx/offscreen_pass.zig").OffscreenPass;
 pub const Shader = @import("gfx/shader.zig").Shader;
 
 // TODO: hlapi is a dumb folder name. fix that.
