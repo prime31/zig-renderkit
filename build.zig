@@ -71,7 +71,7 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 /// prefix_path is the path to the gfx build.zig file relative to your build.zig.
 /// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
 pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
-    if (target.isDarwin()) addMetalToArtifact(exe, target);
+    if (target.isDarwin()) addMetalToArtifact(b, exe, target);
 
     // stb
     @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
@@ -106,12 +106,17 @@ fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Tar
     }
 }
 
-fn addMetalToArtifact(exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+    const frameworks_dir = @import("src/deps/imgui/build.zig").macosFrameworksDir(b) catch unreachable;
+    exe.addFrameworkDir(frameworks_dir);
+    exe.linkFramework("Foundation");
+    exe.linkFramework("Cocoa");
+    exe.linkFramework("Quartz");
+    exe.linkFramework("QuartzCore");
     exe.linkFramework("Metal");
     exe.linkFramework("MetalKit");
 
     const cflags = [_][]const u8{ "-std=c99", "-ObjC", "-fobjc-arc" };
-
     exe.addIncludeDir("src/backend/metal/native");
     exe.addCSourceFile("src/backend/metal/native/metal.c", &cflags);
 }

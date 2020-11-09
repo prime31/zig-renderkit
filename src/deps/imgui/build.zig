@@ -88,7 +88,7 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
 }
 
 // helper function to get SDK path on Mac
-fn macosFrameworksDir(b: *Builder) ![]u8 {
+pub fn macosFrameworksDir(b: *Builder) ![]u8 {
     var str = try b.exec(&[_][]const u8{ "xcrun", "--show-sdk-path" });
     const strip_newline = std.mem.lastIndexOf(u8, str, "\n");
     if (strip_newline) |index| {
