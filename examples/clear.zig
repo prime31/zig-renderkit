@@ -1,6 +1,6 @@
 const std = @import("std");
 const gamekit = @import("gamekit");
-const renderkit = @import("renderkit");
+const Color = @import("renderkit").math.Color;
 
 pub fn main() !void {
     try gamekit.run(.{
@@ -12,7 +12,6 @@ pub fn main() !void {
 fn init() !void {}
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{}, size.w, size.h);
-    renderkit.endPass();
+    gamekit.gfx.beginPass(.{.color = Color.lime });
+    gamekit.gfx.endPass();
 }

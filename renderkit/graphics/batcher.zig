@@ -142,4 +142,17 @@ pub const Batcher = struct {
 
         self.vert_index += 4;
     }
+
+    pub fn draw(self: *Batcher, texture: renderkit.Texture, quad: math.Quad, mat: math.Mat32, color: math.Color) void {
+        if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
+            self.flush();
+        }
+
+        self.current_image = texture.img;
+
+        // copy the quad positions, uvs and color into vertex array transforming them with the matrix as we do it
+        mat.transformQuad(self.mesh.verts[self.vert_index .. self.vert_index + 4], quad, color);
+
+        self.vert_index += 4;
+    }
 };

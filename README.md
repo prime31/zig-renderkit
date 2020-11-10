@@ -20,19 +20,20 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 ### Minimal GameKit Project File
 
 ```zig
-const gamekit = @import("gamekit");
-const renderkit = @import("renderkit");
+var texture: Texture = undefined;
 
 pub fn main() !void {
     try gamekit.run(.{ .init = init, .render = render, });
 }
 
-fn init() !void {}
+fn init() !void {
+    texture = Texture.initFromFile(std.testing.allocator, "texture.png", .nearest) catch unreachable;
+}
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{}, size.w, size.h);
-    renderkit.endPass();
+    gamekit.gfx.beginPass(.{.color = Color.lime });
+    gamekit.gfx.drawTexture(texture, .{ .x = 50, .y = 50 });
+    gamekit.gfx.endPass();
 }
 ```
 

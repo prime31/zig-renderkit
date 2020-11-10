@@ -6,6 +6,7 @@ const renderkit = @import("renderkit");
 
 pub const utils = @import("utils/utils.zig");
 
+const Gfx = @import("gfx.zig").Gfx;
 const Window = @import("window.zig").Window;
 const WindowConfig = @import("window.zig").WindowConfig;
 const Input = @import("input.zig").Input;
@@ -24,6 +25,7 @@ pub const Config = struct {
     imgui_docking: bool = true, // whether imgui docking should be enabled
 };
 
+pub var gfx: Gfx = undefined;
 pub var window: Window = undefined;
 pub var time: Time = undefined;
 pub var input: Input = undefined;
@@ -43,6 +45,7 @@ pub fn run(config: Config) !void {
         .metal = metal_setup,
     });
 
+    gfx = Gfx.init();
     time = Time.init(config.update_rate);
     input = Input.init(window.scale());
 
@@ -76,7 +79,7 @@ pub fn run(config: Config) !void {
         }
 
         if (renderkit.current_renderer == .opengl) sdl.SDL_GL_SwapWindow(window.sdl_window);
-        renderkit.commitFrame();
+        gfx.commitFrame();
         input.newFrame();
     }
 

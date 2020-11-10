@@ -43,7 +43,6 @@ const Thing = struct {
     }
 };
 
-var shader: renderkit.Shader = undefined;
 var batcher: renderkit.Batcher = undefined;
 var texture: renderkit.Texture = undefined;
 var checker_tex: renderkit.Texture = undefined;
@@ -54,6 +53,7 @@ var rt_pos: math.Vec2 = .{};
 var camera: gamekit.utils.Camera = undefined;
 
 pub fn main() !void {
+    rng.seed(@intCast(u64, std.time.milliTimestamp()));
     try gamekit.run(.{
         .init = init,
         .update = update,
@@ -66,34 +66,12 @@ fn init() !void {
     const size = gamekit.window.size();
     camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
 
-    shader = try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
-    shader.bind();
-
     batcher = renderkit.Batcher.init(std.testing.allocator, 100);
     texture = renderkit.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
     checker_tex = renderkit.Texture.initCheckerTexture();
     white_tex = renderkit.Texture.initSingleColor(0xFFFFFFFF);
     things = makeThings(12, texture);
     pass = renderkit.OffscreenPass.init(300, 200);
-
-    shader.bind();
-    shader.setUniformName(i32, "MainTex", 0);
-    renderkit.viewport(0, 0, 800, 600);
-
-    // render something to the render texture
-    pass.bind(.{ .color = math.Color.purple.asArray() });
-
-    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrthoInverted(300, 200));
-    batcher.begin();
-    batcher.drawTex(.{ .x = 10 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 50 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 90 }, 0xFFFFFFFF, texture);
-    batcher.drawTex(.{ .x = 130 }, 0xFFFFFFFF, texture);
-    batcher.end();
-    pass.unbind();
-
-    renderkit.viewport(0, 0, 800, 600);
-    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
 }
 
 fn update() !void {
@@ -108,48 +86,48 @@ fn update() !void {
     var did_move = false;
     if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
         camera.pos.x += 100 * gamekit.time.dt();
-        did_move = true;
     } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {
         camera.pos.x -= 100 * gamekit.time.dt();
-        did_move = true;
     }
     if (gamekit.input.keyDown(.SDL_SCANCODE_W)) {
         camera.pos.y -= 100 * gamekit.time.dt();
-        did_move = true;
     } else if (gamekit.input.keyDown(.SDL_SCANCODE_S)) {
         camera.pos.y += 100 * gamekit.time.dt();
-        did_move = true;
-    }
-
-    if (did_move) {
-        const proj_mat = math.Mat32.initOrtho(800, 600).mul(camera.transMat());
-        shader.setUniformName(math.Mat32, "TransformMatrix", proj_mat);
     }
 }
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
+    // offscreen rendering
+    gamekit.gfx.beginPass(.{ .color = math.Color.purple, .pass = pass });
+    gamekit.gfx.drawTexture(texture, .{ .x = 10 });
+    gamekit.gfx.drawTexture(texture, .{ .x = 50 });
+    gamekit.gfx.drawTexture(texture, .{ .x = 90 });
+    gamekit.gfx.drawTexture(texture, .{ .x = 130 });
+    gamekit.gfx.endPass();
 
-    // render
-    batcher.begin();
-    batcher.drawTex(rt_pos, 0xFFFFFFFF, pass.color_texture);
+    // backbuffer rendering
+    gamekit.gfx.beginPass(.{
+        .color = math.Color{ .value = randomColor() },
+        .trans_mat = camera.transMat(),
+    });
+
+    // render the offscreen texture to the backbuffer
+    gamekit.gfx.drawTexture(pass.color_texture, rt_pos);
 
     for (things) |thing| {
-        batcher.drawTex(thing.pos, thing.col, thing.texture);
+        // batcher.drawTex(thing.pos, thing.col, thing.texture);
+        gamekit.gfx.drawTexture(thing.texture, thing.pos);
     }
 
-    batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
+    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
 
-    batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
-    batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
-    batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
-    batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
-    batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
+    gamekit.gfx.batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
+    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
+    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
+    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
+    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
 
-    batcher.end();
-
-    renderkit.endPass();
+    gamekit.gfx.endPass();
 }
 
 fn makeThings(n: usize, tex: renderkit.Texture) []Thing {
