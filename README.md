@@ -20,6 +20,4 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 
 [learnopengl](https://github.com/cshenton/learnopengl)
 
-
-Eventually can grab DX/Metal setup from here eventually for Metal backends
-[minifb](https://github.com/emoon/rust_minifb)
+[minifb (Rust)](https://github.com/emoon/rust_minifb)
