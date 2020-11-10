@@ -50,54 +50,16 @@ const Thing = struct {
     }
 };
 
-const Fps = struct {
-    fps_frames: u32 = 0,
-    prev_time: i64 = 0,
-    curr_time: i64 = 0,
-    fps_last_update: i64 = 0,
-    frames_per_seconds: i64 = 0,
-    frame_count: u32 = 1,
-    now: u64,
-    last: u64 = 0,
-    dt: f32 = 0,
-
-    pub fn init() Fps {
-        return .{
-            .now = sdl.SDL_GetPerformanceCounter(),
-        };
-    }
-
-    pub fn update(self: *Fps) void {
-        self.frame_count += 1;
-        self.fps_frames += 1;
-        self.prev_time = self.curr_time;
-        self.curr_time = std.time.milliTimestamp();
-
-        const time_since_last = self.curr_time - self.fps_last_update;
-        if (self.curr_time > self.fps_last_update + 1000) {
-            self.frames_per_seconds = @divTrunc(@intCast(i64, self.fps_frames) * 1000, time_since_last);
-            self.fps_last_update = self.curr_time;
-            self.fps_frames = 0;
-            std.debug.print("fps: {d}\n", .{self.frames_per_seconds});
-        }
-
-        // dt
-        self.last = self.now;
-        self.now = sdl.SDL_GetPerformanceCounter();
-        self.dt = @intToFloat(f32, (self.now - self.last)) / @intToFloat(f32, sdl.SDL_GetPerformanceFrequency());
-    }
-};
-
 var shader: renderkit.Shader = undefined;
 var batcher: if (use_multi_texture_batcher) renderkit.MultiBatcher else renderkit.Batcher = undefined;
 var textures: []renderkit.Texture = undefined;
 var things: []Thing = undefined;
-var fps: Fps = undefined;
 
 pub fn main() !void {
     rng.seed(@intCast(u64, std.time.milliTimestamp()));
     try gamekit.run(.{
         .init = init,
+        .update = update,
         .render = render,
         .shutdown = shutdown,
     });
@@ -119,7 +81,6 @@ fn init() !void {
 
     batcher = if (use_multi_texture_batcher) renderkit.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else renderkit.Batcher.init(std.testing.allocator, max_sprites_per_batch);
 
-    fps = Fps.init();
     loadTextures();
     makeThings(total_objects);
 }
@@ -132,11 +93,12 @@ fn shutdown() !void {
     }
 }
 
-fn render() !void {
-    fps.update();
+fn update() !void {
+    if (@mod(gamekit.time.frames(), 500) == 0) std.debug.print("fps: {d}\n", .{gamekit.time.fps()});
+
     for (things) |*thing| {
-        thing.pos.x += thing.vel.x * fps.dt;
-        thing.pos.y += thing.vel.y * fps.dt;
+        thing.pos.x += thing.vel.x * gamekit.time.rawDeltaTime();
+        thing.pos.y += thing.vel.y * gamekit.time.rawDeltaTime();
 
         if (thing.pos.x > 780) {
             thing.vel.x *= -1;
@@ -155,7 +117,9 @@ fn render() !void {
             thing.pos.y = 0;
         }
     }
+}
 
+fn render() !void {
     const size = gamekit.window.drawableSize();
     renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
 

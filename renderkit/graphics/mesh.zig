@@ -1,7 +1,6 @@
 const std = @import("std");
 const renderkit = @import("../renderkit.zig");
 const renderer = renderkit.renderer;
-const math = aya.math;
 
 pub const Mesh = struct {
     bindings: renderer.BufferBindings,

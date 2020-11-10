@@ -13,7 +13,7 @@ pub const current_renderer: Renderer = if (@hasDecl(@import("root"), "build_opti
 };
 
 // search path: root.build_options, root.enable_imgui, default
-pub const has_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
+pub const enable_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
     break :blk @field(@import("root"), "build_options").enable_imgui;
 } else if (@hasDecl(@import("root"), "enable_imgui")) blk: {
     break :blk @field(@import("root"), "enable_imgui");

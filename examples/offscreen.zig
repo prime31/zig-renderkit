@@ -55,6 +55,7 @@ var rt_pos: math.Vec2 = .{};
 pub fn main() !void {
     try gamekit.run(.{
         .init = init,
+        .update = update,
         .render = render,
     });
 }
@@ -90,12 +91,14 @@ fn init() !void {
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
 }
 
-fn render() !void {
+fn update() !void {
     for (things) |*thing| {
         thing.pos.x += thing.vel.x * 0.016;
         thing.pos.y += thing.vel.y * 0.016;
     }
+}
 
+fn render() !void {
     const size = gamekit.window.drawableSize();
     renderkit.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
 

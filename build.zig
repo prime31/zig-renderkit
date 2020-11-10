@@ -14,8 +14,8 @@ pub fn build(b: *Builder) !void {
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        // [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
+        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "meshes", "examples/meshes.zig" },
         [_][]const u8{ "clear_imgui", "examples/clear_imgui.zig" },
@@ -52,13 +52,6 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 
     addRenderKitToArtifact(b, exe, target, prefix_path);
 
-    // aya gets access to everything
-    exe.addPackage(.{
-        .name = "aya",
-        .path = "examples/core/aya.zig",
-        .dependencies = exe.packages.items,
-    });
-
     const run_cmd = exe.run();
     const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));
     exe_step.dependOn(&run_cmd.step);
@@ -85,7 +78,7 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     };
     exe.addPackage(renderkit_package);
 
-    // optional gamekit package
+    // optional gamekit package. TODO: dont automatically add this
     addGameKitToArtifact(b, exe, target, renderkit_package, prefix_path);
 }
 

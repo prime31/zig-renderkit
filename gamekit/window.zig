@@ -44,6 +44,7 @@ pub const Window = struct {
 
     pub fn deinit(self: Window) void {
         sdl.SDL_DestroyWindow(self.sdl_window);
+        if (renderkit.current_renderer == .opengl) sdl.SDL_GL_DeleteContext(self.gl_ctx);
     }
 
     fn createOpenGlWindow(self: *Window, config: WindowConfig, flags: c_int) void {
@@ -80,9 +81,7 @@ pub const Window = struct {
         switch (event.event) {
             sdl.SDL_WINDOWEVENT_SIZE_CHANGED => {
                 std.debug.warn("resize: {}x{}\n", .{ event.data1, event.data2 });
-                // TODO: make a resized event and let gfx resize itself
-                @import("aya.zig").renderkit.resetBackbuffer(event.data1, event.data2);
-                @import("aya.zig").time.resync();
+                // TODO: make a resized event
             },
             sdl.SDL_WINDOWEVENT_FOCUS_GAINED => self.focused = true,
             sdl.SDL_WINDOWEVENT_FOCUS_LOST => self.focused = false,
@@ -90,15 +89,11 @@ pub const Window = struct {
         }
     }
 
-    /// returns the drawable size / the window size. Used to scale mouse coords when the OS gives them to us in points.
+    /// returns the drawable width / the window width. Used to scale mouse coords when the OS gives them to us in points.
     pub fn scale(self: Window) f32 {
         var wx = self.width();
-
-        var dx: i32 = undefined;
-        var dy: i32 = undefined;
-        self.drawableSize(&dx, &dy);
-
-        return @intToFloat(f32, dx) / @intToFloat(f32, wx);
+        const draw_size = self.drawableSize();
+        return @intToFloat(f32, draw_size.w) / @intToFloat(f32, wx);
     }
 
     pub fn width(self: Window) i32 {
@@ -124,7 +119,7 @@ pub const Window = struct {
     pub fn size(self: Window) struct { w: c_int, h: c_int } {
         var w: c_int = 0;
         var h: c_int = 0;
-        sdl.SDL_GetWindowSize(self.sdl_window, w, h);
+        sdl.SDL_GetWindowSize(self.sdl_window, &w, &h);
         return .{ .w = w, .h = h };
     }
 

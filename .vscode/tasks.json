@@ -72,21 +72,6 @@
             },
         },
         {
-            "label": "Build and Run Current File",
-            "type": "shell",
-            "command": "zig run ${file}",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "presentation": {
-                "clear": true
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            }
-        },
-        {
             "label": "Build and Run Tests in Current File",
             "type": "shell",
             "command": "zig test ${file}",
