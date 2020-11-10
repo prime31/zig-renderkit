@@ -10,6 +10,33 @@ Cross platform Zig graphics backends with a 2D focus. There are two packages exp
 There is a _dummy_ backend that can be used as a template to add a new backend. It contains the full API any backend must satisfy. Backends pass no pointers or objects back to user code. [Handles](https://floooh.github.io/2018/06/17/handles-vs-pointers.html) are used for all renderer-specific objects. There are `Handles` and `HandledCache` structs built to make using handles seamless.
 
 
+### Usage
+
+- clone the repository recursively: `git clone --recursive https://github.com/prime31/zig-renderkit`
+- `zig build help` to see what examples are availble
+- `zig build EXAMPLE_NAME` to run an example
+
+
+### Minimal GameKit Project File
+
+```zig
+const gamekit = @import("gamekit");
+const renderkit = @import("renderkit");
+
+pub fn main() !void {
+    try gamekit.run(.{ .init = init, .render = render, });
+}
+
+fn init() !void {}
+
+fn render() !void {
+    const size = gamekit.window.drawableSize();
+    renderkit.beginDefaultPass(.{}, size.w, size.h);
+    renderkit.endPass();
+}
+```
+
+
 #### Some interesting GL zig code used for inspiration
 
 [ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)
