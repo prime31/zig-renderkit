@@ -11,6 +11,7 @@ usingnamespace @import("descriptions.zig");
 pub const Renderer = enum {
     dummy,
     opengl,
+    webgl,
     metal,
     directx,
     vulkan,

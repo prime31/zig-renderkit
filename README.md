@@ -1,10 +1,16 @@
-### zig-gl
-Zig graphics backends with a 2D focus. If it doesn't make sense for 2D it won't be found here. OpenGL currently implemented along with higher level objects (mesh, dyanmic mesh, sprite batcher, multi-texture sprite batcher, triangle batcher) built on top of the generic renderer API. A small math lib with just the types required (Vec2, Color, 3x2 Matrix) is also included.
+### Zig RenderKit 2D
 
-It should be fairly easy to add new backends for Metal, DirectX11, Vulkan using the interface laid out in the dummy renderer (empty implementation).
+Cross platform Zig graphics backends with a 2D focus. There are two packages exported by RenderKit:
+- **renderkit:** an API abstraction (very similar to and inspired by Sokol) that wraps calls to the backend renderer (currently OpenGL with Metal started). It aims to be as dependency free as possible (only relying on stb_image). The OpenGL backend has its own GL function loader so no external loader is required though you can optionally pass in your own GL loader function (SDL_GL_GetProcAddress or glfwGetProcAddress for example). A small math lib with just the types required for the renderer (Vec2, Color, 3x2 Matrix) is also included. Common higher level objects are also provided: an effiecient sprite batcher, shader, meshes, offscreen rendering and a triangle batcher.
+- **gamekit:** provides an example implementation of a game framework build on top of `renderkit`. Includes the core render loop, window (via SDL), input, timing and Dear ImGui support. You can use it as a base to make a 2D game as-is or create your own 2D game kit based on it.
 
 
-### Some other interesting GL zig code
+### Adding New Backends
+
+There is a _dummy_ backend that can be used as a template to add a new backend. It contains the full API any backend must satisfy. Backends pass no pointers or objects back to user code. [Handles](https://floooh.github.io/2018/06/17/handles-vs-pointers.html) are used for all renderer-specific objects. There are `Handles` and `HandledCache` structs built to make using handles seamless.
+
+
+#### Some interesting GL zig code used for inspiration
 
 [ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)
 

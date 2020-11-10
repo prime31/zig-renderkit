@@ -139,6 +139,7 @@ pub fn loadFunctionsZig() void {
     }
 }
 
+/// loader is a GL function loader, for example SDL_GL_GetProcAddress or glfwGetProcAddress
 pub fn loadFunctions(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
     inline for (@typeInfo(Funcs).Struct.fields) |field, i| {
         @field(gl, field.name) = @ptrCast(field.field_type, loader(field.name ++ &[_]u8{0}));

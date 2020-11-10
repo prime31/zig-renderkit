@@ -3,7 +3,7 @@ pub const aya = @import("aya");
 const ig = @import("imgui");
 const gfx = @import("gfx");
 const math = gfx.math;
-const gameloop = @import("gameloop");
+const gamekit = @import("gamekit");
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -55,7 +55,7 @@ var pass: gfx.OffscreenPass = undefined;
 var rt_pos: math.Vec2 = .{};
 
 pub fn main() !void {
-    try gameloop.run(.{
+    try gamekit.run(.{
         .init = init,
         .render = render,
     });
@@ -98,7 +98,7 @@ fn render() !void {
         thing.pos.y += thing.vel.y * 0.016;
     }
 
-    const size = gameloop.window.drawableSize();
+    const size = gamekit.window.drawableSize();
     gfx.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
 
     // render

@@ -84,22 +84,29 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     };
     exe.addPackage(gfx_package);
 
-    // optional sdl
-    @import(prefix_path ++ "src/deps/sdl/build.zig").linkArtifact(exe, target);
-    const sdl_pkg = @import(prefix_path ++ "src/deps/sdl/build.zig").getPackage(prefix_path);
+    // optional gamekit package
+    addGameKitToArtifact(b, exe, target, gfx_package, prefix_path);
+}
 
-    // optional imgui
-    @import(prefix_path ++ "src/deps/imgui/build.zig").linkArtifact(b, exe, target);
+
+/// optionally adds gamekit, sdl and imgui packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
+pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, gfx_package: std.build.Pkg, comptime prefix_path: []const u8) void {
+    // sdl
+    @import(prefix_path ++ "gamekit/deps/sdl/build.zig").linkArtifact(exe, target);
+    const sdl_pkg = @import(prefix_path ++ "gamekit/deps/sdl/build.zig").getPackage(prefix_path);
+
+    // imgui
+    @import(prefix_path ++ "src/deps/imgui/build.zig").linkArtifact(b, exe, target, prefix_path);
     const imgui_pkg = @import(prefix_path ++ "src/deps/imgui/build.zig").getImGuiPackage(prefix_path);
     const imgui_gl_pkg = @import(prefix_path ++ "src/deps/imgui/build.zig").getImGuiGlPackage(prefix_path);
 
-    // optional gameloop
-    const gameloop_package = std.build.Pkg{
-        .name = "gameloop",
-        .path = prefix_path ++ "gameloop/gameloop.zig",
+    // gamekit
+    const gamekit_package = std.build.Pkg{
+        .name = "gamekit",
+        .path = prefix_path ++ "gamekit/gamekit.zig",
         .dependencies = &[_]std.build.Pkg{ gfx_package, sdl_pkg, imgui_pkg, imgui_gl_pkg },
     };
-    exe.addPackage(gameloop_package);
+    exe.addPackage(gamekit_package);
 }
 
 fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
