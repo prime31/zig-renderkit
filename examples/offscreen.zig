@@ -3,9 +3,9 @@ pub const aya = @import("aya");
 const ig = @import("imgui");
 const gfx = @import("gfx");
 const math = gfx.math;
+const gameloop = @import("gameloop");
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
-pub const enable_imgui = true;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {
@@ -29,9 +29,9 @@ const Thing = struct {
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(texture: gfx.Texture) Thing {
+    pub fn init(tex: gfx.Texture) Thing {
         return .{
-            .texture = texture,
+            .texture = tex,
             .pos = .{
                 .x = range(f32, 0, 750),
                 .y = range(f32, 0, 50),
@@ -45,37 +45,36 @@ const Thing = struct {
     }
 };
 
+var shader: gfx.Shader = undefined;
+var batcher: gfx.Batcher = undefined;
+var texture: gfx.Texture = undefined;
+var checker_tex: gfx.Texture = undefined;
+var white_tex: gfx.Texture = undefined;
+var things: []Thing = undefined;
+var pass: gfx.OffscreenPass = undefined;
+var rt_pos: math.Vec2 = .{};
+
 pub fn main() !void {
-    try aya.run(null, render);
+    try gameloop.run(.{
+        .init = init,
+        .render = render,
+    });
 }
 
-fn render() !void {
-    var shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
-    defer shader.deinit();
+fn init() !void {
+    shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     shader.bind();
 
-    var batcher = gfx.Batcher.init(std.testing.allocator, 100);
-    defer batcher.deinit();
-
-    var texture = gfx.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
-    defer texture.deinit();
-
-    var checker_tex = gfx.Texture.initCheckerTexture();
-    defer checker_tex.deinit();
-
-    var white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
-    defer white_tex.deinit();
-
-    var things = makeThings(12, texture);
-    defer std.testing.allocator.free(things);
+    batcher = gfx.Batcher.init(std.testing.allocator, 100);
+    texture = gfx.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
+    checker_tex = gfx.Texture.initCheckerTexture();
+    white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
+    things = makeThings(12, texture);
+    pass = gfx.OffscreenPass.init(300, 200);
 
     shader.bind();
     shader.setUniformName(i32, "MainTex", 0);
-    shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
     gfx.viewport(0, 0, 800, 600);
-
-    var pass = gfx.OffscreenPass.init(300, 200);
-    defer pass.deinit();
 
     // render something to the render texture
     pass.bind(.{ .color = math.Color.purple.asArray() });
@@ -90,50 +89,47 @@ fn render() !void {
     pass.unbind();
 
     gfx.viewport(0, 0, 800, 600);
-    var rt_pos: math.Vec2 = .{};
-
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
-
-    while (!aya.pollEvents()) {
-        for (things) |*thing| {
-            thing.pos.x += thing.vel.x * 0.016;
-            thing.pos.y += thing.vel.y * 0.016;
-        }
-
-        const size = aya.getRenderableSize();
-        gfx.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
-
-        // render
-        batcher.begin();
-        batcher.drawTex(rt_pos, 0xFFFFFFFF, pass.color_texture);
-        rt_pos.x += 0.5;
-        rt_pos.y += 0.5;
-
-        for (things) |thing| {
-            batcher.drawTex(thing.pos, thing.col, thing.texture);
-        }
-
-        batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
-
-        batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
-        batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
-        batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
-        batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
-        batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
-
-        batcher.end();
-
-        gfx.endPass();
-        aya.swapWindow();
-    }
 }
 
-fn makeThings(n: usize, texture: gfx.Texture) []Thing {
-    var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
-
-    for (things) |*thing, i| {
-        thing.* = Thing.init(texture);
+fn render() !void {
+    for (things) |*thing| {
+        thing.pos.x += thing.vel.x * 0.016;
+        thing.pos.y += thing.vel.y * 0.016;
     }
 
-    return things;
+    const size = gameloop.window.drawableSize();
+    gfx.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
+
+    // render
+    batcher.begin();
+    batcher.drawTex(rt_pos, 0xFFFFFFFF, pass.color_texture);
+    rt_pos.x += 0.5;
+    rt_pos.y += 0.5;
+
+    for (things) |thing| {
+        batcher.drawTex(thing.pos, thing.col, thing.texture);
+    }
+
+    batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
+
+    batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
+    batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
+    batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
+    batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
+    batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
+
+    batcher.end();
+
+    gfx.endPass();
+}
+
+fn makeThings(n: usize, tex: gfx.Texture) []Thing {
+    var the_things = std.testing.allocator.alloc(Thing, n) catch unreachable;
+
+    for (the_things) |*thing, i| {
+        thing.* = Thing.init(tex);
+    }
+
+    return the_things;
 }

@@ -3,7 +3,7 @@ pub const aya = @import("aya");
 const gfx = aya.gfx;
 usingnamespace @import("imgui");
 
-pub const imgui = true;
+pub const enable_imgui = true;
 
 var clear_color = gfx.math.Color.aya;
 

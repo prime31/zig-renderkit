@@ -3,17 +3,8 @@ const std = @import("std");
 const Builder = std.build.Builder;
 
 pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
-    const imgui = std.build.Pkg{
-        .name = "imgui",
-        .path = "src/deps/imgui/imgui.zig",
-    };
-    const imgui_gl = std.build.Pkg{
-        .name = "imgui_gl",
-        .path = "src/deps/imgui/imgui_gl.zig",
-        .dependencies = &[_]std.build.Pkg{imgui},
-    };
-    exe.addPackage(imgui);
-    exe.addPackage(imgui_gl);
+    exe.addPackage(getImGuiPackage(""));
+    exe.addPackage(getImGuiGlPackage(""));
 
     exe.linkLibC();
     if (target.isWindows()) {
@@ -90,7 +81,7 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     }
 }
 
-// helper function to get SDK path on Mac
+/// helper function to get SDK path on Mac
 pub fn macosFrameworksDir(b: *Builder) ![]u8 {
     var str = try b.exec(&[_][]const u8{ "xcrun", "--show-sdk-path" });
     const strip_newline = std.mem.lastIndexOf(u8, str, "\n");
@@ -98,4 +89,19 @@ pub fn macosFrameworksDir(b: *Builder) ![]u8 {
         str = str[0..index];
     }
     return try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
+}
+
+pub fn getImGuiPackage(comptime prefix_path: []const u8) std.build.Pkg {
+    return .{
+        .name = "imgui",
+        .path = prefix_path ++ "src/deps/imgui/imgui.zig",
+    };
+}
+
+pub fn getImGuiGlPackage(comptime prefix_path: []const u8) std.build.Pkg {
+    return .{
+        .name = "imgui_gl",
+        .path = prefix_path ++ "src/deps/imgui/imgui_gl.zig",
+        .dependencies = &[_]std.build.Pkg{getImGuiPackage(prefix_path)},
+    };
 }

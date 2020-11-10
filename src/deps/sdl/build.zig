@@ -12,5 +12,12 @@ pub fn linkArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target
         artifact.addLibPath("c:\\SDL2\\lib\\x64");
     }
 
-    artifact.addPackagePath("sdl", "src/deps/sdl/sdl.zig");
+    artifact.addPackage(getPackage(""));
+}
+
+pub fn getPackage(comptime prefix_path: []const u8) std.build.Pkg {
+    return .{
+        .name = "sdl",
+        .path = prefix_path ++ "src/deps/sdl/sdl.zig",
+    };
 }

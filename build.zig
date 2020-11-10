@@ -5,6 +5,7 @@ const Renderer = @import("src/renderer/renderer.zig").Renderer;
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
 
+    // TODO: move these to linkArtifict and ensure they only get called once
     // build options. For now they can be overridden in root directly as well.
     var renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
     var enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
@@ -31,6 +32,7 @@ pub fn build(b: *Builder) !void {
         var exe = createExe(b, target, name, source, prefix_path);
         examples_step.dependOn(&exe.step);
         exe.addBuildOption(Renderer, "renderer", renderer);
+        exe.addBuildOption(bool, "enable_imgui", enable_imgui);
 
         // first element in the list is added as "run" so "zig build run" works
         if (i == 0) {
@@ -49,12 +51,6 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
     linkArtifact(b, exe, target, prefix_path);
-
-    // sdl package
-    @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
-
-    // imgui
-    @import("src/deps/imgui/build.zig").linkArtifact(b, exe, target);
 
     // aya gets access to everything
     exe.addPackage(.{
@@ -78,14 +74,32 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
     addOpenGlToArtifact(exe, target);
 
     // stb
-    @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
-    const stb_pkg = @import("src/deps/stb/build.zig").getPackage(prefix_path);
+    @import(prefix_path ++ "src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
+    const stb_pkg = @import(prefix_path ++ "src/deps/stb/build.zig").getPackage(prefix_path);
 
-    exe.addPackage(.{
+    const gfx_package = std.build.Pkg{
         .name = "gfx",
         .path = prefix_path ++ "src/gfx.zig",
         .dependencies = &[_]std.build.Pkg{ stb_pkg },
-    });
+    };
+    exe.addPackage(gfx_package);
+
+    // optional sdl
+    @import(prefix_path ++ "src/deps/sdl/build.zig").linkArtifact(exe, target);
+    const sdl_pkg = @import(prefix_path ++ "src/deps/sdl/build.zig").getPackage(prefix_path);
+
+    // optional imgui
+    @import(prefix_path ++ "src/deps/imgui/build.zig").linkArtifact(b, exe, target);
+    const imgui_pkg = @import(prefix_path ++ "src/deps/imgui/build.zig").getImGuiPackage(prefix_path);
+    const imgui_gl_pkg = @import(prefix_path ++ "src/deps/imgui/build.zig").getImGuiGlPackage(prefix_path);
+
+    // optional gameloop
+    const gameloop_package = std.build.Pkg{
+        .name = "gameloop",
+        .path = prefix_path ++ "gameloop/gameloop.zig",
+        .dependencies = &[_]std.build.Pkg{ gfx_package, sdl_pkg, imgui_pkg, imgui_gl_pkg },
+    };
+    exe.addPackage(gameloop_package);
 }
 
 fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Target) void {
