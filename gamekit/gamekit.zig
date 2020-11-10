@@ -4,6 +4,8 @@ const imgui_gl = @import("imgui_gl");
 const imgui = @import("imgui");
 const renderkit = @import("renderkit");
 
+pub const utils = @import("utils/utils.zig");
+
 const Window = @import("window.zig").Window;
 const WindowConfig = @import("window.zig").WindowConfig;
 const Input = @import("input.zig").Input;
@@ -75,6 +77,7 @@ pub fn run(config: Config) !void {
 
         if (renderkit.current_renderer == .opengl) sdl.SDL_GL_SwapWindow(window.sdl_window);
         renderkit.commitFrame();
+        input.newFrame();
     }
 
     if (renderkit.enable_imgui) imgui_gl.shutdown();

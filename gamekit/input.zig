@@ -1,7 +1,7 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const math = @import("math/math.zig");
-const FixedList = @import("utils/fixed_list.zig").FixedList;
+const FixedList = @import("utils/utils.zig").FixedList;
 
 const released: u3 = 1; // true only the frame the key is released
 const down: u3 = 2; // true the entire time the key is down

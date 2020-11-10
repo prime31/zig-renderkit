@@ -51,6 +51,7 @@ var white_tex: renderkit.Texture = undefined;
 var things: []Thing = undefined;
 var pass: renderkit.OffscreenPass = undefined;
 var rt_pos: math.Vec2 = .{};
+var camera: gamekit.utils.Camera = undefined;
 
 pub fn main() !void {
     try gamekit.run(.{
@@ -61,6 +62,10 @@ pub fn main() !void {
 }
 
 fn init() !void {
+    camera = gamekit.utils.Camera.init();
+    const size = gamekit.window.size();
+    camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
+
     shader = try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     shader.bind();
 
@@ -93,8 +98,32 @@ fn init() !void {
 
 fn update() !void {
     for (things) |*thing| {
-        thing.pos.x += thing.vel.x * 0.016;
-        thing.pos.y += thing.vel.y * 0.016;
+        thing.pos.x += thing.vel.x * gamekit.time.dt();
+        thing.pos.y += thing.vel.y * gamekit.time.dt();
+    }
+
+    rt_pos.x += 0.5;
+    rt_pos.y += 0.5;
+
+    var did_move = false;
+    if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
+        camera.pos.x += 100 * gamekit.time.dt();
+        did_move = true;
+    } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {
+        camera.pos.x -= 100 * gamekit.time.dt();
+        did_move = true;
+    }
+    if (gamekit.input.keyDown(.SDL_SCANCODE_W)) {
+        camera.pos.y -= 100 * gamekit.time.dt();
+        did_move = true;
+    } else if (gamekit.input.keyDown(.SDL_SCANCODE_S)) {
+        camera.pos.y += 100 * gamekit.time.dt();
+        did_move = true;
+    }
+
+    if (did_move) {
+        const proj_mat = math.Mat32.initOrtho(800, 600).mul(camera.transMat());
+        shader.setUniformName(math.Mat32, "TransformMatrix", proj_mat);
     }
 }
 
@@ -105,8 +134,6 @@ fn render() !void {
     // render
     batcher.begin();
     batcher.drawTex(rt_pos, 0xFFFFFFFF, pass.color_texture);
-    rt_pos.x += 0.5;
-    rt_pos.y += 0.5;
 
     for (things) |thing| {
         batcher.drawTex(thing.pos, thing.col, thing.texture);
