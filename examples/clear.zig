@@ -1,18 +1,18 @@
 const std = @import("std");
-pub const aya = @import("aya");
-const renderkit = aya.renderkit;
+const gamekit = @import("gamekit");
+const renderkit = @import("renderkit");
 
 pub fn main() !void {
-    try aya.run(null, render);
+    try gamekit.run(.{
+        .init = init,
+        .render = render,
+    });
 }
+
+fn init() !void {}
 
 fn render() !void {
-    while (!aya.pollEvents()) {
-        const size = aya.getRenderableSize();
-        renderkit.beginDefaultPass(.{}, size.w, size.h);
-        renderkit.endPass();
-        aya.swapWindow();
-    }
+    const size = gamekit.window.drawableSize();
+    renderkit.beginDefaultPass(.{}, size.w, size.h);
+    renderkit.endPass();
 }
-
-extern fn metal_tick() void;

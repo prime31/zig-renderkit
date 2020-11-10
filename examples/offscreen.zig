@@ -1,9 +1,7 @@
 const std = @import("std");
-pub const aya = @import("aya");
-const ig = @import("imgui");
+const gamekit = @import("gamekit");
 const renderkit = @import("renderkit");
 const math = renderkit.math;
-const gamekit = @import("gamekit");
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 

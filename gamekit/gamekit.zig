@@ -11,7 +11,7 @@ pub const Config = struct {
     init: fn () anyerror!void,
     update: ?fn () anyerror!void = null,
     render: fn () anyerror!void,
-    shutdown: ?fn () void = null,
+    shutdown: ?fn () anyerror!void = null,
     onFileDropped: ?fn ([]const u8) void = null,
 
     // gfx: renderkit.Config = renderkit.Config{},
@@ -73,7 +73,7 @@ fn imguiHandleEvent(evt: *sdl.SDL_Event) bool {
     return false;
 }
 
-pub fn swapWindow() void {
+fn swapWindow() void {
     if (renderkit.has_imgui) {
         const size = window.drawableSize();
         renderkit.viewport(0, 0, size.w, size.h);

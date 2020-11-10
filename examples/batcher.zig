@@ -1,6 +1,6 @@
 const std = @import("std");
-pub const aya = @import("aya");
 const sdl = @import("sdl");
+const gamekit = @import("gamekit");
 const renderkit = @import("renderkit");
 const math = renderkit.math;
 
@@ -34,9 +34,9 @@ const Thing = struct {
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(texture: renderkit.Texture) Thing {
+    pub fn init(tex: renderkit.Texture) Thing {
         return .{
-            .texture = texture,
+            .texture = tex,
             .pos = .{
                 .x = range(f32, 0, 750),
                 .y = range(f32, 0, 50),
@@ -88,16 +88,25 @@ const Fps = struct {
     }
 };
 
+var shader: renderkit.Shader = undefined;
+var batcher: if (use_multi_texture_batcher) renderkit.MultiBatcher else renderkit.Batcher = undefined;
+var textures: []renderkit.Texture = undefined;
+var things: []Thing = undefined;
+var fps: Fps = undefined;
+
 pub fn main() !void {
     rng.seed(@intCast(u64, std.time.milliTimestamp()));
-    try aya.run(null, render);
+    try gamekit.run(.{
+        .init = init,
+        .render = render,
+        .shutdown = shutdown,
+    });
 }
 
-fn render() !void {
+fn init() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
 
-    var shader = if (use_multi_texture_batcher) try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
-    defer shader.deinit();
+    shader = if (use_multi_texture_batcher) try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     shader.bind();
     shader.setUniformName(i32, "MainTex", 0);
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
@@ -108,64 +117,61 @@ fn render() !void {
         shader.setUniformName([]c_int, "Textures", &samplers);
     }
 
-    var batcher = if (use_multi_texture_batcher) renderkit.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else renderkit.Batcher.init(std.testing.allocator, max_sprites_per_batch);
-    defer batcher.deinit();
+    batcher = if (use_multi_texture_batcher) renderkit.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else renderkit.Batcher.init(std.testing.allocator, max_sprites_per_batch);
 
-    var fps = Fps.init();
-    var textures = loadTextures();
+    fps = Fps.init();
+    loadTextures();
+    makeThings(total_objects);
+}
+
+fn shutdown() !void {
+    std.testing.allocator.free(things);
     defer {
         for (textures) |tex| tex.deinit();
         std.testing.allocator.free(textures);
     }
-
-    var things = makeThings(total_objects, textures);
-    defer std.testing.allocator.free(things);
-
-    renderkit.viewport(0, 0, 800, 600);
-
-    while (!aya.pollEvents()) {
-        fps.update();
-        for (things) |*thing| {
-            thing.pos.x += thing.vel.x * fps.dt;
-            thing.pos.y += thing.vel.y * fps.dt;
-
-            if (thing.pos.x > 780) {
-                thing.vel.x *= -1;
-                thing.pos.x = 780;
-            }
-            if (thing.pos.x < 0) {
-                thing.vel.x *= -1;
-                thing.pos.x = 0;
-            }
-            if (thing.pos.y > 580) {
-                thing.vel.y *= -1;
-                thing.pos.y = 580;
-            }
-            if (thing.pos.y < 0) {
-                thing.vel.y *= -1;
-                thing.pos.y = 0;
-            }
-        }
-
-        const size = aya.getRenderableSize();
-        renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
-
-        // render
-        batcher.begin();
-
-        for (things) |thing| {
-            batcher.drawTex(thing.pos, thing.col, thing.texture);
-        }
-
-        batcher.end();
-        renderkit.endPass();
-
-        aya.swapWindow();
-    }
 }
 
-fn loadTextures() []renderkit.Texture {
-    var textures = std.testing.allocator.alloc(renderkit.Texture, total_textures) catch unreachable;
+fn render() !void {
+    fps.update();
+    for (things) |*thing| {
+        thing.pos.x += thing.vel.x * fps.dt;
+        thing.pos.y += thing.vel.y * fps.dt;
+
+        if (thing.pos.x > 780) {
+            thing.vel.x *= -1;
+            thing.pos.x = 780;
+        }
+        if (thing.pos.x < 0) {
+            thing.vel.x *= -1;
+            thing.pos.x = 0;
+        }
+        if (thing.pos.y > 580) {
+            thing.vel.y *= -1;
+            thing.pos.y = 580;
+        }
+        if (thing.pos.y < 0) {
+            thing.vel.y *= -1;
+            thing.pos.y = 0;
+        }
+    }
+
+    const size = gamekit.window.drawableSize();
+    renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
+
+    // render
+    batcher.begin();
+
+    for (things) |thing| {
+        batcher.drawTex(thing.pos, thing.col, thing.texture);
+    }
+
+    batcher.end();
+    renderkit.endPass();
+}
+
+fn loadTextures() void {
+    textures = std.testing.allocator.alloc(renderkit.Texture, total_textures) catch unreachable;
 
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -176,12 +182,10 @@ fn loadTextures() []renderkit.Texture {
         var name = std.fmt.bufPrintZ(&buf, "examples/assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
         textures[i] = renderkit.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
     }
-
-    return textures;
 }
 
-fn makeThings(n: usize, textures: []renderkit.Texture) []Thing {
-    var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
+fn makeThings(n: usize) void {
+    things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     var count: usize = 0;
     var tid = range(usize, 0, total_textures);
@@ -197,6 +201,4 @@ fn makeThings(n: usize, textures: []renderkit.Texture) []Thing {
 
         thing.* = Thing.init(textures[tid]);
     }
-
-    return things;
 }
