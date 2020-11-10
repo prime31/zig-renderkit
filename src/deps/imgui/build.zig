@@ -60,6 +60,9 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
         if (target.isDarwin()) {
             const frameworks_dir = macosFrameworksDir(b) catch unreachable;
             lib.addFrameworkDir(frameworks_dir);
+            // for some reason, only on some SDL installs this is required...
+            // const x11_include_dir = std.mem.concat(b.allocator, u8, &[_][]const u8{ frameworks_dir, "/Tk.framework/Headers" }) catch unreachable;
+            // lib.addIncludeDir(x11_include_dir);
         }
         lib.addIncludeDir("src/deps/imgui/cimgui/imgui");
         lib.addIncludeDir("src/deps/imgui/cimgui/imgui/examples/libs/gl3w");

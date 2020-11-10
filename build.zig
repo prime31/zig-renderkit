@@ -1,6 +1,6 @@
 const std = @import("std");
 const Builder = @import("std").build.Builder;
-const Renderer = @import("src/backend/backend.zig").Renderer;
+const Renderer = @import("src/renderer/renderer.zig").Renderer;
 
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
@@ -50,10 +50,6 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 
     linkArtifact(b, exe, target, prefix_path);
 
-    // TODO: why dont we need to link OpenGL?
-    // renderer specific linkage
-    addOpenGlToArtifact(exe, target);
-
     // sdl package
     @import("src/deps/sdl/build.zig").linkArtifact(exe, target);
 
@@ -77,25 +73,18 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 /// prefix_path is the path to the gfx build.zig file relative to your build.zig.
 /// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
 pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    // renderer specific linkage
     if (target.isDarwin()) addMetalToArtifact(b, exe, target);
+    addOpenGlToArtifact(exe, target);
 
     // stb
     @import("src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
     const stb_pkg = @import("src/deps/stb/build.zig").getPackage(prefix_path);
 
-    // backend package, LLAPI
-    const backend_pkg = std.build.Pkg{
-        .name = "backend",
-        .path = prefix_path ++ "src/backend/backend.zig",
-        .dependencies = &[_]std.build.Pkg{stb_pkg},
-    };
-    exe.addPackage(backend_pkg);
-
-    // gfx package, HLAPI. gets access to stb and backend
     exe.addPackage(.{
         .name = "gfx",
         .path = prefix_path ++ "src/gfx.zig",
-        .dependencies = &[_]std.build.Pkg{ stb_pkg, backend_pkg },
+        .dependencies = &[_]std.build.Pkg{ stb_pkg },
     });
 }
 
@@ -123,6 +112,6 @@ fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.bu
     exe.linkFramework("MetalKit");
 
     const cflags = [_][]const u8{ "-std=c99", "-ObjC", "-fobjc-arc" };
-    exe.addIncludeDir("src/backend/metal/native");
-    exe.addCSourceFile("src/backend/metal/native/metal.c", &cflags);
+    exe.addIncludeDir("src/renderer/metal/native");
+    exe.addCSourceFile("src/renderer/metal/native/metal.c", &cflags);
 }

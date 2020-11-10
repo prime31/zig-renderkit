@@ -16,7 +16,7 @@ pub const Renderer = enum {
     vulkan,
 };
 
-const backend = @import(@tagName(@import("root").aya.renderer) ++ "/backend.zig");
+const backend = @import(@tagName(@import("../gfx.zig").current_renderer) ++ "/backend.zig");
 // pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // setup and state

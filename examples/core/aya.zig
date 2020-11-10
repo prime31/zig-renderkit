@@ -5,25 +5,6 @@ const window_impl = @import("window.zig");
 pub const imgui = @import("imgui");
 pub const gfx = @import("gfx");
 
-// search path: root.build_options, root.renderer, default
-pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "build_options")) blk: {
-    break :blk @field(@import("root"), "build_options").renderer;
-} else if (@hasDecl(@import("root"), "renderer")) blk: {
-    break :blk @field(@import("root"), "renderer");
-} else blk: {
-    break :blk gfx.Renderer.opengl;
-};
-
-// search path: root.build_options, root.enable_imgui, default
-pub const has_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
-    break :blk @field(@import("root"), "build_options").enable_imgui;
-} else if (@hasDecl(@import("root"), "enable_imgui")) blk: {
-    break :blk @field(@import("root"), "enable_imgui");
-} else blk: {
-    break :blk false;
-};
-
-const build_options = @import("build_options");
 
 // if init is null then render is the only method that will be called. Use while (pollEvents()) to make your game loop.
 pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
@@ -33,21 +14,21 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
     }
     defer sdl.SDL_Quit();
 
-    window_impl.createWindow(renderer);
+    window_impl.createWindow(gfx.current_renderer);
 
     var metal_setup = gfx.MetalSetup{};
-    if (renderer == .metal) {
+    if (gfx.current_renderer == .metal) {
         var metal_view = sdl.SDL_Metal_CreateView(window_impl.window);
         metal_setup.ca_layer = sdl.SDL_Metal_GetLayer(metal_view);
     }
 
-    gfx.backend.setup(.{
+    gfx.renderer.setup(.{
         .allocator = std.testing.allocator,
         .gl_loader = sdl.SDL_GL_GetProcAddress,
         .metal = metal_setup,
     });
 
-    if (has_imgui) {
+    if (gfx.has_imgui) {
         _ = imgui.igCreateContext(null);
         var io = imgui.igGetIO();
         io.ConfigFlags |= imgui.ImGuiConfigFlags_NavEnableKeyboard;
@@ -63,8 +44,8 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         try init_fn();
     } else {
         try render();
-        if (has_imgui) imgui_gl.shutdown();
-        gfx.backend.shutdown();
+        if (gfx.has_imgui) imgui_gl.shutdown();
+        gfx.renderer.shutdown();
         sdl.SDL_DestroyWindow(window_impl.window);
         sdl.SDL_Quit();
         return;
@@ -74,8 +55,8 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
         try render();
         sdl.SDL_GL_SwapWindow(window_impl.window);
     }
-    if (has_imgui) imgui_gl.shutdown();
-    gfx.backend.shutdown();
+    if (gfx.has_imgui) imgui_gl.shutdown();
+    gfx.renderer.shutdown();
     sdl.SDL_DestroyWindow(window_impl.window);
     sdl.SDL_Quit();
 }
@@ -83,7 +64,7 @@ pub fn run(init: ?fn () anyerror!void, render: fn () anyerror!void) !void {
 pub fn pollEvents() bool {
     var event: sdl.SDL_Event = undefined;
     while (sdl.SDL_PollEvent(&event) != 0) {
-        if (has_imgui and imguiHandleEvent(&event)) continue;
+        if (gfx.has_imgui and imguiHandleEvent(&event)) continue;
 
         switch (event.type) {
             sdl.SDL_QUIT => return true,
@@ -91,7 +72,7 @@ pub fn pollEvents() bool {
         }
     }
 
-    if (has_imgui) imgui_gl.newFrame(window_impl.window);
+    if (gfx.has_imgui) imgui_gl.newFrame(window_impl.window);
 
     return false;
 }
@@ -110,7 +91,7 @@ fn imguiHandleEvent(evt: *sdl.SDL_Event) bool {
 }
 
 pub fn swapWindow() void {
-    if (has_imgui) {
+    if (gfx.has_imgui) {
         const size = window_impl.getRenderableSize();
         gfx.viewport(0, 0, size.w, size.h);
 
@@ -118,7 +99,7 @@ pub fn swapWindow() void {
         _ = sdl.SDL_GL_MakeCurrent(window_impl.window, window_impl.gl_ctx);
     }
 
-    if (renderer == .opengl) sdl.SDL_GL_SwapWindow(window_impl.window);
+    if (gfx.current_renderer == .opengl) sdl.SDL_GL_SwapWindow(window_impl.window);
     gfx.commitFrame();
 }
 

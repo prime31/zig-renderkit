@@ -1,8 +1,8 @@
 const std = @import("std");
-const backend = @import("backend");
-const gfx = @import("../gfx.zig");
 const stb_image = @import("stb");
-const fs = @import("../fs.zig");
+const gfx = @import("../gfx.zig");
+const renderer = gfx.renderer;
+const fs = gfx.fs;
 
 pub const Texture = struct {
     img: gfx.Image,
@@ -36,7 +36,7 @@ pub const Texture = struct {
     }
 
     pub fn initWithDataOptions(comptime T: type, width: i32, height: i32, pixels: []T, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) gfx.Texture {
-        const img = backend.createImage(.{
+        const img = renderer.createImage(.{
             .width = width,
             .height = height,
             .min_filter = filter,
@@ -70,7 +70,7 @@ pub const Texture = struct {
     }
 
     pub fn initOffscreen(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) gfx.Texture {
-        const img = backend.createImage(.{
+        const img = renderer.createImage(.{
             .render_target = true,
             .width = width,
             .height = height,
@@ -87,7 +87,7 @@ pub const Texture = struct {
     }
 
     pub fn initStencil(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) gfx.Texture {
-        const img = backend.createImage(.{
+        const img = renderer.createImage(.{
             .render_target = true,
             .pixel_format = .stencil,
             .width = width,
@@ -105,10 +105,10 @@ pub const Texture = struct {
     }
 
     pub fn deinit(self: *const Texture) void {
-        backend.destroyImage(self.img);
+        renderer.destroyImage(self.img);
     }
 
     pub fn setData(self: *Texture, comptime T: type, data: []T) void {
-        backend.updateImage(T, self.img, data);
+        renderer.updateImage(T, self.img, data);
     }
 };
