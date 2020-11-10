@@ -2,7 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const imgui_gl = @import("imgui_gl");
 const imgui = @import("imgui");
-const gfx = @import("gfx");
+const renderkit = @import("renderkit");
 
 const Window = @import("window.zig").Window;
 const WindowConfig = @import("window.zig").WindowConfig;
@@ -14,7 +14,7 @@ pub const Config = struct {
     shutdown: ?fn () void = null,
     onFileDropped: ?fn ([]const u8) void = null,
 
-    // gfx: gfx.Config = gfx.Config{},
+    // gfx: renderkit.Config = renderkit.Config{},
     window: WindowConfig = WindowConfig{},
 };
 
@@ -23,13 +23,13 @@ pub var window: Window = undefined;
 pub fn run(config: Config) !void {
     window = try Window.init(.{});
 
-    var metal_setup = gfx.MetalSetup{};
-    if (gfx.current_renderer == .metal) {
+    var metal_setup = renderkit.MetalSetup{};
+    if (renderkit.current_renderer == .metal) {
         var metal_view = sdl.SDL_Metal_CreateView(window.sdl_window);
         metal_setup.ca_layer = sdl.SDL_Metal_GetLayer(metal_view);
     }
 
-    gfx.renderer.setup(.{
+    renderkit.renderer.setup(.{
         .allocator = std.testing.allocator,
         .gl_loader = sdl.SDL_GL_GetProcAddress,
         .metal = metal_setup,
@@ -47,7 +47,7 @@ pub fn run(config: Config) !void {
 fn pollEvents() bool {
     var event: sdl.SDL_Event = undefined;
     while (sdl.SDL_PollEvent(&event) != 0) {
-        if (gfx.has_imgui and imguiHandleEvent(&event)) continue;
+        if (renderkit.has_imgui and imguiHandleEvent(&event)) continue;
 
         switch (event.type) {
             sdl.SDL_QUIT => return true,
@@ -55,7 +55,7 @@ fn pollEvents() bool {
         }
     }
 
-    if (gfx.has_imgui) imgui_gl.newFrame(window.sdl_window);
+    if (renderkit.has_imgui) imgui_gl.newFrame(window.sdl_window);
 
     return false;
 }
@@ -74,14 +74,14 @@ fn imguiHandleEvent(evt: *sdl.SDL_Event) bool {
 }
 
 pub fn swapWindow() void {
-    if (gfx.has_imgui) {
+    if (renderkit.has_imgui) {
         const size = window.drawableSize();
-        gfx.viewport(0, 0, size.w, size.h);
+        renderkit.viewport(0, 0, size.w, size.h);
 
         imgui_gl.render();
         _ = sdl.SDL_GL_MakeCurrent(window.sdl_window, window.gl_ctx);
     }
 
-    if (gfx.current_renderer == .opengl) sdl.SDL_GL_SwapWindow(window.sdl_window);
-    gfx.commitFrame();
+    if (renderkit.current_renderer == .opengl) sdl.SDL_GL_SwapWindow(window.sdl_window);
+    renderkit.commitFrame();
 }

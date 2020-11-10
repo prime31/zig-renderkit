@@ -1,6 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const gfx = @import("gfx");
+const renderkit = @import("renderkit");
 
 pub const WindowConfig = struct {
     title: [:0]const u8 = "zig gpu2d", // the window title as UTF-8 encoded string
@@ -32,7 +32,7 @@ pub const Window = struct {
         if (config.high_dpi) flags |= sdl.SDL_WINDOW_ALLOW_HIGHDPI;
         if (config.fullscreen) flags |= sdl.SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-        switch (gfx.current_renderer) {
+        switch (renderkit.current_renderer) {
             .opengl => window.createOpenGlWindow(config, flags),
             .metal => window.createMetalWindow(config, flags),
             else => unreachable,
@@ -81,7 +81,7 @@ pub const Window = struct {
             sdl.SDL_WINDOWEVENT_SIZE_CHANGED => {
                 std.debug.warn("resize: {}x{}\n", .{ event.data1, event.data2 });
                 // TODO: make a resized event and let gfx resize itself
-                @import("aya.zig").gfx.resetBackbuffer(event.data1, event.data2);
+                @import("aya.zig").renderkit.resetBackbuffer(event.data1, event.data2);
                 @import("aya.zig").time.resync();
             },
             sdl.SDL_WINDOWEVENT_FOCUS_GAINED => self.focused = true,
@@ -112,7 +112,7 @@ pub const Window = struct {
     pub fn drawableSize(self: Window) struct { w: c_int, h: c_int } {
         var w: c_int = 0;
         var h: c_int = 0;
-        switch (gfx.current_renderer) {
+        switch (renderkit.current_renderer) {
             .opengl => sdl.SDL_GL_GetDrawableSize(self.sdl_window, &w, &h),
             .metal => sdl.SDL_Metal_GetDrawableSize(self.sdl_window, &w, &h),
             else => unreachable,

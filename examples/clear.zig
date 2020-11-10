@@ -1,6 +1,6 @@
 const std = @import("std");
 pub const aya = @import("aya");
-const gfx = aya.gfx;
+const renderkit = aya.renderkit;
 
 pub fn main() !void {
     try aya.run(null, render);
@@ -9,8 +9,8 @@ pub fn main() !void {
 fn render() !void {
     while (!aya.pollEvents()) {
         const size = aya.getRenderableSize();
-        gfx.beginDefaultPass(.{}, size.w, size.h);
-        gfx.endPass();
+        renderkit.beginDefaultPass(.{}, size.w, size.h);
+        renderkit.endPass();
         aya.swapWindow();
     }
 }

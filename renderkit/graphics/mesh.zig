@@ -1,6 +1,6 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const renderer = gfx.renderer;
+const renderkit = @import("../renderkit.zig");
+const renderer = renderkit.renderer;
 const math = aya.math;
 
 pub const Mesh = struct {
@@ -37,8 +37,8 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
     return struct {
         const Self = @This();
 
-        bindings: gfx.BufferBindings,
-        vertex_buffer: gfx.Buffer,
+        bindings: renderkit.BufferBindings,
+        vertex_buffer: renderkit.Buffer,
         verts: []VertT,
         allocator: *std.mem.Allocator,
 

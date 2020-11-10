@@ -1,15 +1,15 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const math = gfx.math;
+const renderkit = @import("../renderkit.zig");
+const math = renderkit.math;
 
-const IndexBuffer = gfx.IndexBuffer;
-const VertexBuffer = gfx.VertexBuffer;
-const Vertex = gfx.Vertex;
+const IndexBuffer = renderkit.IndexBuffer;
+const VertexBuffer = renderkit.VertexBuffer;
+const Vertex = renderkit.Vertex;
 
 pub const Batcher = struct {
-    mesh: gfx.DynamicMesh(Vertex, u16),
+    mesh: renderkit.DynamicMesh(Vertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    current_image: gfx.Image = std.math.maxInt(gfx.Image),
+    current_image: renderkit.Image = std.math.maxInt(renderkit.Image),
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) Batcher {
         if (max_sprites * 6 > std.math.maxInt(u16)) @panic("max_sprites exceeds u16 index buffer size");
@@ -27,7 +27,7 @@ pub const Batcher = struct {
         }
 
         return .{
-            .mesh = gfx.DynamicMesh(Vertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
+            .mesh = renderkit.DynamicMesh(Vertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
         };
     }
 
@@ -50,7 +50,7 @@ pub const Batcher = struct {
         self.mesh.updateVertSlice(0, self.vert_index);
 
         // bind textures
-        gfx.bindImage(self.current_image, 0);
+        renderkit.bindImage(self.current_image, 0);
 
         // draw
         const quads = self.vert_index / 4;
@@ -60,7 +60,7 @@ pub const Batcher = struct {
         self.vert_index = 0;
     }
 
-    pub fn drawPoint(self: *Batcher, texture: gfx.Texture, pos: math.Vec2, size: f32, col: u32) void {
+    pub fn drawPoint(self: *Batcher, texture: renderkit.Texture, pos: math.Vec2, size: f32, col: u32) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
@@ -89,7 +89,7 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn drawRect(self: *Batcher, texture: gfx.Texture, pos: math.Vec2, size: math.Vec2) void {
+    pub fn drawRect(self: *Batcher, texture: renderkit.Texture, pos: math.Vec2, size: math.Vec2) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
@@ -116,7 +116,7 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: gfx.Texture) void {
+    pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: renderkit.Texture) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }

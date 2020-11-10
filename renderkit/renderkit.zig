@@ -1,6 +1,6 @@
 // export all the types and descriptors for ease of use
 pub const renderer = @import("renderer/renderer.zig");
-pub usingnamespace renderer.gfx_types;
+pub usingnamespace renderer.renderkit_types;
 pub usingnamespace renderer.descriptions;
 
 // search path: root.build_options, root.renderer, default
@@ -38,17 +38,17 @@ pub const math = @import("math/math.zig");
 pub const fs = @import("fs.zig");
 
 // high level wrapper objects that use the low-level backend api
-pub const Texture = @import("gfx/texture.zig").Texture;
-pub const OffscreenPass = @import("gfx/offscreen_pass.zig").OffscreenPass;
-pub const Shader = @import("gfx/shader.zig").Shader;
+pub const Texture = @import("graphics/texture.zig").Texture;
+pub const OffscreenPass = @import("graphics/offscreen_pass.zig").OffscreenPass;
+pub const Shader = @import("graphics/shader.zig").Shader;
 
-//
-pub const Mesh = @import("gfx/mesh.zig").Mesh;
-pub const DynamicMesh = @import("gfx/mesh.zig").DynamicMesh;
+// even higher level wrappers for 2D game dev
+pub const Mesh = @import("graphics/mesh.zig").Mesh;
+pub const DynamicMesh = @import("graphics/mesh.zig").DynamicMesh;
 
-pub const Batcher = @import("gfx/batcher.zig").Batcher;
-pub const MultiBatcher = @import("gfx/multi_batcher.zig").MultiBatcher;
-pub const TriangleBatcher = @import("gfx/triangle_batcher.zig").TriangleBatcher;
+pub const Batcher = @import("graphics/batcher.zig").Batcher;
+pub const MultiBatcher = @import("graphics/multi_batcher.zig").MultiBatcher;
+pub const TriangleBatcher = @import("graphics/triangle_batcher.zig").TriangleBatcher;
 
 pub const Vertex = extern struct {
     pos: math.Vec2 = .{ .x = 0, .y = 0 },

@@ -1,8 +1,8 @@
 const std = @import("std");
 pub const aya = @import("aya");
 const ig = @import("imgui");
-const gfx = @import("gfx");
-const math = gfx.math;
+const renderkit = @import("renderkit");
+const math = renderkit.math;
 const gamekit = @import("gamekit");
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
@@ -24,12 +24,12 @@ pub fn randomColor() u32 {
 }
 
 const Thing = struct {
-    texture: gfx.Texture,
+    texture: renderkit.Texture,
     pos: math.Vec2,
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(tex: gfx.Texture) Thing {
+    pub fn init(tex: renderkit.Texture) Thing {
         return .{
             .texture = tex,
             .pos = .{
@@ -45,13 +45,13 @@ const Thing = struct {
     }
 };
 
-var shader: gfx.Shader = undefined;
-var batcher: gfx.Batcher = undefined;
-var texture: gfx.Texture = undefined;
-var checker_tex: gfx.Texture = undefined;
-var white_tex: gfx.Texture = undefined;
+var shader: renderkit.Shader = undefined;
+var batcher: renderkit.Batcher = undefined;
+var texture: renderkit.Texture = undefined;
+var checker_tex: renderkit.Texture = undefined;
+var white_tex: renderkit.Texture = undefined;
 var things: []Thing = undefined;
-var pass: gfx.OffscreenPass = undefined;
+var pass: renderkit.OffscreenPass = undefined;
 var rt_pos: math.Vec2 = .{};
 
 pub fn main() !void {
@@ -62,19 +62,19 @@ pub fn main() !void {
 }
 
 fn init() !void {
-    shader = try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
+    shader = try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     shader.bind();
 
-    batcher = gfx.Batcher.init(std.testing.allocator, 100);
-    texture = gfx.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
-    checker_tex = gfx.Texture.initCheckerTexture();
-    white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
+    batcher = renderkit.Batcher.init(std.testing.allocator, 100);
+    texture = renderkit.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
+    checker_tex = renderkit.Texture.initCheckerTexture();
+    white_tex = renderkit.Texture.initSingleColor(0xFFFFFFFF);
     things = makeThings(12, texture);
-    pass = gfx.OffscreenPass.init(300, 200);
+    pass = renderkit.OffscreenPass.init(300, 200);
 
     shader.bind();
     shader.setUniformName(i32, "MainTex", 0);
-    gfx.viewport(0, 0, 800, 600);
+    renderkit.viewport(0, 0, 800, 600);
 
     // render something to the render texture
     pass.bind(.{ .color = math.Color.purple.asArray() });
@@ -88,7 +88,7 @@ fn init() !void {
     batcher.end();
     pass.unbind();
 
-    gfx.viewport(0, 0, 800, 600);
+    renderkit.viewport(0, 0, 800, 600);
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
 }
 
@@ -99,7 +99,7 @@ fn render() !void {
     }
 
     const size = gamekit.window.drawableSize();
-    gfx.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
+    renderkit.beginDefaultPass(.{ .color = (math.Color{ .value = randomColor() }).asArray() }, size.w, size.h);
 
     // render
     batcher.begin();
@@ -121,10 +121,10 @@ fn render() !void {
 
     batcher.end();
 
-    gfx.endPass();
+    renderkit.endPass();
 }
 
-fn makeThings(n: usize, tex: gfx.Texture) []Thing {
+fn makeThings(n: usize, tex: renderkit.Texture) []Thing {
     var the_things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     for (the_things) |*thing, i| {

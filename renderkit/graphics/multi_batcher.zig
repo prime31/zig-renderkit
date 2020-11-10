@@ -1,9 +1,9 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const math = gfx.math;
+const renderkit = @import("../renderkit.zig");
+const math = renderkit.math;
 
-const IndexBuffer = gfx.IndexBuffer;
-const VertexBuffer = gfx.VertexBuffer;
+const IndexBuffer = renderkit.IndexBuffer;
+const VertexBuffer = renderkit.VertexBuffer;
 
 pub const MultiVertex = extern struct {
     pos: math.Vec2,
@@ -13,9 +13,9 @@ pub const MultiVertex = extern struct {
 };
 
 pub const MultiBatcher = struct {
-    mesh: gfx.DynamicMesh(MultiVertex, u16),
+    mesh: renderkit.DynamicMesh(MultiVertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    textures: [8]gfx.Image = undefined,
+    textures: [8]renderkit.Image = undefined,
     last_texture: usize = 0,
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) MultiBatcher {
@@ -33,8 +33,8 @@ pub const MultiBatcher = struct {
         }
 
         return .{
-            .mesh = gfx.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
-            .textures = [_]gfx.Image{0} ** 8,
+            .mesh = renderkit.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
+            .textures = [_]renderkit.Image{0} ** 8,
         };
     }
 
@@ -59,7 +59,7 @@ pub const MultiBatcher = struct {
         // bind textures
         for (self.textures) |tid, i| {
             if (i == self.last_texture) break;
-            gfx.bindImage(tid, @intCast(c_uint, i));
+            renderkit.bindImage(tid, @intCast(c_uint, i));
         }
 
         // draw
@@ -69,7 +69,7 @@ pub const MultiBatcher = struct {
         // reset state
         for (self.textures) |*tid, i| {
             if (i == self.last_texture) break;
-            gfx.bindImage(0, @intCast(c_uint, i));
+            renderkit.bindImage(0, @intCast(c_uint, i));
             tid.* = 0;
         }
 
@@ -77,15 +77,15 @@ pub const MultiBatcher = struct {
         self.last_texture = 0;
     }
 
-    inline fn submitTexture(self: *MultiBatcher, img: gfx.Image) f32 {
-        if (std.mem.indexOfScalar(gfx.Image, &self.textures, img)) |index| return @intToFloat(f32, index);
+    inline fn submitTexture(self: *MultiBatcher, img: renderkit.Image) f32 {
+        if (std.mem.indexOfScalar(renderkit.Image, &self.textures, img)) |index| return @intToFloat(f32, index);
 
         self.textures[self.last_texture] = img;
         self.last_texture += 1;
         return @intToFloat(f32, self.last_texture - 1);
     }
 
-    pub fn drawTex(self: *MultiBatcher, pos: math.Vec2, col: u32, texture: gfx.Texture) void {
+    pub fn drawTex(self: *MultiBatcher, pos: math.Vec2, col: u32, texture: renderkit.Texture) void {
         if (self.vert_index >= self.mesh.verts.len) {
             self.flush();
         }

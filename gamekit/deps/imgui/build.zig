@@ -2,6 +2,9 @@ const builtin = @import("builtin");
 const std = @import("std");
 const Builder = std.build.Builder;
 
+/// cached directory so we dont have to query Xcode multiple times
+var framework_dir: ?[]u8 = null;
+
 pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
     exe.addPackage(getImGuiPackage(prefix_path));
     exe.addPackage(getImGuiGlPackage(prefix_path));
@@ -28,7 +31,7 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
         exe.linkSystemLibrary("X11");
     }
 
-    const base_path = prefix_path ++ "src/deps/imgui/";
+    const base_path = prefix_path ++ "gamekit/deps/imgui/";
     exe.addIncludeDir(base_path ++ "cimgui");
     exe.addIncludeDir(base_path ++ "cimgui/imgui");
     exe.addIncludeDir(base_path ++ "cimgui/imgui/examples");
@@ -67,7 +70,7 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
         exe.linkLibrary(lib);
     } else if (build_impl_type == .object_files) {
         // use make to build the object files then include them
-        _ = b.exec(&[_][]const u8{ "make", "-C", "src/deps/imgui" }) catch unreachable;
+        _ = b.exec(&[_][]const u8{ "make", "-C", "gamekit/deps/imgui" }) catch unreachable;
         exe.addObjectFile(base_path ++ "build/gl3w.o");
         exe.addObjectFile(base_path ++ "build/imgui_impl_opengl3.o");
         exe.addObjectFile(base_path ++ "build/imgui_impl_sdl.o");
@@ -84,25 +87,28 @@ pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.buil
 
 /// helper function to get SDK path on Mac
 pub fn macosFrameworksDir(b: *Builder) ![]u8 {
+    if (framework_dir) |dir| return dir;
+
     var str = try b.exec(&[_][]const u8{ "xcrun", "--show-sdk-path" });
     const strip_newline = std.mem.lastIndexOf(u8, str, "\n");
     if (strip_newline) |index| {
         str = str[0..index];
     }
-    return try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
+    framework_dir = try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
+    return framework_dir.?;
 }
 
 pub fn getImGuiPackage(comptime prefix_path: []const u8) std.build.Pkg {
     return .{
         .name = "imgui",
-        .path = prefix_path ++ "imgui.zig",
+        .path = prefix_path ++ "gamekit/deps/imgui/imgui.zig",
     };
 }
 
 pub fn getImGuiGlPackage(comptime prefix_path: []const u8) std.build.Pkg {
     return .{
         .name = "imgui_gl",
-        .path = prefix_path ++ "imgui_gl.zig",
+        .path = prefix_path ++ "gamekit/deps/imgui/imgui_gl.zig",
         .dependencies = &[_]std.build.Pkg{getImGuiPackage(prefix_path)},
     };
 }

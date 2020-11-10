@@ -1,6 +1,6 @@
 const std = @import("std");
 // export the types and descriptions and also import all of them for use in this file
-pub const gfx_types = @import("types.zig");
+pub const renderkit_types = @import("types.zig");
 usingnamespace @import("types.zig");
 pub const descriptions = @import("descriptions.zig");
 usingnamespace @import("descriptions.zig");
@@ -17,7 +17,7 @@ pub const Renderer = enum {
     vulkan,
 };
 
-const backend = @import(@tagName(@import("../gfx.zig").current_renderer) ++ "/backend.zig");
+const backend = @import(@tagName(@import("../renderkit.zig").current_renderer) ++ "/backend.zig");
 // pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // setup and state

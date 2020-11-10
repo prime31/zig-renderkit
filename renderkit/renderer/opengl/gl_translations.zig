@@ -1,8 +1,8 @@
-const gfx = @import("../types.zig");
+const renderkit = @import("../types.zig");
 usingnamespace @import("gl_decls.zig");
 
 // translations from our enums to OpenGL
-pub fn blendFactorToGl(state: gfx.BlendFactor) GLenum {
+pub fn blendFactorToGl(state: renderkit.BlendFactor) GLenum {
     return switch (state) {
         .zero => GL_ZERO,
         .one => GL_ONE,
@@ -22,7 +22,7 @@ pub fn blendFactorToGl(state: gfx.BlendFactor) GLenum {
     };
 }
 
-pub fn compareFuncToGl(state: gfx.CompareFunc) GLenum {
+pub fn compareFuncToGl(state: renderkit.CompareFunc) GLenum {
     return switch (state) {
         .never => GL_NEVER,
         .less => GL_LESS,
@@ -35,7 +35,7 @@ pub fn compareFuncToGl(state: gfx.CompareFunc) GLenum {
     };
 }
 
-pub fn stencilOpToGl(state: gfx.StencilOp) GLenum {
+pub fn stencilOpToGl(state: renderkit.StencilOp) GLenum {
     return switch (state) {
         .keep => GL_KEEP,
         .zero => GL_ZERO,
@@ -48,7 +48,7 @@ pub fn stencilOpToGl(state: gfx.StencilOp) GLenum {
     };
 }
 
-pub fn blendOpToGl(state: gfx.BlendOp) GLenum {
+pub fn blendOpToGl(state: renderkit.BlendOp) GLenum {
     return switch (state) {
         .add => GL_FUNC_ADD,
         .subtract => GL_FUNC_SUBTRACT,

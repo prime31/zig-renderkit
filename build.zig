@@ -1,21 +1,21 @@
 const std = @import("std");
 const Builder = @import("std").build.Builder;
-const Renderer = @import("src/renderer/renderer.zig").Renderer;
+const Renderer = @import("renderkit/renderer/renderer.zig").Renderer;
 
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
 
-    // TODO: move these to linkArtifict and ensure they only get called once
+    // TODO: move these to addRenderKitToArtifact and ensure they only get called once
     // build options. For now they can be overridden in root directly as well.
-    var renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
+    var renderer = b.option(Renderer, "renderer", "dummy, opengl, webgl, metal, directx or vulkan") orelse Renderer.opengl;
     var enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
 
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
     const examples = [_][2][]const u8{
-        [_][]const u8{ "offscreen", "examples/offscreen.zig" },
-        [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
+        // [_][]const u8{ "offscreen", "examples/offscreen.zig" },
+        // [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "meshes", "examples/meshes.zig" },
         [_][]const u8{ "clear_imgui", "examples/clear_imgui.zig" },
@@ -50,7 +50,7 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 
     if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
-    linkArtifact(b, exe, target, prefix_path);
+    addRenderKitToArtifact(b, exe, target, prefix_path);
 
     // aya gets access to everything
     exe.addPackage(.{
@@ -68,33 +68,35 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 
 /// prefix_path is the path to the gfx build.zig file relative to your build.zig.
 /// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
-pub fn linkArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
     // renderer specific linkage
     if (target.isDarwin()) addMetalToArtifact(b, exe, target);
     addOpenGlToArtifact(exe, target);
 
     // stb
-    @import(prefix_path ++ "src/deps/stb/build.zig").linkArtifact(b, exe, target, prefix_path);
-    const stb_pkg = @import(prefix_path ++ "src/deps/stb/build.zig").getPackage(prefix_path);
+    const stb_builder = @import(prefix_path ++ "renderkit/deps/stb/build.zig");
+    stb_builder.linkArtifact(b, exe, target, prefix_path);
+    const stb_pkg = stb_builder.getPackage(prefix_path);
 
-    const gfx_package = std.build.Pkg{
-        .name = "gfx",
-        .path = prefix_path ++ "src/gfx.zig",
+    const renderkit_package = std.build.Pkg{
+        .name = "renderkit",
+        .path = prefix_path ++ "renderkit/renderkit.zig",
         .dependencies = &[_]std.build.Pkg{ stb_pkg },
     };
-    exe.addPackage(gfx_package);
+    exe.addPackage(renderkit_package);
 
     // optional gamekit package
-    addGameKitToArtifact(b, exe, target, gfx_package, prefix_path);
+    addGameKitToArtifact(b, exe, target, renderkit_package, prefix_path);
 }
 
 
 /// optionally adds gamekit, sdl and imgui packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
-pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, gfx_package: std.build.Pkg, comptime prefix_path: []const u8) void {
+pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, renderkit_package: std.build.Pkg, comptime prefix_path: []const u8) void {
     // sdl
     const sdl_builder = @import(prefix_path ++ "gamekit/deps/sdl/build.zig");
-    sdl_builder.linkArtifact(exe, target);
+    sdl_builder.linkArtifact(exe, target, prefix_path);
     const sdl_pkg = sdl_builder.getPackage(prefix_path);
+    exe.addPackage(sdl_pkg);
 
     // imgui
     const imgui_builder = @import(prefix_path ++ "gamekit/deps/imgui/build.zig");
@@ -106,7 +108,7 @@ pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: 
     const gamekit_package = std.build.Pkg{
         .name = "gamekit",
         .path = prefix_path ++ "gamekit/gamekit.zig",
-        .dependencies = &[_]std.build.Pkg{ gfx_package, sdl_pkg, imgui_pkg, imgui_gl_pkg },
+        .dependencies = &[_]std.build.Pkg{ renderkit_package, sdl_pkg, imgui_pkg, imgui_gl_pkg },
     };
     exe.addPackage(gamekit_package);
 }
@@ -125,7 +127,7 @@ fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Tar
 }
 
 fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
-    const frameworks_dir = @import("src/deps/imgui/build.zig").macosFrameworksDir(b) catch unreachable;
+    const frameworks_dir = @import("gamekit/deps/imgui/build.zig").macosFrameworksDir(b) catch unreachable;
     exe.addFrameworkDir(frameworks_dir);
     exe.linkFramework("Foundation");
     exe.linkFramework("Cocoa");
@@ -135,6 +137,6 @@ fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.bu
     exe.linkFramework("MetalKit");
 
     const cflags = [_][]const u8{ "-std=c99", "-ObjC", "-fobjc-arc" };
-    exe.addIncludeDir("src/renderer/metal/native");
-    exe.addCSourceFile("src/renderer/metal/native/metal.c", &cflags);
+    exe.addIncludeDir("renderkit/renderer/metal/native");
+    exe.addCSourceFile("renderkit/renderer/metal/native/metal.c", &cflags);
 }

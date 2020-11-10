@@ -1,10 +1,10 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const renderer = gfx.renderer;
-const fs = gfx.fs;
+const renderkit = @import("../renderkit.zig");
+const renderer = renderkit.renderer;
+const fs = renderkit.fs;
 
 pub const Shader = struct {
-    shader: gfx.ShaderProgram,
+    shader: renderkit.ShaderProgram,
 
     pub fn initFromFile(allocator: *std.mem.Allocator, vert_path: []const u8, frag_path: []const u8) !Shader {
         var vert = try fs.readZ(allocator, vert_path);

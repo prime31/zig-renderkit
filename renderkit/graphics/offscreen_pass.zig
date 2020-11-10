@@ -1,19 +1,19 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const renderer = gfx.renderer;
+const renderkit = @import("../renderkit.zig");
+const renderer = renderkit.renderer;
 
 // TODO: remove the bind/unbind jank and let some graphics manager handle calling beginPass/endPass
 pub const OffscreenPass = struct {
-    pass: gfx.Pass,
-    color_texture: gfx.Texture,
-    depth_stencil_texture: ?gfx.Texture = null,
+    pass: renderkit.Pass,
+    color_texture: renderkit.Texture,
+    depth_stencil_texture: ?renderkit.Texture = null,
 
     pub fn init(width: i32, height: i32) OffscreenPass {
         return initWithOptions(width, height, .nearest, .clamp);
     }
 
-    pub fn initWithOptions(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) OffscreenPass {
-        const color_tex = gfx.Texture.initOffscreen(width, height, filter, wrap);
+    pub fn initWithOptions(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) OffscreenPass {
+        const color_tex = renderkit.Texture.initOffscreen(width, height, filter, wrap);
 
         const pass = renderer.createPass(.{
             .color_img = color_tex.img,
@@ -21,9 +21,9 @@ pub const OffscreenPass = struct {
         return .{ .pass = pass, .color_texture = color_tex };
     }
 
-    pub fn initWithStencil(width: i32, height: i32, filter: gfx.TextureFilter, wrap: gfx.TextureWrap) OffscreenPass {
-        const color_tex = gfx.Texture.initOffscreen(width, height, filter, wrap);
-        const depth_stencil_img = gfx.Texture.initStencil(width, height, filter, wrap);
+    pub fn initWithStencil(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) OffscreenPass {
+        const color_tex = renderkit.Texture.initOffscreen(width, height, filter, wrap);
+        const depth_stencil_img = renderkit.Texture.initStencil(width, height, filter, wrap);
 
         const pass = renderer.createPass(.{
             .color_img = color_tex.img,
@@ -41,7 +41,7 @@ pub const OffscreenPass = struct {
         }
     }
 
-    pub fn bind(self: *OffscreenPass, action: gfx.ClearCommand) void {
+    pub fn bind(self: *OffscreenPass, action: renderkit.ClearCommand) void {
         renderer.beginPass(self.pass, action);
     }
 

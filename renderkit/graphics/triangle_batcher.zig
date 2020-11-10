@@ -1,13 +1,13 @@
 const std = @import("std");
-const gfx = @import("../gfx.zig");
-const math = gfx.math;
+const renderkit = @import("../renderkit.zig");
+const math = renderkit.math;
 
-const Vertex = gfx.Vertex;
-const DynamicMesh = gfx.DynamicMesh;
+const Vertex = renderkit.Vertex;
+const DynamicMesh = renderkit.DynamicMesh;
 
 pub const TriangleBatcher = struct {
     mesh: DynamicMesh(Vertex, u16),
-    white_tex: gfx.Texture = undefined,
+    white_tex: renderkit.Texture = undefined,
 
     vert_index: usize = 0, // current index into the vertex array
 
@@ -27,7 +27,7 @@ pub const TriangleBatcher = struct {
         errdefer batcher.deinit();
 
         var pixels = [_]u32{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-        batcher.white_tex = gfx.Texture.initWithData(u32, 2, 2, pixels[0..]);
+        batcher.white_tex = renderkit.Texture.initWithData(u32, 2, 2, pixels[0..]);
 
         return batcher;
     }
@@ -51,7 +51,7 @@ pub const TriangleBatcher = struct {
         if (self.vert_index == 0) return;
 
         self.mesh.updateVertSlice(0, self.vert_index);
-        gfx.bindImage(self.white_tex.img, 0);
+        renderkit.bindImage(self.white_tex.img, 0);
 
         // draw
         const tris = self.vert_index / 3;

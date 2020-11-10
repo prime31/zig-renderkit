@@ -1,5 +1,5 @@
 const std = @import("std");
-const gfx = @import("types.zig");
+const renderkit = @import("types.zig");
 
 pub const MetalSetup = extern struct {
     ca_layer: ?*const c_void = null,
@@ -23,25 +23,25 @@ pub const ImageDesc = struct {
     render_target: bool = false,
     width: i32,
     height: i32,
-    usage: gfx.Usage = .immutable,
-    pixel_format: gfx.PixelFormat = .rgba,
-    min_filter: gfx.TextureFilter = .nearest,
-    mag_filter: gfx.TextureFilter = .nearest,
-    wrap_u: gfx.TextureWrap = .clamp,
-    wrap_v: gfx.TextureWrap = .clamp,
+    usage: renderkit.Usage = .immutable,
+    pixel_format: renderkit.PixelFormat = .rgba,
+    min_filter: renderkit.TextureFilter = .nearest,
+    mag_filter: renderkit.TextureFilter = .nearest,
+    wrap_u: renderkit.TextureWrap = .clamp,
+    wrap_v: renderkit.TextureWrap = .clamp,
     content: ?[]const u8 = null,
 };
 
 pub const PassDesc = struct {
-    color_img: gfx.Image,
-    depth_stencil_img: ?gfx.Image = null,
+    color_img: renderkit.Image,
+    depth_stencil_img: ?renderkit.Image = null,
 };
 
 pub fn BufferDesc(comptime T: type) type {
     return struct {
         size: c_long = 0, // either size (for stream buffers) or content (for static/dynamic) must be set
-        type: gfx.BufferType = .vertex,
-        usage: gfx.Usage = .immutable,
+        type: renderkit.BufferType = .vertex,
+        usage: renderkit.Usage = .immutable,
         content: ?[]const T = null,
 
         pub fn getSize(self: @This()) c_long {

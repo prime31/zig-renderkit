@@ -1,4 +1,4 @@
-const imgui = @import("imgui");
+const imgui = @import("imgui.zig");
 
 pub extern fn gl3wInit() void;
 

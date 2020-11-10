@@ -1,8 +1,8 @@
 const std = @import("std");
 pub const aya = @import("aya");
 const sdl = @import("sdl");
-const gfx = @import("gfx");
-const math = gfx.math;
+const renderkit = @import("renderkit");
+const math = renderkit.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -29,12 +29,12 @@ pub fn randomColor() u32 {
 }
 
 const Thing = struct {
-    texture: gfx.Texture,
+    texture: renderkit.Texture,
     pos: math.Vec2,
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(texture: gfx.Texture) Thing {
+    pub fn init(texture: renderkit.Texture) Thing {
         return .{
             .texture = texture,
             .pos = .{
@@ -96,7 +96,7 @@ pub fn main() !void {
 fn render() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
 
-    var shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
+    var shader = if (use_multi_texture_batcher) try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     defer shader.deinit();
     shader.bind();
     shader.setUniformName(i32, "MainTex", 0);
@@ -108,7 +108,7 @@ fn render() !void {
         shader.setUniformName([]c_int, "Textures", &samplers);
     }
 
-    var batcher = if (use_multi_texture_batcher) gfx.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else gfx.Batcher.init(std.testing.allocator, max_sprites_per_batch);
+    var batcher = if (use_multi_texture_batcher) renderkit.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else renderkit.Batcher.init(std.testing.allocator, max_sprites_per_batch);
     defer batcher.deinit();
 
     var fps = Fps.init();
@@ -121,7 +121,7 @@ fn render() !void {
     var things = makeThings(total_objects, textures);
     defer std.testing.allocator.free(things);
 
-    gfx.viewport(0, 0, 800, 600);
+    renderkit.viewport(0, 0, 800, 600);
 
     while (!aya.pollEvents()) {
         fps.update();
@@ -148,7 +148,7 @@ fn render() !void {
         }
 
         const size = aya.getRenderableSize();
-        gfx.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
+        renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
 
         // render
         batcher.begin();
@@ -158,14 +158,14 @@ fn render() !void {
         }
 
         batcher.end();
-        gfx.endPass();
+        renderkit.endPass();
 
         aya.swapWindow();
     }
 }
 
-fn loadTextures() []gfx.Texture {
-    var textures = std.testing.allocator.alloc(gfx.Texture, total_textures) catch unreachable;
+fn loadTextures() []renderkit.Texture {
+    var textures = std.testing.allocator.alloc(renderkit.Texture, total_textures) catch unreachable;
 
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -174,13 +174,13 @@ fn loadTextures() []gfx.Texture {
     var buf: [512]u8 = undefined;
     for (textures) |tex, i| {
         var name = std.fmt.bufPrintZ(&buf, "examples/assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
-        textures[i] = gfx.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
+        textures[i] = renderkit.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
     }
 
     return textures;
 }
 
-fn makeThings(n: usize, textures: []gfx.Texture) []Thing {
+fn makeThings(n: usize, textures: []renderkit.Texture) []Thing {
     var things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     var count: usize = 0;

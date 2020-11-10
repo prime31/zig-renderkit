@@ -1,12 +1,12 @@
 const std = @import("std");
 const sdl = @import("sdl");
-pub const gfx = @import("gfx");
+pub const renderkit = @import("renderkit");
 
 pub var window: *sdl.SDL_Window = undefined;
 pub var gl_ctx: sdl.SDL_GLContext = undefined;
-var renderer: gfx.Renderer = undefined;
+var renderer: renderkit.Renderer = undefined;
 
-pub fn createWindow(current_renderer: gfx.Renderer) void {
+pub fn createWindow(current_renderer: renderkit.Renderer) void {
     renderer = current_renderer;
     _ = sdl.SDL_InitSubSystem(sdl.SDL_INIT_VIDEO);
 
