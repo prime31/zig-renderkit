@@ -4,7 +4,10 @@ const Renderer = @import("src/backend/backend.zig").Renderer;
 
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
-    const renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
+
+    // build options. For now they can be overridden in root directly as well.
+    var renderer = b.option(Renderer, "renderer", "dummy, opengl, metal, directx or vulkan") orelse Renderer.opengl;
+    var enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
 
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
@@ -27,10 +30,13 @@ pub fn build(b: *Builder) !void {
 
         var exe = createExe(b, target, name, source, prefix_path);
         examples_step.dependOn(&exe.step);
+        exe.addBuildOption(Renderer, "renderer", renderer);
 
         // first element in the list is added as "run" so "zig build run" works
         if (i == 0) {
-            _ = createExe(b, target, "run", source, prefix_path);
+            var run_exe = createExe(b, target, "run", source, prefix_path);
+            run_exe.addBuildOption(Renderer, "renderer", renderer);
+            run_exe.addBuildOption(bool, "enable_imgui", enable_imgui);
         }
     }
 }
@@ -42,9 +48,9 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 
     if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
-    // TODO: why dont we need to link OpenGL?
     linkArtifact(b, exe, target, prefix_path);
 
+    // TODO: why dont we need to link OpenGL?
     // renderer specific linkage
     addOpenGlToArtifact(exe, target);
 

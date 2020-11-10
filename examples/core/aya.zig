@@ -5,8 +5,23 @@ const window_impl = @import("window.zig");
 pub const imgui = @import("imgui");
 pub const gfx = @import("gfx");
 
-pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "renderer")) @field(@import("root"), "renderer") else .opengl;
-pub const has_imgui: bool = if (@hasDecl(@import("root"), "imgui")) @import("root").imgui else false;
+// search path: root.build_options, root.renderer, default
+pub const renderer: gfx.Renderer = if (@hasDecl(@import("root"), "build_options")) blk: {
+    break :blk @field(@import("root"), "build_options").renderer;
+} else if (@hasDecl(@import("root"), "renderer")) blk: {
+    break :blk @field(@import("root"), "renderer");
+} else blk: {
+    break :blk gfx.Renderer.opengl;
+};
+
+// search path: root.build_options, root.enable_imgui, default
+pub const has_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
+    break :blk @field(@import("root"), "build_options").enable_imgui;
+} else if (@hasDecl(@import("root"), "enable_imgui")) blk: {
+    break :blk @field(@import("root"), "enable_imgui");
+} else blk: {
+    break :blk false;
+};
 
 const build_options = @import("build_options");
 

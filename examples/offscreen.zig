@@ -5,7 +5,7 @@ const gfx = @import("gfx");
 const math = gfx.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
-pub const imgui = true;
+pub const enable_imgui = true;
 
 pub fn range(comptime T: type, at_least: T, less_than: T) T {
     if (@typeInfo(T) == .Int) {

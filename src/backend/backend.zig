@@ -16,7 +16,6 @@ pub const Renderer = enum {
     vulkan,
 };
 
-// zls cant auto-complete when implemented like this
 const backend = @import(@tagName(@import("root").aya.renderer) ++ "/backend.zig");
 // pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
