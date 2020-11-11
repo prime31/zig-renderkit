@@ -83,7 +83,6 @@ fn update() !void {
     rt_pos.x += 0.5;
     rt_pos.y += 0.5;
 
-    var did_move = false;
     if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
         camera.pos.x += 100 * gamekit.time.dt();
     } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {

@@ -45,8 +45,7 @@ const Camera = struct {
         self.y2 = std.math.sin(rot);
     }
 
-    pub fn toWorld(self: Camera, position: renderkit.math.Vec2) renderkit.math.Vec2 {
-        var pos = renderkit.math.Vec2{ .x = position.x, .y = self.sh - position.y };
+    pub fn toWorld(self: Camera, pos: renderkit.math.Vec2) renderkit.math.Vec2 {
         const sx = (self.sw / 2 - pos.x) * self.z / (self.sw / self.sh);
         const sy = (self.o * self.sh - pos.y) * (self.z / self.f);
 
@@ -70,7 +69,7 @@ const Camera = struct {
         // Should be approximately one pixel on the plane
         const size = ((1 / distance) / self.z * self.o) * self.sw;
 
-        return .{ .x = screen_x, .y = screen_y, .size = size };
+        return .{ .x = screen_x, .y = self.sh - screen_y, .size = size };
     }
 
     pub fn placeSprite(self: *Camera, tex: Texture, pos: renderkit.math.Vec2, scale: f32) void {
@@ -109,7 +108,6 @@ var block: Texture = undefined;
 var mode7_shader: renderkit.Shader = undefined;
 var camera: Camera = undefined;
 var blocks: std.ArrayList(renderkit.math.Vec2) = undefined;
-var cam: gamekit.utils.Camera = undefined;
 
 pub fn main() !void {
     try gamekit.run(.{
@@ -122,10 +120,6 @@ pub fn main() !void {
 
 fn init() !void {
     camera = Camera.init(@intToFloat(f32, gamekit.window.width()), @intToFloat(f32, gamekit.window.height()));
-
-    cam = gamekit.utils.Camera.init();
-    const size = gamekit.window.size();
-    cam.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
 
     rt = Texture.init(800, 600);
     map = Texture.initFromFile(std.testing.allocator, "examples/assets/mario_kart.png", .nearest) catch unreachable;
