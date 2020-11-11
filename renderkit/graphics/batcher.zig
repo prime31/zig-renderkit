@@ -53,7 +53,7 @@ pub const Batcher = struct {
         self.mesh.bindImage(self.current_image, 0);
 
         // draw
-        const quads = self.vert_index / 4;
+        const quads = @divExact(self.vert_index, 4);
         self.mesh.draw(@intCast(c_int, quads * 6));
 
         // reset

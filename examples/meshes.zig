@@ -12,6 +12,7 @@ var dyn_mesh: renderkit.DynamicMesh(renderkit.Vertex, u16) = undefined;
 pub fn main() !void {
     try gamekit.run(.{
         .init = init,
+        .update = update,
         .render = render,
     });
 }
@@ -29,19 +30,33 @@ fn init() !void {
         .{ .pos = .{ .x = 10, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
         .{ .pos = .{ .x = 100, .y = 10 }, .uv = .{ .x = 1, .y = 1 } }, // br
         .{ .pos = .{ .x = 100, .y = 100 }, .uv = .{ .x = 1, .y = 0 } }, // tr
+        .{ .pos = .{ .x = 50, .y = 130 }, .uv = .{ .x = 0.5, .y = 0 } }, // tc
         .{ .pos = .{ .x = 10, .y = 100 }, .uv = .{ .x = 0, .y = 0 } }, // tl
+        .{ .pos = .{ .x = 50, .y = 50 }, .uv = .{ .x = 0.5, .y = 0.5 } }, // c
     };
-    var indices = [_]u16{
-        0, 1, 2, 2, 3, 0,
-    };
-
+    var indices = [_]u16{ 0, 5, 4, 5, 3, 4, 5, 2, 3, 5, 1, 2, 5, 0, 1 };
     mesh = renderkit.Mesh.init(renderkit.Vertex, vertices[0..], u16, indices[0..]);
 
-    dyn_mesh = try renderkit.DynamicMesh(renderkit.Vertex, u16).init(std.testing.allocator, vertices.len, &indices);
-    for (vertices) |*vert, i| {
+    var dyn_vertices = [_]renderkit.Vertex{
+        .{ .pos = .{ .x = 10, .y = 10 }, .uv = .{ .x = 0, .y = 1 } }, // bl
+        .{ .pos = .{ .x = 100, .y = 10 }, .uv = .{ .x = 1, .y = 1 } }, // br
+        .{ .pos = .{ .x = 100, .y = 100 }, .uv = .{ .x = 1, .y = 0 } }, // tr
+        .{ .pos = .{ .x = 10, .y = 100 }, .uv = .{ .x = 0, .y = 0 } }, // tl
+    };
+    var dyn_indices = [_]u16{ 0, 1, 2, 2, 3, 0 };
+    dyn_mesh = try renderkit.DynamicMesh(renderkit.Vertex, u16).init(std.testing.allocator, vertices.len, &dyn_indices);
+    for (dyn_vertices) |*vert, i| {
         vert.pos.x += 200;
         vert.pos.y += 200;
         dyn_mesh.verts[i] = vert.*;
+    }
+    dyn_mesh.updateAllVerts();
+}
+
+fn update() !void {
+    for (dyn_mesh.verts) |*vert| {
+        vert.pos.x += 0.1;
+        vert.pos.y += 0.1;
     }
     dyn_mesh.updateAllVerts();
 }

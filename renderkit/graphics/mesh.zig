@@ -43,6 +43,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         bindings: renderkit.BufferBindings,
         vertex_buffer: renderkit.Buffer,
         verts: []VertT,
+        element_count: c_int,
         allocator: *std.mem.Allocator,
 
         pub fn init(allocator: *std.mem.Allocator, vertex_count: usize, indices: []IndexT) !Self {
@@ -60,6 +61,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
                 .bindings = bindings,
                 .vertex_buffer = vertex_buffer,
                 .verts = try allocator.alloc(VertT, vertex_count),
+                .element_count = @intCast(c_int, indices.len),
                 .allocator = allocator,
             };
         }
@@ -90,7 +92,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         }
 
         pub fn drawAllVerts(self: Self) void {
-            self.draw(@intCast(c_int, @divExact(self.verts.len, 4) * 6));
+            self.draw(@intCast(c_int, self.element_count));
         }
     };
 }
