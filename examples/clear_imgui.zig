@@ -19,9 +19,9 @@ fn init() !void {}
 fn render() !void {
     gamekit.gfx.beginPass(.{ .color = clear_color });
 
-    var color = clear_color.asVec4();
-    if (igColorEdit4("Clear Color", &color.x, ImGuiColorEditFlags_NoInputs)) {
-        clear_color = renderkit.math.Color.fromRgba(color.x, color.y, color.z, color.w);
+    var color = clear_color.asArray();
+    if (igColorEdit4("Clear Color", &color[0], ImGuiColorEditFlags_NoInputs)) {
+        clear_color = renderkit.math.Color.fromRgba(color[0], color[1], color[2], color[3]);
     }
 
     gamekit.gfx.endPass();

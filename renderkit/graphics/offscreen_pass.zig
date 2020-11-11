@@ -2,7 +2,6 @@ const std = @import("std");
 const renderkit = @import("../renderkit.zig");
 const renderer = renderkit.renderer;
 
-// TODO: remove the bind/unbind jank and let some graphics manager handle calling beginPass/endPass
 pub const OffscreenPass = struct {
     pass: renderkit.Pass,
     color_texture: renderkit.Texture,
@@ -39,13 +38,5 @@ pub const OffscreenPass = struct {
         if (self.depth_stencil_texture) |depth_stencil| {
             depth_stencil.deinit();
         }
-    }
-
-    pub fn bind(self: *OffscreenPass, action: renderkit.ClearCommand) void {
-        renderer.beginPass(self.pass, action);
-    }
-
-    pub fn unbind(self: *OffscreenPass) void {
-        renderer.endPass();
     }
 };

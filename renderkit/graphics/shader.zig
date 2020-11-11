@@ -32,6 +32,7 @@ pub const Shader = struct {
     }
 
     pub fn setUniform(self: *Shader, comptime T: type, location: c_int, value: T) void {
+        // TODO: need a matching getUniformLocation before this is useful
         unreachable;
     }
 };
