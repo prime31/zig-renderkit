@@ -1,14 +1,13 @@
 const std = @import("std");
+const Pkg = std.build.Pkg;
 const Builder = @import("std").build.Builder;
 const Renderer = @import("renderkit/renderer/renderer.zig").Renderer;
 
+var renderer: ?Renderer = null;
+var enable_imgui: ?bool = null;
+
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
-
-    // TODO: move these to addRenderKitToArtifact and ensure they only get called once
-    // build options. For now they can be overridden in root directly as well.
-    var renderer = b.option(Renderer, "renderer", "dummy, opengl, webgl, metal, directx or vulkan") orelse Renderer.opengl;
-    var enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
 
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
@@ -32,14 +31,10 @@ pub fn build(b: *Builder) !void {
 
         var exe = createExe(b, target, name, source, prefix_path);
         examples_step.dependOn(&exe.step);
-        exe.addBuildOption(Renderer, "renderer", renderer);
-        exe.addBuildOption(bool, "enable_imgui", enable_imgui);
 
         // first element in the list is added as "run" so "zig build run" works
         if (i == 0) {
-            var run_exe = createExe(b, target, "run", source, prefix_path);
-            run_exe.addBuildOption(Renderer, "renderer", renderer);
-            run_exe.addBuildOption(bool, "enable_imgui", enable_imgui);
+            _ = createExe(b, target, "run", source, prefix_path);
         }
     }
 }
@@ -60,9 +55,25 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     return exe;
 }
 
+pub fn getRenderKitPackage(comptime prefix_path: []const u8) Pkg {
+    const stb_builder = @import(prefix_path ++ "renderkit/deps/stb/build.zig");
+    const stb_pkg = stb_builder.getPackage(prefix_path);
+
+    return .{
+        .name = "renderkit",
+        .path = prefix_path ++ "renderkit/renderkit.zig",
+        .dependencies = &[_]Pkg{stb_pkg},
+    };
+}
+
 /// prefix_path is the path to the gfx build.zig file relative to your build.zig.
 /// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
 pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    // build options. For now they can be overridden in root directly as well
+    if (renderer == null)
+        renderer = b.option(Renderer, "renderer", "dummy, opengl, webgl, metal, directx or vulkan") orelse Renderer.opengl;
+    exe.addBuildOption(Renderer, "renderer", renderer.?);
+
     // renderer specific linkage
     if (target.isDarwin()) addMetalToArtifact(b, exe, target);
     addOpenGlToArtifact(exe, target);
@@ -70,22 +81,19 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     // stb
     const stb_builder = @import(prefix_path ++ "renderkit/deps/stb/build.zig");
     stb_builder.linkArtifact(b, exe, target, prefix_path);
-    const stb_pkg = stb_builder.getPackage(prefix_path);
 
-    const renderkit_package = std.build.Pkg{
-        .name = "renderkit",
-        .path = prefix_path ++ "renderkit/renderkit.zig",
-        .dependencies = &[_]std.build.Pkg{ stb_pkg },
-    };
-    exe.addPackage(renderkit_package);
+    exe.addPackage(getRenderKitPackage(prefix_path));
 
     // optional gamekit package. TODO: dont automatically add this
-    addGameKitToArtifact(b, exe, target, renderkit_package, prefix_path);
+    addGameKitToArtifact(b, exe, target, prefix_path);
 }
 
-
 /// optionally adds gamekit, sdl and imgui packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
-pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, renderkit_package: std.build.Pkg, comptime prefix_path: []const u8) void {
+pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    if (enable_imgui == null)
+        enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
+    exe.addBuildOption(bool, "enable_imgui", enable_imgui.?);
+
     // sdl
     const sdl_builder = @import(prefix_path ++ "gamekit/deps/sdl/build.zig");
     sdl_builder.linkArtifact(exe, target, prefix_path);
@@ -93,16 +101,17 @@ pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: 
     exe.addPackage(sdl_pkg);
 
     // imgui
+    // TODO: skip adding imgui altogether when enable_imgui is false
     const imgui_builder = @import(prefix_path ++ "gamekit/deps/imgui/build.zig");
     imgui_builder.linkArtifact(b, exe, target, prefix_path);
     const imgui_pkg = imgui_builder.getImGuiPackage(prefix_path);
     const imgui_gl_pkg = imgui_builder.getImGuiGlPackage(prefix_path);
 
     // gamekit
-    const gamekit_package = std.build.Pkg{
+    const gamekit_package = Pkg{
         .name = "gamekit",
         .path = prefix_path ++ "gamekit/gamekit.zig",
-        .dependencies = &[_]std.build.Pkg{ renderkit_package, sdl_pkg, imgui_pkg, imgui_gl_pkg },
+        .dependencies = &[_]Pkg{ getRenderKitPackage(prefix_path), sdl_pkg, imgui_pkg, imgui_gl_pkg },
     };
     exe.addPackage(gamekit_package);
 }
