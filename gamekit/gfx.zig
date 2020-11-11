@@ -62,7 +62,7 @@ pub const Gfx = struct {
         if (config.pass) |pass| {
             // TODO: move viewport setting into renderkit
             renderkit.viewport(0, 0, @floatToInt(c_int, pass.color_texture.width), @floatToInt(c_int, pass.color_texture.height));
-            renderkit.beginPass(pass.pass, clear_command);
+            renderkit.renderer.beginPass(pass.pass, clear_command);
             // inverted for OpenGL offscreen passes
             if (renderkit.current_renderer == .opengl) {
                 proj_mat = math.Mat32.initOrthoInverted(pass.color_texture.width, pass.color_texture.height);
@@ -73,7 +73,7 @@ pub const Gfx = struct {
             const size = gamekit.window.drawableSize();
             // TODO: move viewport setting into renderkit
             renderkit.viewport(0, 0, size.w, size.h);
-            renderkit.beginDefaultPass(clear_command, size.w, size.h);
+            renderkit.renderer.beginDefaultPass(clear_command, size.w, size.h);
             proj_mat = math.Mat32.initOrtho(@intToFloat(f32, size.w), @intToFloat(f32, size.h));
         }
 
@@ -91,13 +91,13 @@ pub const Gfx = struct {
     pub fn endPass(self: *Gfx) void {
         // setting the shader will flush the batch
         self.setShader(null);
-        renderkit.endPass();
+        renderkit.renderer.endPass();
     }
 
     /// if we havent yet blitted to the screen do so now
     pub fn commitFrame(self: *Gfx) void {
         self.batcher.end();
-        renderkit.commitFrame();
+        renderkit.renderer.commitFrame();
     }
 
     // Drawing

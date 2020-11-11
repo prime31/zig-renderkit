@@ -121,7 +121,7 @@ fn update() !void {
 
 fn render() !void {
     const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
+    renderkit.renderer.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
 
     // render
     batcher.begin();
@@ -131,7 +131,7 @@ fn render() !void {
     }
 
     batcher.end();
-    renderkit.endPass();
+    renderkit.renderer.endPass();
 }
 
 fn loadTextures() void {

@@ -25,12 +25,12 @@ fn init() !void {
 
 fn render() !void {
     const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{}, size.w, size.h);
+    renderkit.renderer.beginDefaultPass(.{}, size.w, size.h);
 
     tri_batch.begin();
     tri_batch.drawTriangle(.{ .x = 50, .y = 50 }, .{ .x = 150, .y = 150 }, .{ .x = 0, .y = 150 }, Color.sky_blue);
     tri_batch.drawTriangle(.{ .x = 300, .y = 50 }, .{ .x = 350, .y = 150 }, .{ .x = 200, .y = 150 }, Color.lime);
     tri_batch.end();
 
-    renderkit.endPass();
+    renderkit.renderer.endPass();
 }

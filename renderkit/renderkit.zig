@@ -28,10 +28,6 @@ pub const Renderer = renderer.Renderer;
 pub const setRenderState = renderer.setRenderState;
 pub const viewport = renderer.viewport;
 pub const scissor = renderer.scissor;
-pub const beginDefaultPass = renderer.beginDefaultPass;
-pub const beginPass = renderer.beginPass;
-pub const endPass = renderer.endPass;
-pub const commitFrame = renderer.commitFrame;
 pub const bindImage = renderer.bindImage;
 
 pub const math = @import("math/math.zig");
