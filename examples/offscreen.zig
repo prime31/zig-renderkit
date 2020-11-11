@@ -2,6 +2,7 @@ const std = @import("std");
 const gamekit = @import("gamekit");
 const renderkit = @import("renderkit");
 const math = renderkit.math;
+const draw = gamekit.gfx.draw;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -43,7 +44,6 @@ const Thing = struct {
     }
 };
 
-var batcher: renderkit.Batcher = undefined;
 var texture: renderkit.Texture = undefined;
 var checker_tex: renderkit.Texture = undefined;
 var white_tex: renderkit.Texture = undefined;
@@ -66,7 +66,6 @@ fn init() !void {
     const size = gamekit.window.size();
     camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
 
-    batcher = renderkit.Batcher.init(std.testing.allocator, 100);
     texture = renderkit.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
     checker_tex = renderkit.Texture.initCheckerTexture();
     white_tex = renderkit.Texture.initSingleColor(0xFFFFFFFF);
@@ -98,10 +97,10 @@ fn update() !void {
 fn render() !void {
     // offscreen rendering
     gamekit.gfx.beginPass(.{ .color = math.Color.purple, .pass = pass });
-    gamekit.gfx.drawTexture(texture, .{ .x = 10 + range(f32, -5, 5) });
-    gamekit.gfx.drawTexture(texture, .{ .x = 50 + range(f32, -5, 5) });
-    gamekit.gfx.drawTexture(texture, .{ .x = 90 + range(f32, -5, 5) });
-    gamekit.gfx.drawTexture(texture, .{ .x = 130 + range(f32, -5, 5) });
+    draw.tex(texture, .{ .x = 10 + range(f32, -5, 5) });
+    draw.tex(texture, .{ .x = 50 + range(f32, -5, 5) });
+    draw.tex(texture, .{ .x = 90 + range(f32, -5, 5) });
+    draw.tex(texture, .{ .x = 130 + range(f32, -5, 5) });
     gamekit.gfx.endPass();
 
     // backbuffer rendering
@@ -111,20 +110,18 @@ fn render() !void {
     });
 
     // render the offscreen texture to the backbuffer
-    gamekit.gfx.drawTexture(pass.color_texture, rt_pos);
+    draw.tex(pass.color_texture, rt_pos);
 
     for (things) |thing| {
-        // batcher.drawTex(thing.pos, thing.col, thing.texture);
-        gamekit.gfx.drawTexture(thing.texture, thing.pos);
+        draw.tex(thing.texture, thing.pos);
     }
 
-    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 350, .y = 50 }, .{ .x = 50, .y = 50 });
-
-    gamekit.gfx.batcher.drawPoint(white_tex, .{ .x = 400, .y = 300 }, 20, 0xFF0099FF);
-    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 0, .y = 0 }, .{ .x = 50, .y = 50 }); // bl
-    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 0 }, .{ .x = 50, .y = 50 }); // br
-    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tr
-    gamekit.gfx.batcher.drawRect(checker_tex, .{ .x = 0, .y = 600 - 50 }, .{ .x = 50, .y = 50 }); // tl
+    draw.texScale(checker_tex, .{ .x = 350, .y = 50 }, 12);
+    draw.point(.{ .x = 400, .y = 300 }, 20, renderkit.math.Color.orange);
+    draw.texScale(checker_tex, .{ .x = 0, .y = 0 }, 12.5); // bl
+    draw.texScale(checker_tex, .{ .x = 800 - 50, .y = 0 }, 12.5); // br
+    draw.texScale(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, 12.5); // tr
+    draw.texScale(checker_tex, .{ .x = 0, .y = 600 - 50 }, 12.5); // tl
 
     gamekit.gfx.endPass();
 }

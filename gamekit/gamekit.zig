@@ -34,7 +34,7 @@ pub const enable_imgui: bool = if (@hasDecl(@import("root"), "build_options")) b
     break :blk false;
 };
 
-pub var gfx: Gfx = undefined;
+pub const gfx = @import("gfx.zig");
 pub var window: Window = undefined;
 pub var time: Time = undefined;
 pub var input: Input = undefined;
@@ -54,7 +54,7 @@ pub fn run(config: Config) !void {
         .metal = metal_setup,
     });
 
-    gfx = Gfx.init();
+    gfx.init();
     time = Time.init(config.update_rate);
     input = Input.init(window.scale());
 
@@ -93,6 +93,7 @@ pub fn run(config: Config) !void {
     }
 
     if (enable_imgui) imgui_gl.shutdown();
+    gfx.deinit();
     renderkit.renderer.shutdown();
     window.deinit();
     sdl.SDL_Quit();

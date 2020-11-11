@@ -64,7 +64,7 @@ fn render() !void {
         camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
     }
 
-    gamekit.gfx.batcher.drawPoint(tex, .{}, 40, 0xFFFFFFFF);
+    gamekit.gfx.draw.point(.{}, 40, 0xFFFFFFFF);
 
     gamekit.gfx.endPass();
 }

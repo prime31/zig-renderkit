@@ -1,6 +1,7 @@
 const std = @import("std");
-const gamekit = @import("gamekit");
 const renderkit = @import("renderkit");
+const gamekit = @import("gamekit");
+const gfx = gamekit.gfx;
 
 const Texture = renderkit.Texture;
 const Color = renderkit.math.Color;
@@ -92,7 +93,7 @@ const Camera = struct {
         }
 
         for (self.sprites.items) |sprite| {
-            gamekit.gfx.drawTexScaleOrigin(sprite.tex, sprite.pos.x, sprite.pos.y, sprite.scale, sprite.tex.width / 2, 0);
+            gfx.draw.texScaleOrigin(sprite.tex, sprite.pos.x, sprite.pos.y, sprite.scale, sprite.tex.width / 2, 0);
         }
         self.sprites.items.len = 0;
     }
@@ -201,22 +202,22 @@ fn update() !void {
 }
 
 fn render() !void {
-    gamekit.gfx.beginPass(.{});
+    gfx.beginPass(.{});
     drawPlane();
 
     var pos = camera.toScreen(camera.toWorld(gamekit.input.mousePosVec()));
-    gamekit.gfx.drawTexScaleOrigin(block, pos.x, pos.y, pos.size, block.width / 2, 0);
+    gfx.draw.texScaleOrigin(block, pos.x, pos.y, pos.size, block.width / 2, 0);
 
     for (blocks.items) |b| {
         camera.placeSprite(block, b, 8);
     }
     camera.renderSprites();
 
-    gamekit.gfx.endPass();
+    gfx.endPass();
 }
 
 fn drawPlane() void {
-    gamekit.gfx.setShader(mode7_shader);
+    gfx.setShader(mode7_shader);
 
     mode7_shader.setUniformName(f32, "mapw", map.width);
     mode7_shader.setUniformName(f32, "maph", map.height);
@@ -233,8 +234,8 @@ fn drawPlane() void {
     mode7_shader.setUniformName(f32, "x2", camera.x2);
     mode7_shader.setUniformName(f32, "y2", camera.y2);
 
-    gamekit.gfx.batcher.mesh.bindImage(map.img, 1);
-    gamekit.gfx.drawTexture(rt, .{});
-    gamekit.gfx.setShader(null);
-    gamekit.gfx.batcher.mesh.bindImage(0, 1);
+    gfx.draw.bindTexture(map, 1);
+    gfx.draw.tex(rt, .{});
+    gfx.setShader(null);
+    gfx.draw.unbindTexture(1);
 }
