@@ -97,6 +97,106 @@ fn checkProgramError(shader: GLuint) bool {
     return true;
 }
 
+// render state
+pub fn setRenderState(state: RenderState) void {
+    // depth
+    if (state.depth.enabled != pip_cache.depth.enabled) {
+        glDepthMask(if (state.depth.enabled) 1 else 0);
+        pip_cache.depth.enabled = state.depth.enabled;
+    }
+
+    if (state.depth.compare_func != pip_cache.depth.compare_func) {
+        glDepthFunc(translations.compareFuncToGl(state.depth.compare_func));
+        pip_cache.depth.compare_func = state.depth.compare_func;
+    }
+
+    // stencil
+    if (state.stencil.enabled != pip_cache.stencil.enabled) {
+        if (state.stencil.enabled) glEnable(GL_STENCIL_TEST) else glDisable(GL_STENCIL_TEST);
+        pip_cache.stencil.enabled = state.stencil.enabled;
+    }
+
+    // TODO: fix these when Zig can compile them and remove the full copy at the end of this method
+
+    // if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
+    glStencilMask(@intCast(GLuint, state.stencil.write_mask));
+    pip_cache.stencil = state.stencil;
+    // pip_cache.stencil.write_mask = state.stencil.write_mask;
+    // }
+
+    // if (state.stencil.compare_func != pip_cache.stencil.compare_func or
+    //     state.stencil.read_mask != pip_cache.stencil.read_mask or
+    //     state.stencil.ref != pip_cache.stencil.ref) {
+    glStencilFuncSeparate(GL_FRONT, translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
+    // }
+
+    // if (state.stencil.fail_op != pip_cache.stencil.fail_op or
+    //     state.stencil.depth_fail_op != pip_cache.stencil.depth_fail_op or
+    //     state.stencil.pass_op != pip_cache.stencil.pass_op) {
+    glStencilOpSeparate(GL_FRONT, translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
+    pip_cache.stencil.fail_op = state.stencil.fail_op;
+    // pip_cache.stencil.depth_fail_op = state.stencil.depth_fail_op;
+    // pip_cache.stencil.pass_op = state.stencil.pass_op;
+    // }
+
+    // // blend
+    if (state.blend.enabled != pip_cache.blend.enabled) {
+        if (state.blend.enabled) glEnable(GL_BLEND) else glDisable(GL_BLEND);
+        pip_cache.blend.enabled = state.blend.enabled;
+    }
+
+    if (state.blend.src_factor_rgb != pip_cache.blend.src_factor_rgb or
+        state.blend.dst_factor_rgb != pip_cache.blend.dst_factor_rgb or
+        state.blend.src_factor_alpha != pip_cache.blend.src_factor_alpha or
+        state.blend.dst_factor_alpha != pip_cache.blend.dst_factor_alpha)
+    {
+        glBlendFuncSeparate(translations.blendFactorToGl(state.blend.src_factor_rgb), translations.blendFactorToGl(state.blend.dst_factor_rgb), translations.blendFactorToGl(state.blend.src_factor_alpha), translations.blendFactorToGl(state.blend.dst_factor_alpha));
+        pip_cache.blend.src_factor_rgb = state.blend.src_factor_rgb;
+        pip_cache.blend.dst_factor_rgb = state.blend.dst_factor_rgb;
+        pip_cache.blend.src_factor_alpha = state.blend.src_factor_alpha;
+        pip_cache.blend.dst_factor_alpha = state.blend.dst_factor_alpha;
+    }
+
+    if (state.blend.op_rgb != pip_cache.blend.op_rgb or state.blend.op_alpha != pip_cache.blend.op_alpha) {
+        glBlendEquationSeparate(translations.blendOpToGl(state.blend.op_rgb), translations.blendOpToGl(state.blend.op_alpha));
+        pip_cache.blend.op_rgb = state.blend.op_rgb;
+        pip_cache.blend.op_alpha = state.blend.op_alpha;
+    }
+
+    if (state.blend.color_write_mask != pip_cache.blend.color_write_mask) {
+        const r = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.r)) != 0;
+        const g = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.g)) != 0;
+        const b = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.b)) != 0;
+        const a = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.a)) != 0;
+        glColorMask(if (r) 1 else 0, if (g) 1 else 0, if (b) 1 else 0, if (a) 1 else 0);
+        pip_cache.blend.color_write_mask = state.blend.color_write_mask;
+    }
+
+    if (std.math.approxEq(f32, state.blend.color[0], pip_cache.blend.color[0], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[1], pip_cache.blend.color[1], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[2], pip_cache.blend.color[2], 0.0001) or
+        std.math.approxEq(f32, state.blend.color[3], pip_cache.blend.color[3], 0.0001))
+    {
+        glBlendColor(state.blend.color[0], state.blend.color[1], state.blend.color[2], state.blend.color[3]);
+        pip_cache.blend.color = state.blend.color;
+    }
+
+    // scissor
+    if (state.scissor != pip_cache.scissor) {
+        if (state.scissor) glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
+        pip_cache.scissor = state.scissor;
+    }
+
+    pip_cache = state;
+}
+
+pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    glViewport(x, y, width, height);
+}
+
+pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
+    glScissor(x, y, width, height);
+}
 
 // images
 const GLImage = struct {
@@ -165,11 +265,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-pub fn bindImage(image: Image, slot: c_uint) void {
-    const img = image_cache.get(image);
-    cache.bindImage(img.tid, slot);
-}
-
 
 // offscreen pass
 const GLPass = struct {
@@ -232,6 +327,7 @@ pub fn beginPass(offscreen_pass: Pass, action: ClearCommand) void {
 }
 
 fn beginDefaultOrOffscreenPass(offscreen_pass: Pass, action: ClearCommand, width: c_int, height: c_int) void {
+    // negative width/height means offscreen pass
     if (width < 0) {
         const pass = pass_cache.get(offscreen_pass);
         const img = image_cache.get(pass.color_img);
@@ -363,6 +459,7 @@ const GLBufferBindings = struct {
     vao: GLuint,
     index_buffer: Buffer,
     vert_buffer: Buffer,
+    images: [8]Image = [_]Image{0} ** 8,
 };
 
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
@@ -397,9 +494,21 @@ pub fn destroyBufferBindings(buffer_bindings: BufferBindings) void {
     destroyBuffer(bindings.vert_buffer);
 }
 
+pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, slot: c_uint) void {
+    const bindings = binding_cache.get(buffer_bindings);
+    bindings.images[slot] = image;
+}
+
 pub fn drawBufferBindings(buffer_bindings: BufferBindings, element_count: c_int) void {
     const bindings = binding_cache.get(buffer_bindings);
     const ibuffer = buffer_cache.get(bindings.index_buffer);
+
+    // bind images
+    for (bindings.images) |image, slot| {
+        if (image == 0) break;
+        const img = image_cache.get(image);
+        cache.bindImage(img.tid, @intCast(c_uint, slot));
+    }
 
     cache.bindVertexArray(bindings.vao);
     glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, null);
@@ -564,105 +673,4 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     } else {
         unreachable;
     }
-}
-
-// render state
-pub fn setRenderState(state: RenderState) void {
-    // depth
-    if (state.depth.enabled != pip_cache.depth.enabled) {
-        glDepthMask(if (state.depth.enabled) 1 else 0);
-        pip_cache.depth.enabled = state.depth.enabled;
-    }
-
-    if (state.depth.compare_func != pip_cache.depth.compare_func) {
-        glDepthFunc(translations.compareFuncToGl(state.depth.compare_func));
-        pip_cache.depth.compare_func = state.depth.compare_func;
-    }
-
-    // stencil
-    if (state.stencil.enabled != pip_cache.stencil.enabled) {
-        if (state.stencil.enabled) glEnable(GL_STENCIL_TEST) else glDisable(GL_STENCIL_TEST);
-        pip_cache.stencil.enabled = state.stencil.enabled;
-    }
-
-    // TODO: fix these when Zig can compile them and remove the full copy at the end of this method
-
-    // if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
-    glStencilMask(@intCast(GLuint, state.stencil.write_mask));
-    pip_cache.stencil = state.stencil;
-    // pip_cache.stencil.write_mask = state.stencil.write_mask;
-    // }
-
-    // if (state.stencil.compare_func != pip_cache.stencil.compare_func or
-    //     state.stencil.read_mask != pip_cache.stencil.read_mask or
-    //     state.stencil.ref != pip_cache.stencil.ref) {
-    glStencilFuncSeparate(GL_FRONT, translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
-    // }
-
-    // if (state.stencil.fail_op != pip_cache.stencil.fail_op or
-    //     state.stencil.depth_fail_op != pip_cache.stencil.depth_fail_op or
-    //     state.stencil.pass_op != pip_cache.stencil.pass_op) {
-    glStencilOpSeparate(GL_FRONT, translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
-    pip_cache.stencil.fail_op = state.stencil.fail_op;
-    // pip_cache.stencil.depth_fail_op = state.stencil.depth_fail_op;
-    // pip_cache.stencil.pass_op = state.stencil.pass_op;
-    // }
-
-    // // blend
-    if (state.blend.enabled != pip_cache.blend.enabled) {
-        if (state.blend.enabled) glEnable(GL_BLEND) else glDisable(GL_BLEND);
-        pip_cache.blend.enabled = state.blend.enabled;
-    }
-
-    if (state.blend.src_factor_rgb != pip_cache.blend.src_factor_rgb or
-        state.blend.dst_factor_rgb != pip_cache.blend.dst_factor_rgb or
-        state.blend.src_factor_alpha != pip_cache.blend.src_factor_alpha or
-        state.blend.dst_factor_alpha != pip_cache.blend.dst_factor_alpha)
-    {
-        glBlendFuncSeparate(translations.blendFactorToGl(state.blend.src_factor_rgb), translations.blendFactorToGl(state.blend.dst_factor_rgb), translations.blendFactorToGl(state.blend.src_factor_alpha), translations.blendFactorToGl(state.blend.dst_factor_alpha));
-        pip_cache.blend.src_factor_rgb = state.blend.src_factor_rgb;
-        pip_cache.blend.dst_factor_rgb = state.blend.dst_factor_rgb;
-        pip_cache.blend.src_factor_alpha = state.blend.src_factor_alpha;
-        pip_cache.blend.dst_factor_alpha = state.blend.dst_factor_alpha;
-    }
-
-    if (state.blend.op_rgb != pip_cache.blend.op_rgb or state.blend.op_alpha != pip_cache.blend.op_alpha) {
-        glBlendEquationSeparate(translations.blendOpToGl(state.blend.op_rgb), translations.blendOpToGl(state.blend.op_alpha));
-        pip_cache.blend.op_rgb = state.blend.op_rgb;
-        pip_cache.blend.op_alpha = state.blend.op_alpha;
-    }
-
-    if (state.blend.color_write_mask != pip_cache.blend.color_write_mask) {
-        const r = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.r)) != 0;
-        const g = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.g)) != 0;
-        const b = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.b)) != 0;
-        const a = (@enumToInt(state.blend.color_write_mask) & @enumToInt(ColorMask.a)) != 0;
-        glColorMask(if (r) 1 else 0, if (g) 1 else 0, if (b) 1 else 0, if (a) 1 else 0);
-        pip_cache.blend.color_write_mask = state.blend.color_write_mask;
-    }
-
-    if (std.math.approxEq(f32, state.blend.color[0], pip_cache.blend.color[0], 0.0001) or
-        std.math.approxEq(f32, state.blend.color[1], pip_cache.blend.color[1], 0.0001) or
-        std.math.approxEq(f32, state.blend.color[2], pip_cache.blend.color[2], 0.0001) or
-        std.math.approxEq(f32, state.blend.color[3], pip_cache.blend.color[3], 0.0001))
-    {
-        glBlendColor(state.blend.color[0], state.blend.color[1], state.blend.color[2], state.blend.color[3]);
-        pip_cache.blend.color = state.blend.color;
-    }
-
-    // scissor
-    if (state.scissor != pip_cache.scissor) {
-        if (state.scissor) glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
-        pip_cache.scissor = state.scissor;
-    }
-
-    pip_cache = state;
-}
-
-pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    glViewport(x, y, width, height);
-}
-
-pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    glScissor(x, y, width, height);
 }

@@ -18,6 +18,11 @@ pub const PassConfig = struct {
     pub fn asClearCommand(self: PassConfig) renderkit.ClearCommand {
         return .{
             .color = self.color.asArray(),
+            .color_action = self.color_action,
+            .stencil_action = self.stencil_action,
+            .stencil = self.stencil,
+            .depth_action = self.depth_action,
+            .depth = self.depth,
         };
     }
 };
@@ -60,8 +65,6 @@ pub const Gfx = struct {
         var clear_command = config.asClearCommand();
 
         if (config.pass) |pass| {
-            // TODO: move viewport setting into renderkit
-            renderkit.viewport(0, 0, @floatToInt(c_int, pass.color_texture.width), @floatToInt(c_int, pass.color_texture.height));
             renderkit.renderer.beginPass(pass.pass, clear_command);
             // inverted for OpenGL offscreen passes
             if (renderkit.current_renderer == .opengl) {
@@ -71,8 +74,6 @@ pub const Gfx = struct {
             }
         } else {
             const size = gamekit.window.drawableSize();
-            // TODO: move viewport setting into renderkit
-            renderkit.viewport(0, 0, size.w, size.h);
             renderkit.renderer.beginDefaultPass(clear_command, size.w, size.h);
             proj_mat = math.Mat32.initOrtho(@intToFloat(f32, size.w), @intToFloat(f32, size.h));
         }

@@ -49,8 +49,8 @@ pub const Batcher = struct {
         // send data
         self.mesh.updateVertSlice(0, self.vert_index);
 
-        // bind textures
-        renderkit.bindImage(self.current_image, 0);
+        // bind texture
+        self.mesh.bindImage(self.current_image, 0);
 
         // draw
         const quads = self.vert_index / 4;

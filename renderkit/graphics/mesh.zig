@@ -26,6 +26,10 @@ pub const Mesh = struct {
         renderer.destroyBufferBindings(self.bindings);
     }
 
+    pub fn bindImage(self: Mesh, image: renderkit.Image, slot: c_uint) void {
+        renderer.bindImageToBufferBindings(self.bindings, image, slot);
+    }
+
     pub fn draw(self: Mesh) void {
         renderer.drawBufferBindings(self.bindings, self.element_count);
     }
@@ -75,6 +79,10 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
             std.debug.assert(start_index + num_verts <= self.verts.len);
             const vert_slice = self.verts[start_index .. start_index + num_verts];
             renderer.updateBuffer(VertT, self.vertex_buffer, vert_slice);
+        }
+
+        pub fn bindImage(self: Self, image: renderkit.Image, slot: c_uint) void {
+            renderer.bindImageToBufferBindings(self.bindings, image, slot);
         }
 
         pub fn draw(self: Self, element_count: c_int) void {

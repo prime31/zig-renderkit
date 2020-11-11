@@ -25,6 +25,15 @@ pub const Config = struct {
     imgui_docking: bool = true, // whether imgui docking should be enabled
 };
 
+// search path: root.build_options, root.enable_imgui, default to false
+pub const enable_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
+    break :blk @field(@import("root"), "build_options").enable_imgui;
+} else if (@hasDecl(@import("root"), "enable_imgui")) blk: {
+    break :blk @field(@import("root"), "enable_imgui");
+} else blk: {
+    break :blk false;
+};
+
 pub var gfx: Gfx = undefined;
 pub var window: Window = undefined;
 pub var time: Time = undefined;
@@ -49,7 +58,7 @@ pub fn run(config: Config) !void {
     time = Time.init(config.update_rate);
     input = Input.init(window.scale());
 
-    if (renderkit.enable_imgui) {
+    if (enable_imgui) {
         if (renderkit.current_renderer != .opengl) @panic("ImGui only works with OpenGL so far!");
 
         _ = imgui.igCreateContext(null);
@@ -70,7 +79,7 @@ pub fn run(config: Config) !void {
         if (config.update) |update| try update();
         try config.render();
 
-        if (renderkit.enable_imgui) {
+        if (enable_imgui) {
             const size = window.drawableSize();
             renderkit.viewport(0, 0, size.w, size.h);
 
@@ -83,7 +92,7 @@ pub fn run(config: Config) !void {
         input.newFrame();
     }
 
-    if (renderkit.enable_imgui) imgui_gl.shutdown();
+    if (enable_imgui) imgui_gl.shutdown();
     renderkit.renderer.shutdown();
     window.deinit();
     sdl.SDL_Quit();
@@ -92,7 +101,7 @@ pub fn run(config: Config) !void {
 fn pollEvents() bool {
     var event: sdl.SDL_Event = undefined;
     while (sdl.SDL_PollEvent(&event) != 0) {
-        if (renderkit.enable_imgui and imguiHandleEvent(&event)) continue;
+        if (enable_imgui and imguiHandleEvent(&event)) continue;
 
         switch (event.type) {
             sdl.SDL_QUIT => return true,
@@ -106,7 +115,7 @@ fn pollEvents() bool {
         }
     }
 
-    if (renderkit.enable_imgui) imgui_gl.newFrame(window.sdl_window);
+    if (enable_imgui) imgui_gl.newFrame(window.sdl_window);
 
     return false;
 }

@@ -57,9 +57,9 @@ pub const MultiBatcher = struct {
         self.mesh.updateVertSlice(0, self.vert_index);
 
         // bind textures
-        for (self.textures) |tid, i| {
-            if (i == self.last_texture) break;
-            renderkit.bindImage(tid, @intCast(c_uint, i));
+        for (self.textures) |tid, slot| {
+            if (slot == self.last_texture) break;
+            self.mesh.bindImage(tid, @intCast(c_uint, slot));
         }
 
         // draw
@@ -67,9 +67,9 @@ pub const MultiBatcher = struct {
         self.mesh.draw(@intCast(c_int, quads * 6));
 
         // reset state
-        for (self.textures) |*tid, i| {
-            if (i == self.last_texture) break;
-            renderkit.bindImage(0, @intCast(c_uint, i));
+        for (self.textures) |*tid, slot| {
+            if (slot == self.last_texture) break;
+            self.mesh.bindImage(tid.*, @intCast(c_uint, slot));
             tid.* = 0;
         }
 

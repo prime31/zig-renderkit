@@ -47,14 +47,13 @@ fn init() !void {
 }
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
+    gamekit.gfx.beginPass(.{ .color = math.Color.beige });
 
-    renderkit.bindImage(tex.img, 0);
+    mesh.bindImage(tex.img, 0);
     mesh.draw();
 
-    renderkit.bindImage(colored_tex.img, 0);
+    dyn_mesh.bindImage(colored_tex.img, 0);
     dyn_mesh.drawAllVerts();
 
-    renderkit.endPass();
+    gamekit.gfx.endPass();
 }

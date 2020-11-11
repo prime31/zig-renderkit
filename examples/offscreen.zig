@@ -99,10 +99,10 @@ fn update() !void {
 fn render() !void {
     // offscreen rendering
     gamekit.gfx.beginPass(.{ .color = math.Color.purple, .pass = pass });
-    gamekit.gfx.drawTexture(texture, .{ .x = 10 });
-    gamekit.gfx.drawTexture(texture, .{ .x = 50 });
-    gamekit.gfx.drawTexture(texture, .{ .x = 90 });
-    gamekit.gfx.drawTexture(texture, .{ .x = 130 });
+    gamekit.gfx.drawTexture(texture, .{ .x = 10 + range(f32, -5, 5) });
+    gamekit.gfx.drawTexture(texture, .{ .x = 50 + range(f32, -5, 5) });
+    gamekit.gfx.drawTexture(texture, .{ .x = 90 + range(f32, -5, 5) });
+    gamekit.gfx.drawTexture(texture, .{ .x = 130 + range(f32, -5, 5) });
     gamekit.gfx.endPass();
 
     // backbuffer rendering

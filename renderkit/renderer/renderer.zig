@@ -17,8 +17,8 @@ pub const Renderer = enum {
     vulkan,
 };
 
+// import our chosen backend renderer
 const backend = @import(@tagName(@import("../renderkit.zig").current_renderer) ++ "/backend.zig");
-// pub const backend = @import("opengl/backend.zig"); // hardcoded for now to zls can auto-complete it
 
 // setup and state
 pub fn setup(desc: RendererDesc) void {
@@ -54,10 +54,6 @@ pub fn destroyImage(image: Image) void {
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     std.debug.assert(T == u8 or T == u32);
     backend.updateImage(T, image, content);
-}
-
-pub fn bindImage(tid: Image, slot: c_uint) void {
-    backend.bindImage(tid, slot);
 }
 
 // passes
@@ -105,6 +101,10 @@ pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBin
 
 pub fn destroyBufferBindings(bindings: BufferBindings) void {
     return backend.destroyBufferBindings(bindings);
+}
+
+pub fn bindImageToBufferBindings(bindings: BufferBindings, image: Image, slot: c_uint) void {
+    backend.bindImageToBufferBindings(bindings, image, slot);
 }
 
 pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {

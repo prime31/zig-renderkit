@@ -17,13 +17,12 @@ pub fn main() !void {
 fn init() !void {}
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.beginDefaultPass(.{ .color = clear_color.asArray() }, size.w, size.h);
+    gamekit.gfx.beginPass(.{ .color = clear_color });
 
     var color = clear_color.asVec4();
     if (igColorEdit4("Clear Color", &color.x, ImGuiColorEditFlags_NoInputs)) {
         clear_color = renderkit.math.Color.fromRgba(color.x, color.y, color.z, color.w);
     }
 
-    renderkit.endPass();
+    gamekit.gfx.endPass();
 }

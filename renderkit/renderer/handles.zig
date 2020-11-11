@@ -15,7 +15,7 @@ pub fn Handles(comptime HandleType: type, comptime IndexType: type, comptime Ver
         const Self = @This();
 
         handles: []HandleType,
-        append_cursor: IndexType = 0,
+        append_cursor: IndexType = 1, // reserve 0 for invalid
         last_destroyed: ?IndexType = null,
         allocator: *std.mem.Allocator,
 

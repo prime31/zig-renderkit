@@ -12,23 +12,12 @@ pub const current_renderer: Renderer = if (@hasDecl(@import("root"), "build_opti
     break :blk Renderer.opengl;
 };
 
-// search path: root.build_options, root.enable_imgui, default
-pub const enable_imgui: bool = if (@hasDecl(@import("root"), "build_options")) blk: {
-    break :blk @field(@import("root"), "build_options").enable_imgui;
-} else if (@hasDecl(@import("root"), "enable_imgui")) blk: {
-    break :blk @field(@import("root"), "enable_imgui");
-} else blk: {
-    break :blk false;
-};
-
-
 // export the backend only explicitly (leaving gfx object methods only accessible via renderer.METHOD)
 // and some select, higher level types and methods
 pub const Renderer = renderer.Renderer;
 pub const setRenderState = renderer.setRenderState;
 pub const viewport = renderer.viewport;
 pub const scissor = renderer.scissor;
-pub const bindImage = renderer.bindImage;
 
 pub const math = @import("math/math.zig");
 pub const fs = @import("fs.zig");
