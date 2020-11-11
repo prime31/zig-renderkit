@@ -1,6 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const math = @import("math/math.zig");
+const math = @import("renderkit").math;
 const FixedList = @import("utils/utils.zig").FixedList;
 
 const released: u3 = 1; // true only the frame the key is released
@@ -159,6 +159,13 @@ pub const Input = struct {
         var x: i32 = undefined;
         var y: i32 = undefined;
         self.mousePosScaled(&x, &y);
+        return .{ .x = @intToFloat(f32, x), .y = @intToFloat(f32, y) };
+    }
+
+    pub fn mousePosVec(self: Input) math.Vec2 {
+        var x: i32 = undefined;
+        var y: i32 = undefined;
+        self.mousePos(&x, &y);
         return .{ .x = @intToFloat(f32, x), .y = @intToFloat(f32, y) };
     }
 

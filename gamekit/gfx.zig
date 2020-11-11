@@ -108,4 +108,11 @@ pub const Gfx = struct {
         var mat = math.Mat32.initTransform(.{ .x = pos.x, .y = pos.y });
         self.batcher.draw(texture, self.quad, mat, math.Color.white);
     }
+
+    pub fn drawTexScaleOrigin(self: *Gfx, texture: renderkit.Texture, x: f32, y: f32, scale: f32, ox: f32, oy: f32) void {
+        self.quad.setFill(texture.width, texture.height);
+
+        var mat = math.Mat32.initTransform(.{ .x = x, .y = y, .sx = scale, .sy = scale, .ox = ox, .oy = oy });
+        self.batcher.draw(texture, self.quad, mat, math.Color.white);
+    }
 };

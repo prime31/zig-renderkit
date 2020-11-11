@@ -586,7 +586,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     const shdr = shader_cache.get(shader);
     const location = glGetUniformLocation(shdr.program, name);
     if (location == -1) {
-        std.debug.print("could not location uniform {}\n", .{name});
+        std.debug.print("could not locate uniform {}\n", .{name});
         return;
     }
 

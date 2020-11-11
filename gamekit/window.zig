@@ -100,7 +100,7 @@ pub const Window = struct {
         return self.size().w;
     }
 
-    pub fn height(self: Self) i32 {
+    pub fn height(self: Window) i32 {
         return self.size().h;
     }
 
