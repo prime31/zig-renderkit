@@ -40,7 +40,7 @@ pub var time: Time = undefined;
 pub var input: Input = undefined;
 
 pub fn run(config: Config) !void {
-    window = try Window.init(.{});
+    window = try Window.init(config.window);
 
     var metal_setup = renderkit.MetalSetup{};
     if (renderkit.current_renderer == .metal) {

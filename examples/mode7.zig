@@ -92,7 +92,7 @@ const Camera = struct {
         }
 
         for (self.sprites.items) |sprite| {
-            gamekit.gfx.drawTexScaleOrigin(sprite.tex, sprite.pos.x, sprite.pos.y, sprite.scale, sprite.tex.width / 2, sprite.tex.height);
+            gamekit.gfx.drawTexScaleOrigin(sprite.tex, sprite.pos.x, sprite.pos.y, sprite.scale, sprite.tex.width / 2, 0);
         }
         self.sprites.items.len = 0;
     }
@@ -115,13 +115,15 @@ pub fn main() !void {
         .update = update,
         .render = render,
         .shutdown = shutdown,
+        .window = .{ .resizable = false },
     });
 }
 
 fn init() !void {
-    camera = Camera.init(@intToFloat(f32, gamekit.window.width()), @intToFloat(f32, gamekit.window.height()));
+    const drawable_size = gamekit.window.drawableSize();
+    camera = Camera.init(@intToFloat(f32, drawable_size.w), @intToFloat(f32, drawable_size.h));
 
-    rt = Texture.init(800, 600);
+    rt = Texture.init(drawable_size.w, drawable_size.h);
     map = Texture.initFromFile(std.testing.allocator, "examples/assets/mario_kart.png", .nearest) catch unreachable;
     block = Texture.initFromFile(std.testing.allocator, "examples/assets/block.png", .nearest) catch unreachable;
     mode7_shader = try renderkit.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/mode7.fs"));
@@ -203,7 +205,7 @@ fn render() !void {
     drawPlane();
 
     var pos = camera.toScreen(camera.toWorld(gamekit.input.mousePosVec()));
-    gamekit.gfx.drawTexScaleOrigin(block, pos.x, pos.y, pos.size, block.width / 2, block.height);
+    gamekit.gfx.drawTexScaleOrigin(block, pos.x, pos.y, pos.size, block.width / 2, 0);
 
     for (blocks.items) |b| {
         camera.placeSprite(block, b, 8);
