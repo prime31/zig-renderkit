@@ -2,13 +2,14 @@ const std = @import("std");
 const renderkit = @import("renderkit");
 const gamekit = @import("gamekit");
 const gfx = gamekit.gfx;
+const math = gamekit.math;
 
-const Texture = renderkit.Texture;
-const Color = renderkit.math.Color;
+const Texture = gamekit.gfx.Texture;
+const Color = gamekit.math.Color;
 
 const Block = struct {
     tex: Texture,
-    pos: renderkit.math.Vec2,
+    pos: math.Vec2,
     scale: f32,
     dist: f32,
 };
@@ -46,7 +47,7 @@ const Camera = struct {
         self.y2 = std.math.sin(rot);
     }
 
-    pub fn toWorld(self: Camera, pos: renderkit.math.Vec2) renderkit.math.Vec2 {
+    pub fn toWorld(self: Camera, pos: math.Vec2) math.Vec2 {
         const sx = (self.sw / 2 - pos.x) * self.z / (self.sw / self.sh);
         const sy = (self.o * self.sh - pos.y) * (self.z / self.f);
 
@@ -56,7 +57,7 @@ const Camera = struct {
         return .{ .x = rot_x / pos.y + self.x, .y = rot_y / pos.y + self.y };
     }
 
-    pub fn toScreen(self: Camera, pos: renderkit.math.Vec2) struct { x: f32, y: f32, size: f32 } {
+    pub fn toScreen(self: Camera, pos: math.Vec2) struct { x: f32, y: f32, size: f32 } {
         const obj_x = -(self.x - pos.x) / self.z;
         const obj_y = (self.y - pos.y) / self.z;
 
@@ -73,7 +74,7 @@ const Camera = struct {
         return .{ .x = screen_x, .y = self.sh - screen_y, .size = size };
     }
 
-    pub fn placeSprite(self: *Camera, tex: Texture, pos: renderkit.math.Vec2, scale: f32) void {
+    pub fn placeSprite(self: *Camera, tex: Texture, pos: math.Vec2, scale: f32) void {
         const dim = self.toScreen(pos);
         const sx2 = (dim.size * scale) / tex.width;
 
@@ -106,9 +107,9 @@ const Camera = struct {
 var rt: Texture = undefined;
 var map: Texture = undefined;
 var block: Texture = undefined;
-var mode7_shader: renderkit.Shader = undefined;
+var mode7_shader: gfx.Shader = undefined;
 var camera: Camera = undefined;
-var blocks: std.ArrayList(renderkit.math.Vec2) = undefined;
+var blocks: std.ArrayList(math.Vec2) = undefined;
 
 pub fn main() !void {
     try gamekit.run(.{
@@ -127,12 +128,12 @@ fn init() !void {
     rt = Texture.init(drawable_size.w, drawable_size.h);
     map = Texture.initFromFile(std.testing.allocator, "examples/assets/mario_kart.png", .nearest) catch unreachable;
     block = Texture.initFromFile(std.testing.allocator, "examples/assets/block.png", .nearest) catch unreachable;
-    mode7_shader = try renderkit.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/mode7.fs"));
+    mode7_shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/mode7.fs"));
     mode7_shader.bind();
     mode7_shader.setUniformName(i32, "MainTex", 0);
     mode7_shader.setUniformName(i32, "map_tex", 1);
 
-    blocks = std.ArrayList(renderkit.math.Vec2).init(std.testing.allocator);
+    blocks = std.ArrayList(math.Vec2).init(std.testing.allocator);
     _ = blocks.append(.{ .x = 0, .y = 0 }) catch unreachable;
 
     // uncomment for sorting stress test

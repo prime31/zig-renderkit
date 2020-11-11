@@ -1,7 +1,26 @@
 const std = @import("std");
 const gamekit = @import("gamekit.zig");
 const renderkit = @import("renderkit");
-const math = renderkit.math;
+const math = gamekit.math;
+
+// high level wrapper objects that use the low-level backend api
+pub const Texture = @import("graphics/texture.zig").Texture;
+pub const OffscreenPass = @import("graphics/offscreen_pass.zig").OffscreenPass;
+pub const Shader = @import("graphics/shader.zig").Shader;
+
+// even higher level wrappers for 2D game dev
+pub const Mesh = @import("graphics/mesh.zig").Mesh;
+pub const DynamicMesh = @import("graphics/mesh.zig").DynamicMesh;
+
+pub const Batcher = @import("graphics/batcher.zig").Batcher;
+pub const MultiBatcher = @import("graphics/multi_batcher.zig").MultiBatcher;
+pub const TriangleBatcher = @import("graphics/triangle_batcher.zig").TriangleBatcher;
+
+pub const Vertex = extern struct {
+    pos: math.Vec2 = .{ .x = 0, .y = 0 },
+    uv: math.Vec2 = .{ .x = 0, .y = 0 },
+    col: u32 = 0xFFFFFFFF,
+};
 
 pub const PassConfig = struct {
     color_action: renderkit.ClearAction = .clear,
@@ -12,8 +31,8 @@ pub const PassConfig = struct {
     depth: f64 = 0,
 
     trans_mat: ?math.Mat32 = null,
-    shader: ?renderkit.Shader = null,
-    pass: ?renderkit.OffscreenPass = null,
+    shader: ?Shader = null,
+    pass: ?OffscreenPass = null,
 
     pub fn asClearCommand(self: PassConfig) renderkit.ClearCommand {
         return .{
@@ -28,12 +47,12 @@ pub const PassConfig = struct {
 };
 
 pub var state = struct {
-    shader: renderkit.Shader = undefined,
+    shader: Shader = undefined,
     transform_mat: math.Mat32 = math.Mat32.identity,
 }{};
 
 pub fn init() void {
-    state.shader = renderkit.Shader.init(@embedFile("shaders/default.vs"), @embedFile("shaders/default.fs")) catch unreachable;
+    state.shader = Shader.init(@embedFile("shaders/default.vs"), @embedFile("shaders/default.fs")) catch unreachable;
     state.shader.bind();
     state.shader.setUniformName(i32, "MainTex", 0);
     draw.init();
@@ -43,7 +62,7 @@ pub fn deinit() void {
     draw.deinit();
 }
 
-pub fn setShader(shader: ?renderkit.Shader) void {
+pub fn setShader(shader: ?Shader) void {
     const new_shader = shader orelse state.shader;
 
     draw.batcher.flush();

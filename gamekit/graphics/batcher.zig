@@ -1,13 +1,15 @@
 const std = @import("std");
-const renderkit = @import("../renderkit.zig");
-const math = renderkit.math;
+const renderkit = @import("renderkit");
+const gk = @import("../gamekit.zig");
+const math = gk.math;
 
 const IndexBuffer = renderkit.IndexBuffer;
 const VertexBuffer = renderkit.VertexBuffer;
-const Vertex = renderkit.Vertex;
+const Vertex = gk.gfx.Vertex;
+const Texture = gk.gfx.Texture;
 
 pub const Batcher = struct {
-    mesh: renderkit.DynamicMesh(Vertex, u16),
+    mesh: gk.gfx.DynamicMesh(Vertex, u16),
     vert_index: usize = 0, // current index into the vertex array
     current_image: renderkit.Image = std.math.maxInt(renderkit.Image),
 
@@ -27,7 +29,7 @@ pub const Batcher = struct {
         }
 
         return .{
-            .mesh = renderkit.DynamicMesh(Vertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
+            .mesh = gk.gfx.DynamicMesh(Vertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
         };
     }
 
@@ -60,7 +62,7 @@ pub const Batcher = struct {
         self.vert_index = 0;
     }
 
-    pub fn drawPoint(self: *Batcher, texture: renderkit.Texture, pos: math.Vec2, size: f32, col: u32) void {
+    pub fn drawPoint(self: *Batcher, texture: Texture, pos: math.Vec2, size: f32, col: u32) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
@@ -89,7 +91,7 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn drawRect(self: *Batcher, texture: renderkit.Texture, pos: math.Vec2, size: math.Vec2) void {
+    pub fn drawRect(self: *Batcher, texture: Texture, pos: math.Vec2, size: math.Vec2) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
@@ -116,7 +118,7 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: renderkit.Texture) void {
+    pub fn drawTex(self: *Batcher, pos: math.Vec2, col: u32, texture: Texture) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }
@@ -143,7 +145,7 @@ pub const Batcher = struct {
         self.vert_index += 4;
     }
 
-    pub fn draw(self: *Batcher, texture: renderkit.Texture, quad: math.Quad, mat: math.Mat32, color: math.Color) void {
+    pub fn draw(self: *Batcher, texture: Texture, quad: math.Quad, mat: math.Mat32, color: math.Color) void {
         if (self.vert_index >= self.mesh.verts.len or self.current_image != texture.img) {
             self.flush();
         }

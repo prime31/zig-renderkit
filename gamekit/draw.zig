@@ -1,21 +1,21 @@
 const std = @import("std");
 const gfx = @import("gfx.zig");
-const gamekit = @import("gamekit.zig");
 const renderkit = @import("renderkit");
-const math = renderkit.math;
+const gk = @import("gamekit.zig");
+const math = gk.math;
 
-const Texture = renderkit.Texture;
+const Texture = gfx.Texture;
 
 pub const draw = struct {
-    pub var batcher: renderkit.Batcher = undefined;
+    pub var batcher: gfx.Batcher = undefined;
     // pub var fontbook: *gfx.FontBook = undefined;
 
     var quad: math.Quad = math.Quad.init(0, 0, 1, 1, 1, 1);
     var white_tex: Texture = undefined;
 
     pub fn init() void {
-        white_tex = renderkit.Texture.initSingleColor(0xFFFFFFFF);
-        batcher = renderkit.Batcher.init(std.testing.allocator, 1000);
+        white_tex = Texture.initSingleColor(0xFFFFFFFF);
+        batcher = gfx.Batcher.init(std.testing.allocator, 1000);
 
         // fontbook = try gfx.FontBook.init(null, 128, 128, .nearest);
         // _ = fontbook.addFontMem("ProggyTiny", @embedFile("assets/ProggyTiny.ttf"), false);

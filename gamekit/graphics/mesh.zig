@@ -1,5 +1,5 @@
 const std = @import("std");
-const renderkit = @import("../renderkit.zig");
+const renderkit = @import("renderkit");
 const renderer = renderkit.renderer;
 
 pub const Mesh = struct {

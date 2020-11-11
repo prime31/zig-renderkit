@@ -1,7 +1,7 @@
 const std = @import("std");
-const renderkit = @import("../renderkit.zig");
+const renderkit = @import("renderkit");
 const renderer = renderkit.renderer;
-const fs = renderkit.fs;
+const fs = @import("../gamekit.zig").utils.fs;
 
 pub const Shader = struct {
     shader: renderkit.ShaderProgram,

@@ -1,9 +1,10 @@
 const std = @import("std");
-const renderkit = @import("../renderkit.zig");
-const math = renderkit.math;
+const rk = @import("renderkit");
+const gk = @import("../gamekit.zig");
+const math = gk.math;
 
-const IndexBuffer = renderkit.IndexBuffer;
-const VertexBuffer = renderkit.VertexBuffer;
+const IndexBuffer = rk.IndexBuffer;
+const VertexBuffer = rk.VertexBuffer;
 
 pub const MultiVertex = extern struct {
     pos: math.Vec2,
@@ -13,9 +14,9 @@ pub const MultiVertex = extern struct {
 };
 
 pub const MultiBatcher = struct {
-    mesh: renderkit.DynamicMesh(MultiVertex, u16),
+    mesh: gk.gfx.DynamicMesh(MultiVertex, u16),
     vert_index: usize = 0, // current index into the vertex array
-    textures: [8]renderkit.Image = undefined,
+    textures: [8]rk.Image = undefined,
     last_texture: usize = 0,
 
     pub fn init(allocator: *std.mem.Allocator, max_sprites: usize) MultiBatcher {
@@ -33,8 +34,8 @@ pub const MultiBatcher = struct {
         }
 
         return .{
-            .mesh = renderkit.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
-            .textures = [_]renderkit.Image{0} ** 8,
+            .mesh = gk.gfx.DynamicMesh(MultiVertex, u16).init(allocator, max_sprites * 4, indices) catch unreachable,
+            .textures = [_]rk.Image{0} ** 8,
         };
     }
 
@@ -77,15 +78,15 @@ pub const MultiBatcher = struct {
         self.last_texture = 0;
     }
 
-    inline fn submitTexture(self: *MultiBatcher, img: renderkit.Image) f32 {
-        if (std.mem.indexOfScalar(renderkit.Image, &self.textures, img)) |index| return @intToFloat(f32, index);
+    inline fn submitTexture(self: *MultiBatcher, img: rk.Image) f32 {
+        if (std.mem.indexOfScalar(rk.Image, &self.textures, img)) |index| return @intToFloat(f32, index);
 
         self.textures[self.last_texture] = img;
         self.last_texture += 1;
         return @intToFloat(f32, self.last_texture - 1);
     }
 
-    pub fn drawTex(self: *MultiBatcher, pos: math.Vec2, col: u32, texture: renderkit.Texture) void {
+    pub fn drawTex(self: *MultiBatcher, pos: math.Vec2, col: u32, texture: gk.gfx.Texture) void {
         if (self.vert_index >= self.mesh.verts.len) {
             self.flush();
         }

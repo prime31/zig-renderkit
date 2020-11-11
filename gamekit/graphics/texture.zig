@@ -1,8 +1,8 @@
 const std = @import("std");
 const stb_image = @import("stb");
-const renderkit = @import("../renderkit.zig");
+const renderkit = @import("renderkit");
 const renderer = renderkit.renderer;
-const fs = renderkit.fs;
+const fs = @import("../gamekit.zig").utils.fs;
 
 pub const Texture = struct {
     img: renderkit.Image,
@@ -17,7 +17,7 @@ pub const Texture = struct {
         return initWithDataOptions(u8, width, height, &[_]u8{}, filter, wrap);
     }
 
-    pub fn initFromFile(allocator: *std.mem.Allocator, file: []const u8, filter: renderkit.TextureFilter) !renderkit.Texture {
+    pub fn initFromFile(allocator: *std.mem.Allocator, file: []const u8, filter: renderkit.TextureFilter) !Texture {
         const image_contents = try fs.read(allocator, file);
         errdefer allocator.free(image_contents);
 
@@ -31,11 +31,11 @@ pub const Texture = struct {
         return initWithDataOptions(u8, w, h, load_res[0..@intCast(usize, w * h * channels)], filter, .clamp);
     }
 
-    pub fn initWithData(comptime T: type, width: i32, height: i32, pixels: []T) renderkit.Texture {
+    pub fn initWithData(comptime T: type, width: i32, height: i32, pixels: []T) Texture {
         return initWithDataOptions(T, width, height, pixels, .nearest, .clamp);
     }
 
-    pub fn initWithDataOptions(comptime T: type, width: i32, height: i32, pixels: []T, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) renderkit.Texture {
+    pub fn initWithDataOptions(comptime T: type, width: i32, height: i32, pixels: []T, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) Texture {
         const img = renderer.createImage(.{
             .width = width,
             .height = height,
@@ -52,7 +52,7 @@ pub const Texture = struct {
         };
     }
 
-    pub fn initCheckerTexture() renderkit.Texture {
+    pub fn initCheckerTexture() Texture {
         var pixels = [_]u32{
             0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFF000000,
             0xFF000000, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF,
@@ -63,13 +63,13 @@ pub const Texture = struct {
         return initWithData(u32, 4, 4, &pixels);
     }
 
-    pub fn initSingleColor(color: u32) renderkit.Texture {
+    pub fn initSingleColor(color: u32) Texture {
         var pixels: [16]u32 = undefined;
         std.mem.set(u32, &pixels, color);
         return initWithData(u32, 4, 4, pixels[0..]);
     }
 
-    pub fn initOffscreen(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) renderkit.Texture {
+    pub fn initOffscreen(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) Texture {
         const img = renderer.createImage(.{
             .render_target = true,
             .width = width,
@@ -86,7 +86,7 @@ pub const Texture = struct {
         };
     }
 
-    pub fn initStencil(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) renderkit.Texture {
+    pub fn initStencil(width: i32, height: i32, filter: renderkit.TextureFilter, wrap: renderkit.TextureWrap) Texture {
         const img = renderer.createImage(.{
             .render_target = true,
             .pixel_format = .stencil,

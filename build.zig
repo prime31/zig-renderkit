@@ -56,13 +56,9 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
 }
 
 pub fn getRenderKitPackage(comptime prefix_path: []const u8) Pkg {
-    const stb_builder = @import(prefix_path ++ "renderkit/deps/stb/build.zig");
-    const stb_pkg = stb_builder.getPackage(prefix_path);
-
     return .{
         .name = "renderkit",
         .path = prefix_path ++ "renderkit/renderkit.zig",
-        .dependencies = &[_]Pkg{stb_pkg},
     };
 }
 
@@ -77,10 +73,6 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     // renderer specific linkage
     if (target.isDarwin()) addMetalToArtifact(b, exe, target);
     addOpenGlToArtifact(exe, target);
-
-    // stb
-    const stb_builder = @import(prefix_path ++ "renderkit/deps/stb/build.zig");
-    stb_builder.linkArtifact(b, exe, target, prefix_path);
 
     exe.addPackage(getRenderKitPackage(prefix_path));
 
@@ -100,6 +92,11 @@ pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: 
     const sdl_pkg = sdl_builder.getPackage(prefix_path);
     exe.addPackage(sdl_pkg);
 
+    // stb
+    const stb_builder = @import(prefix_path ++ "gamekit/deps/stb/build.zig");
+    stb_builder.linkArtifact(b, exe, target, prefix_path);
+    const stb_pkg = stb_builder.getPackage(prefix_path);
+
     // imgui
     // TODO: skip adding imgui altogether when enable_imgui is false
     const imgui_builder = @import(prefix_path ++ "gamekit/deps/imgui/build.zig");
@@ -111,7 +108,7 @@ pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: 
     const gamekit_package = Pkg{
         .name = "gamekit",
         .path = prefix_path ++ "gamekit/gamekit.zig",
-        .dependencies = &[_]Pkg{ getRenderKitPackage(prefix_path), sdl_pkg, imgui_pkg, imgui_gl_pkg },
+        .dependencies = &[_]Pkg{ getRenderKitPackage(prefix_path), sdl_pkg, stb_pkg, imgui_pkg, imgui_gl_pkg },
     };
     exe.addPackage(gamekit_package);
 }

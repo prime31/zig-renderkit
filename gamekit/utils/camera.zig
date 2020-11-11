@@ -1,7 +1,6 @@
 const std = @import("std");
-const gamekit = @import("../gamekit.zig");
-const renderkit = @import("renderkit");
-const math = renderkit.math;
+const gk = @import("../gamekit.zig");
+const math = gk.math;
 
 pub const Camera = struct {
     pos: math.Vec2 = .{},
@@ -12,7 +11,7 @@ pub const Camera = struct {
     }
 
     pub fn transMat(self: Camera) math.Mat32 {
-        const size = gamekit.window.size();
+        const size = gk.window.size();
         const half_w = @intToFloat(f32, size.w) * 0.5;
         const half_h = @intToFloat(f32, size.h) * 0.5;
 
@@ -35,6 +34,6 @@ pub const Camera = struct {
 
     pub fn screenToWorld(self: Camera, pos: math.Vec2) math.Vec2 {
         var inv_trans_mat = self.transMat().invert();
-        return inv_trans_mat.transformVec2(.{ .x = pos.x, .y = @intToFloat(f32, gamekit.window.height()) - pos.y });
+        return inv_trans_mat.transformVec2(.{ .x = pos.x, .y = @intToFloat(f32, gk.window.height()) - pos.y });
     }
 };

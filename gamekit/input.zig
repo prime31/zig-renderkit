@@ -1,7 +1,8 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const math = @import("renderkit").math;
-const FixedList = @import("utils/utils.zig").FixedList;
+const gk = @import("gamekit.zig");
+const math = gk.math;
+const FixedList = gk.utils.FixedList;
 
 const released: u3 = 1; // true only the frame the key is released
 const down: u3 = 2; // true the entire time the key is down

@@ -1,9 +1,9 @@
 const std = @import("std");
-const gamekit = @import("gamekit");
-const Color = @import("renderkit").math.Color;
+const gk = @import("gamekit");
+const Color = gk.math.Color;
 
 pub fn main() !void {
-    try gamekit.run(.{
+    try gk.run(.{
         .init = init,
         .render = render,
     });
@@ -12,6 +12,6 @@ pub fn main() !void {
 fn init() !void {}
 
 fn render() !void {
-    gamekit.gfx.beginPass(.{.color = Color.lime });
-    gamekit.gfx.endPass();
+    gk.gfx.beginPass(.{.color = Color.lime });
+    gk.gfx.endPass();
 }

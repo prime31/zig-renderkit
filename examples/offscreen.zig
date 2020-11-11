@@ -1,8 +1,8 @@
 const std = @import("std");
-const gamekit = @import("gamekit");
-const renderkit = @import("renderkit");
-const math = renderkit.math;
-const draw = gamekit.gfx.draw;
+const gk = @import("gamekit");
+const math = gk.math;
+const gfx = gk.gfx;
+const draw = gfx.draw;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -23,12 +23,12 @@ pub fn randomColor() u32 {
 }
 
 const Thing = struct {
-    texture: renderkit.Texture,
+    texture: gfx.Texture,
     pos: math.Vec2,
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(tex: renderkit.Texture) Thing {
+    pub fn init(tex: gfx.Texture) Thing {
         return .{
             .texture = tex,
             .pos = .{
@@ -44,17 +44,17 @@ const Thing = struct {
     }
 };
 
-var texture: renderkit.Texture = undefined;
-var checker_tex: renderkit.Texture = undefined;
-var white_tex: renderkit.Texture = undefined;
+var texture: gfx.Texture = undefined;
+var checker_tex: gfx.Texture = undefined;
+var white_tex: gfx.Texture = undefined;
 var things: []Thing = undefined;
-var pass: renderkit.OffscreenPass = undefined;
+var pass: gfx.OffscreenPass = undefined;
 var rt_pos: math.Vec2 = .{};
-var camera: gamekit.utils.Camera = undefined;
+var camera: gk.utils.Camera = undefined;
 
 pub fn main() !void {
     rng.seed(@intCast(u64, std.time.milliTimestamp()));
-    try gamekit.run(.{
+    try gk.run(.{
         .init = init,
         .update = update,
         .render = render,
@@ -62,49 +62,49 @@ pub fn main() !void {
 }
 
 fn init() !void {
-    camera = gamekit.utils.Camera.init();
-    const size = gamekit.window.size();
+    camera = gk.utils.Camera.init();
+    const size = gk.window.size();
     camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
 
-    texture = renderkit.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
-    checker_tex = renderkit.Texture.initCheckerTexture();
-    white_tex = renderkit.Texture.initSingleColor(0xFFFFFFFF);
+    texture = gfx.Texture.initFromFile(std.testing.allocator, "examples/assets/textures/bee-8.png", .nearest) catch unreachable;
+    checker_tex = gfx.Texture.initCheckerTexture();
+    white_tex = gfx.Texture.initSingleColor(0xFFFFFFFF);
     things = makeThings(12, texture);
-    pass = renderkit.OffscreenPass.init(300, 200);
+    pass = gfx.OffscreenPass.init(300, 200);
 }
 
 fn update() !void {
     for (things) |*thing| {
-        thing.pos.x += thing.vel.x * gamekit.time.dt();
-        thing.pos.y += thing.vel.y * gamekit.time.dt();
+        thing.pos.x += thing.vel.x * gk.time.dt();
+        thing.pos.y += thing.vel.y * gk.time.dt();
     }
 
     rt_pos.x += 0.5;
     rt_pos.y += 0.5;
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
-        camera.pos.x += 100 * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {
-        camera.pos.x -= 100 * gamekit.time.dt();
+    if (gk.input.keyDown(.SDL_SCANCODE_A)) {
+        camera.pos.x += 100 * gk.time.dt();
+    } else if (gk.input.keyDown(.SDL_SCANCODE_D)) {
+        camera.pos.x -= 100 * gk.time.dt();
     }
-    if (gamekit.input.keyDown(.SDL_SCANCODE_W)) {
-        camera.pos.y -= 100 * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_S)) {
-        camera.pos.y += 100 * gamekit.time.dt();
+    if (gk.input.keyDown(.SDL_SCANCODE_W)) {
+        camera.pos.y -= 100 * gk.time.dt();
+    } else if (gk.input.keyDown(.SDL_SCANCODE_S)) {
+        camera.pos.y += 100 * gk.time.dt();
     }
 }
 
 fn render() !void {
     // offscreen rendering
-    gamekit.gfx.beginPass(.{ .color = math.Color.purple, .pass = pass });
+    gk.gfx.beginPass(.{ .color = math.Color.purple, .pass = pass });
     draw.tex(texture, .{ .x = 10 + range(f32, -5, 5) });
     draw.tex(texture, .{ .x = 50 + range(f32, -5, 5) });
     draw.tex(texture, .{ .x = 90 + range(f32, -5, 5) });
     draw.tex(texture, .{ .x = 130 + range(f32, -5, 5) });
-    gamekit.gfx.endPass();
+    gk.gfx.endPass();
 
     // backbuffer rendering
-    gamekit.gfx.beginPass(.{
+    gk.gfx.beginPass(.{
         .color = math.Color{ .value = randomColor() },
         .trans_mat = camera.transMat(),
     });
@@ -117,16 +117,16 @@ fn render() !void {
     }
 
     draw.texScale(checker_tex, .{ .x = 350, .y = 50 }, 12);
-    draw.point(.{ .x = 400, .y = 300 }, 20, renderkit.math.Color.orange);
+    draw.point(.{ .x = 400, .y = 300 }, 20, math.Color.orange);
     draw.texScale(checker_tex, .{ .x = 0, .y = 0 }, 12.5); // bl
     draw.texScale(checker_tex, .{ .x = 800 - 50, .y = 0 }, 12.5); // br
     draw.texScale(checker_tex, .{ .x = 800 - 50, .y = 600 - 50 }, 12.5); // tr
     draw.texScale(checker_tex, .{ .x = 0, .y = 600 - 50 }, 12.5); // tl
 
-    gamekit.gfx.endPass();
+    gk.gfx.endPass();
 }
 
-fn makeThings(n: usize, tex: renderkit.Texture) []Thing {
+fn makeThings(n: usize, tex: gfx.Texture) []Thing {
     var the_things = std.testing.allocator.alloc(Thing, n) catch unreachable;
 
     for (the_things) |*thing, i| {

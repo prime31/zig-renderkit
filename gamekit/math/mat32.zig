@@ -1,7 +1,7 @@
 const Vec2 = @import("vec2.zig").Vec2;
 const Color = @import("color.zig").Color;
 const Quad = @import("quad.zig").Quad;
-const Vertex = @import("../renderkit.zig").Vertex;
+const Vertex = @import("../gamekit.zig").gfx.Vertex;
 const std = @import("std");
 const math = std.math;
 

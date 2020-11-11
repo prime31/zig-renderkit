@@ -1,16 +1,16 @@
 const std = @import("std");
-const gamekit = @import("gamekit");
-const renderkit = @import("renderkit");
+const gk = @import("gamekit");
+const gfx = gk.gfx;
 usingnamespace @import("imgui");
 
 pub const enable_imgui = true;
 
-var clear_color = renderkit.math.Color.aya;
-var camera: gamekit.utils.Camera = undefined;
-var tex: renderkit.Texture = undefined;
+var clear_color = gk.math.Color.aya;
+var camera: gk.utils.Camera = undefined;
+var tex: gfx.Texture = undefined;
 
 pub fn main() !void {
-    try gamekit.run(.{
+    try gk.run(.{
         .init = init,
         .update = update,
         .render = render,
@@ -18,38 +18,38 @@ pub fn main() !void {
 }
 
 fn init() !void {
-    camera = gamekit.utils.Camera.init();
-    tex = renderkit.Texture.initSingleColor(0xFFFF00FF);
+    camera = gk.utils.Camera.init();
+    tex = gfx.Texture.initSingleColor(0xFFFF00FF);
 }
 
 fn update() !void {
-    if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
-        camera.pos.x += 100 * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {
-        camera.pos.x -= 100 * gamekit.time.dt();
+    if (gk.input.keyDown(.SDL_SCANCODE_A)) {
+        camera.pos.x += 100 * gk.time.dt();
+    } else if (gk.input.keyDown(.SDL_SCANCODE_D)) {
+        camera.pos.x -= 100 * gk.time.dt();
     }
-    if (gamekit.input.keyDown(.SDL_SCANCODE_W)) {
-        camera.pos.y -= 100 * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_S)) {
-        camera.pos.y += 100 * gamekit.time.dt();
+    if (gk.input.keyDown(.SDL_SCANCODE_W)) {
+        camera.pos.y -= 100 * gk.time.dt();
+    } else if (gk.input.keyDown(.SDL_SCANCODE_S)) {
+        camera.pos.y += 100 * gk.time.dt();
     }
 }
 
 fn render() !void {
-    gamekit.gfx.beginPass(.{ .color = clear_color, .trans_mat = camera.transMat() });
+    gfx.beginPass(.{ .color = clear_color, .trans_mat = camera.transMat() });
 
     igText("WASD moves camera");
 
     var color = clear_color.asArray();
     if (igColorEdit4("Clear Color", &color[0], ImGuiColorEditFlags_NoInputs)) {
-        clear_color = renderkit.math.Color.fromRgba(color[0], color[1], color[2], color[3]);
+        clear_color = gk.math.Color.fromRgba(color[0], color[1], color[2], color[3]);
     }
 
     var buf: [255]u8 = undefined;
     var str = try std.fmt.bufPrintZ(&buf, "Camera Pos: {d:.2}, {d:.2}", .{camera.pos.x, camera.pos.y});
     igText(str);
 
-    var mouse = gamekit.input.mousePosVec();
+    var mouse = gk.input.mousePosVec();
     var world = camera.screenToWorld(mouse);
 
     str = try std.fmt.bufPrintZ(&buf, "Mouse Pos: {d:.2}, {d:.2}", .{ mouse.x, mouse.y });
@@ -60,11 +60,11 @@ fn render() !void {
 
     if (ogButton("Camera Pos to 0,0")) camera.pos = .{};
     if (ogButton("Camera Pos to screen center")) {
-        const size = gamekit.window.size();
+        const size = gk.window.size();
         camera.pos = .{ .x = @intToFloat(f32, size.w) * 0.5, .y = @intToFloat(f32, size.h) * 0.5 };
     }
 
-    gamekit.gfx.draw.point(.{}, 40, renderkit.math.Color.white);
+    gfx.draw.point(.{}, 40, gk.math.Color.white);
 
-    gamekit.gfx.endPass();
+    gfx.endPass();
 }

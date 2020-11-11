@@ -1,8 +1,8 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const gamekit = @import("gamekit");
-const renderkit = @import("renderkit");
-const math = renderkit.math;
+const gk = @import("gamekit");
+const gfx = gk.gfx;
+const math = gk.math;
 
 var rng = std.rand.DefaultPrng.init(0x12345678);
 
@@ -29,12 +29,12 @@ pub fn randomColor() u32 {
 }
 
 const Thing = struct {
-    texture: renderkit.Texture,
+    texture: gfx.Texture,
     pos: math.Vec2,
     vel: math.Vec2,
     col: u32,
 
-    pub fn init(tex: renderkit.Texture) Thing {
+    pub fn init(tex: gfx.Texture) Thing {
         return .{
             .texture = tex,
             .pos = .{
@@ -50,14 +50,14 @@ const Thing = struct {
     }
 };
 
-var shader: renderkit.Shader = undefined;
-var batcher: if (use_multi_texture_batcher) renderkit.MultiBatcher else renderkit.Batcher = undefined;
-var textures: []renderkit.Texture = undefined;
+var shader: gfx.Shader = undefined;
+var batcher: if (use_multi_texture_batcher) gfx.MultiBatcher else gfx.Batcher = undefined;
+var textures: []gfx.Texture = undefined;
 var things: []Thing = undefined;
 
 pub fn main() !void {
     rng.seed(@intCast(u64, std.time.milliTimestamp()));
-    try gamekit.run(.{
+    try gk.run(.{
         .init = init,
         .update = update,
         .render = render,
@@ -68,7 +68,7 @@ pub fn main() !void {
 fn init() !void {
     _ = sdl.SDL_GL_SetSwapInterval(0);
 
-    shader = if (use_multi_texture_batcher) try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try renderkit.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
+    shader = if (use_multi_texture_batcher) try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert_multi.vs", "examples/assets/shaders/frag_multi.fs") else try gfx.Shader.initFromFile(std.testing.allocator, "examples/assets/shaders/vert.vs", "examples/assets/shaders/frag.fs");
     shader.bind();
     shader.setUniformName(i32, "MainTex", 0);
     shader.setUniformName(math.Mat32, "TransformMatrix", math.Mat32.initOrtho(800, 600));
@@ -79,7 +79,7 @@ fn init() !void {
         shader.setUniformName([]c_int, "Textures", &samplers);
     }
 
-    batcher = if (use_multi_texture_batcher) renderkit.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else renderkit.Batcher.init(std.testing.allocator, max_sprites_per_batch);
+    batcher = if (use_multi_texture_batcher) gfx.MultiBatcher.init(std.testing.allocator, max_sprites_per_batch) else gfx.Batcher.init(std.testing.allocator, max_sprites_per_batch);
 
     loadTextures();
     makeThings(total_objects);
@@ -94,11 +94,11 @@ fn shutdown() !void {
 }
 
 fn update() !void {
-    if (@mod(gamekit.time.frames(), 500) == 0) std.debug.print("fps: {d}\n", .{gamekit.time.fps()});
+    if (@mod(gk.time.frames(), 500) == 0) std.debug.print("fps: {d}\n", .{gk.time.fps()});
 
     for (things) |*thing| {
-        thing.pos.x += thing.vel.x * gamekit.time.rawDeltaTime();
-        thing.pos.y += thing.vel.y * gamekit.time.rawDeltaTime();
+        thing.pos.x += thing.vel.x * gk.time.rawDeltaTime();
+        thing.pos.y += thing.vel.y * gk.time.rawDeltaTime();
 
         if (thing.pos.x > 780) {
             thing.vel.x *= -1;
@@ -120,10 +120,7 @@ fn update() !void {
 }
 
 fn render() !void {
-    const size = gamekit.window.drawableSize();
-    renderkit.renderer.beginDefaultPass(.{ .color = math.Color.beige.asArray() }, size.w, size.h);
-
-    // render
+    gfx.beginPass(.{ .color = math.Color.beige });
     batcher.begin();
 
     for (things) |thing| {
@@ -131,11 +128,11 @@ fn render() !void {
     }
 
     batcher.end();
-    renderkit.renderer.endPass();
+    gfx.endPass();
 }
 
 fn loadTextures() void {
-    textures = std.testing.allocator.alloc(renderkit.Texture, total_textures) catch unreachable;
+    textures = std.testing.allocator.alloc(gfx.Texture, total_textures) catch unreachable;
 
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -144,7 +141,7 @@ fn loadTextures() void {
     var buf: [512]u8 = undefined;
     for (textures) |tex, i| {
         var name = std.fmt.bufPrintZ(&buf, "examples/assets/textures/bee-{}.png", .{i + 1}) catch unreachable;
-        textures[i] = renderkit.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
+        textures[i] = gfx.Texture.initFromFile(std.testing.allocator, name, .nearest) catch unreachable;
     }
 }
 

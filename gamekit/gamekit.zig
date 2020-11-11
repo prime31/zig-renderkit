@@ -5,6 +5,7 @@ const imgui = @import("imgui");
 const renderkit = @import("renderkit");
 
 pub const utils = @import("utils/utils.zig");
+pub const math = @import("math/math.zig");
 
 const Gfx = @import("gfx.zig").Gfx;
 const Window = @import("window.zig").Window;
