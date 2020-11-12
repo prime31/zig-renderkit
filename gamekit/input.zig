@@ -2,6 +2,8 @@ const std = @import("std");
 const sdl = @import("sdl");
 const gk = @import("gamekit.zig");
 const math = gk.math;
+pub usingnamespace @import("input_types.zig");
+
 const FixedList = gk.utils.FixedList;
 
 const released: u3 = 1; // true only the frame the key is released
@@ -15,7 +17,7 @@ pub const MouseButton = enum(usize) {
 };
 
 pub const Input = struct {
-    keys: [@intCast(usize, @enumToInt(sdl.SDL_Scancode.SDL_NUM_SCANCODES))]u2 = [_]u2{0} ** @intCast(usize, @enumToInt(sdl.SDL_Scancode.SDL_NUM_SCANCODES)),
+    keys: [@intCast(usize, @enumToInt(Keys.num_keys))]u2 = [_]u2{0} ** @intCast(usize, @enumToInt(Keys.num_keys)),
     dirty_keys: FixedList(i32, 10),
     mouse_buttons: [4]u2 = [_]u2{0} ** 4,
     dirty_mouse_buttons: FixedList(u2, 3),
@@ -104,18 +106,18 @@ pub const Input = struct {
     }
 
     /// only true if down this frame and not down the previous frame
-    pub fn keyPressed(self: Input, scancode: sdl.SDL_Scancode) bool {
-        return self.keys[@intCast(usize, @enumToInt(scancode))] == pressed;
+    pub fn keyPressed(self: Input, key: Keys) bool {
+        return self.keys[@intCast(usize, @enumToInt(key))] == pressed;
     }
 
     /// true the entire time the key is down
-    pub fn keyDown(self: Input, scancode: sdl.SDL_Scancode) bool {
-        return self.keys[@intCast(usize, @enumToInt(scancode))] > released;
+    pub fn keyDown(self: Input, key: Keys) bool {
+        return self.keys[@intCast(usize, @enumToInt(key))] > released;
     }
 
     /// true only the frame the key is released
-    pub fn keyUp(self: Input, scancode: sdl.SDL_Scancode) bool {
-        return self.keys[@intCast(usize, @enumToInt(scancode))] == released;
+    pub fn keyUp(self: Input, key: Keys) bool {
+        return self.keys[@intCast(usize, @enumToInt(key))] == released;
     }
 
     /// only true if down this frame and not down the previous frame
@@ -137,36 +139,27 @@ pub const Input = struct {
         return self.mouse_wheel_y;
     }
 
-    pub fn mousePos(self: Input, x: *i32, y: *i32) void {
+    pub fn mousePos(self: Input) math.Vec2 {
         var xc: c_int = undefined;
         var yc: c_int = undefined;
         _ = sdl.SDL_GetMouseState(&xc, &yc);
-        x.* = @intCast(i32, xc) * self.window_scale;
-        y.* = @intCast(i32, yc) * self.window_scale;
+        return .{ .x = @intToFloat(f32, xc * self.window_scale), .y = @intToFloat(f32, yc * self.window_scale) };
     }
 
     // gets the scaled mouse position based on the currently bound render texture scale and offset
     // as calcuated in OffscreenPass. scale should be scale and offset_n is the calculated x, y value.
-    pub fn mousePosScaled(self: Input, x: *i32, y: *i32) void {
+    pub fn mousePosScaled(self: Input) math.Vec2 {
         self.mousePos(x, y);
 
         const xf = @intToFloat(f32, x.*) - @intToFloat(f32, self.res_scaler.x);
         const yf = @intToFloat(f32, y.*) - @intToFloat(f32, self.res_scaler.y);
-        x.* = @floatToInt(i32, xf / self.res_scaler.scale);
-        y.* = @floatToInt(i32, yf / self.res_scaler.scale);
+        return .{ .x = xf / self.res_scaler.scale, .y = yf / self.res_scaler.scale };
     }
 
     pub fn mousePosScaledVec(self: Input) math.Vec2 {
         var x: i32 = undefined;
         var y: i32 = undefined;
         self.mousePosScaled(&x, &y);
-        return .{ .x = @intToFloat(f32, x), .y = @intToFloat(f32, y) };
-    }
-
-    pub fn mousePosVec(self: Input) math.Vec2 {
-        var x: i32 = undefined;
-        var y: i32 = undefined;
-        self.mousePos(&x, &y);
         return .{ .x = @intToFloat(f32, x), .y = @intToFloat(f32, y) };
     }
 
@@ -178,7 +171,7 @@ pub const Input = struct {
 
 test "test input" {
     var input = Input.init(1);
-    _ = input.keyPressed(.SDL_SCANCODE_A);
+    _ = input.keyPressed(.a);
     _ = input.mousePressed(.left);
     _ = input.mouseWheel();
 

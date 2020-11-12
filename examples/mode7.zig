@@ -156,48 +156,48 @@ fn shutdown() !void {
 
 fn update() !void {
     const move_speed = 140.0;
-    if (gamekit.input.keyDown(.SDL_SCANCODE_W)) {
+    if (gamekit.input.keyDown(.w)) {
         camera.x += std.math.cos(camera.r) * move_speed * gamekit.time.dt();
         camera.y += std.math.sin(camera.r) * move_speed * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_S)) {
+    } else if (gamekit.input.keyDown(.s)) {
         camera.x = camera.x - std.math.cos(camera.r) * move_speed * gamekit.time.dt();
         camera.y = camera.y - std.math.sin(camera.r) * move_speed * gamekit.time.dt();
     }
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_A)) {
+    if (gamekit.input.keyDown(.a)) {
         camera.x += std.math.cos(camera.r - std.math.pi / 2.0) * move_speed * gamekit.time.dt();
         camera.y += std.math.sin(camera.r - std.math.pi / 2.0) * move_speed * gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_D)) {
+    } else if (gamekit.input.keyDown(.d)) {
         camera.x += std.math.cos(camera.r + std.math.pi / 2.0) * move_speed * gamekit.time.dt();
         camera.y += std.math.sin(camera.r + std.math.pi / 2.0) * move_speed * gamekit.time.dt();
     }
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_I)) {
+    if (gamekit.input.keyDown(.i)) {
         camera.f += gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_O)) {
+    } else if (gamekit.input.keyDown(.o)) {
         camera.f -= gamekit.time.dt();
     }
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_K)) {
+    if (gamekit.input.keyDown(.k)) {
         camera.o += gamekit.time.dt();
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_L)) {
+    } else if (gamekit.input.keyDown(.l)) {
         camera.o -= gamekit.time.dt();
     }
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_MINUS)) {
+    if (gamekit.input.keyDown(.minus)) {
         camera.z += gamekit.time.dt() * 10;
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_EQUALS)) {
+    } else if (gamekit.input.keyDown(.equals)) {
         camera.z -= gamekit.time.dt() * 10;
     }
 
-    if (gamekit.input.keyDown(.SDL_SCANCODE_Q)) {
+    if (gamekit.input.keyDown(.q)) {
         camera.setRotation(@mod(camera.r, std.math.tau) - gamekit.time.dt());
-    } else if (gamekit.input.keyDown(.SDL_SCANCODE_E)) {
+    } else if (gamekit.input.keyDown(.e)) {
         camera.setRotation(@mod(camera.r, std.math.tau) + gamekit.time.dt());
     }
 
     if (gamekit.input.mousePressed(.left)) {
-        var pos = camera.toWorld(gamekit.input.mousePosVec());
+        var pos = camera.toWorld(gamekit.input.mousePos());
         _ = blocks.append(pos) catch unreachable;
     }
 }
@@ -206,7 +206,7 @@ fn render() !void {
     gfx.beginPass(.{});
     drawPlane();
 
-    var pos = camera.toScreen(camera.toWorld(gamekit.input.mousePosVec()));
+    var pos = camera.toScreen(camera.toWorld(gamekit.input.mousePos()));
     gfx.draw.texScaleOrigin(block, pos.x, pos.y, pos.size, block.width / 2, 0);
 
     for (blocks.items) |b| {

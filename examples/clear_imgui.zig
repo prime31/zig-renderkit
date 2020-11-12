@@ -23,14 +23,14 @@ fn init() !void {
 }
 
 fn update() !void {
-    if (gk.input.keyDown(.SDL_SCANCODE_A)) {
+    if (gk.input.keyDown(.a)) {
         camera.pos.x += 100 * gk.time.dt();
-    } else if (gk.input.keyDown(.SDL_SCANCODE_D)) {
+    } else if (gk.input.keyDown(.d)) {
         camera.pos.x -= 100 * gk.time.dt();
     }
-    if (gk.input.keyDown(.SDL_SCANCODE_W)) {
+    if (gk.input.keyDown(.w)) {
         camera.pos.y -= 100 * gk.time.dt();
-    } else if (gk.input.keyDown(.SDL_SCANCODE_S)) {
+    } else if (gk.input.keyDown(.s)) {
         camera.pos.y += 100 * gk.time.dt();
     }
 }
@@ -49,7 +49,7 @@ fn render() !void {
     var str = try std.fmt.bufPrintZ(&buf, "Camera Pos: {d:.2}, {d:.2}", .{camera.pos.x, camera.pos.y});
     igText(str);
 
-    var mouse = gk.input.mousePosVec();
+    var mouse = gk.input.mousePos();
     var world = camera.screenToWorld(mouse);
 
     str = try std.fmt.bufPrintZ(&buf, "Mouse Pos: {d:.2}, {d:.2}", .{ mouse.x, mouse.y });

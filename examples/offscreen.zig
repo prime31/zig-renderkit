@@ -82,14 +82,14 @@ fn update() !void {
     rt_pos.x += 0.5;
     rt_pos.y += 0.5;
 
-    if (gk.input.keyDown(.SDL_SCANCODE_A)) {
+    if (gk.input.keyDown(.a)) {
         camera.pos.x += 100 * gk.time.dt();
-    } else if (gk.input.keyDown(.SDL_SCANCODE_D)) {
+    } else if (gk.input.keyDown(.d)) {
         camera.pos.x -= 100 * gk.time.dt();
     }
-    if (gk.input.keyDown(.SDL_SCANCODE_W)) {
+    if (gk.input.keyDown(.w)) {
         camera.pos.y -= 100 * gk.time.dt();
-    } else if (gk.input.keyDown(.SDL_SCANCODE_S)) {
+    } else if (gk.input.keyDown(.s)) {
         camera.pos.y += 100 * gk.time.dt();
     }
 }
