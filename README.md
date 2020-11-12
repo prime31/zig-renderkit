@@ -3,11 +3,11 @@ Cross platform Zig graphics backends with a 2D focus. `RenderKit` is an API abst
 
 
 ## Adding New Backends
-There is a _dummy_ backend that can be used as a template to add a new backend. It contains the full API any backend must satisfy. Backends pass no pointers or objects back to user code. [Handles](https://floooh.github.io/2018/06/17/handles-vs-pointers.html) are used for all renderer-specific objects. There are `Handles` and `HandledCache` structs built to make using handles seamless. The compantion `GameKit` project can be used to test new backends while developing them (see next section).
+There is a _dummy_ backend that can be used as a template to add a new backend. It contains the full API any backend must satisfy. Backends pass no pointers or objects back to user code. [Handles](https://floooh.github.io/2018/06/17/handles-vs-pointers.html) are used for all renderer-specific objects. There are `Handles` and `HandledCache` structs built to make using handles seamless. The companion [GameKit repository](https://github.com/prime31/zig-gamekit) can be used to test new backends while developing them (see next section).
 
 
 ## GameKit Companion Project
-`RenderKit` is just a pure backend render API abstraction layer. In order to get something on screen, it requires an OS window and a graphics context. The companion [`GameKit`](https://github.com/prime31/zig-gamekit) repository provides all of that and more. It has all the high-level abstractions needed to make fast, efficient 2D games. `GameKit` can be used to help with building new backends, as a standalone 2D framework or as inspiration for using `RenderKit` in your own projects.
+`RenderKit` is just a pure backend render API abstraction layer. In order to get something on screen, it requires an OS window and a graphics context. The companion [GameKit repository](https://github.com/prime31/zig-gamekit) provides all of that and more. It has all the high-level abstractions needed to make fast, efficient 2D games. `GameKit` can be used to help with building new backends, as a standalone 2D framework or as inspiration for using `RenderKit` in your own projects.
 
 
 ## Usage
@@ -16,15 +16,12 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 
 
 
+<br/><br/><br/><br/><br/>
 
-#### Some interesting GL zig code used for inspiration
+#### Some interesting GL code used for inspiration
 
-[ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)
-
-[Oxid](https://github.com/dbandstra/oxid/blob/master/lib/gl.zig)
-
-[didot](https://github.com/zenith391/didot)
-
-[learnopengl](https://github.com/cshenton/learnopengl)
-
-[minifb (Rust)](https://github.com/emoon/rust_minifb)
+[ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)<br/>
+[Oxid](https://github.com/dbandstra/oxid/blob/master/lib/gl.zig)<br/>
+[didot](https://github.com/zenith391/didot)<br/>
+[learnopengl](https://github.com/cshenton/learnopengl)<br/>
+[minifb (Rust)](https://github.com/emoon/rust_minifb)<br/>
