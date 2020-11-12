@@ -3,8 +3,9 @@ const Pkg = std.build.Pkg;
 const Builder = @import("std").build.Builder;
 const Renderer = @import("renderkit/renderer/renderer.zig").Renderer;
 
+/// cached directory so we dont have to query Xcode multiple times
+var framework_dir: ?[]u8 = null;
 var renderer: ?Renderer = null;
-var enable_imgui: ?bool = null;
 
 pub fn build(b: *Builder) !void {
     const prefix_path = "";
@@ -18,7 +19,6 @@ pub fn build(b: *Builder) !void {
         [_][]const u8{ "tri_batcher", "examples/tri_batcher.zig" },
         [_][]const u8{ "batcher", "examples/batcher.zig" },
         [_][]const u8{ "meshes", "examples/meshes.zig" },
-        [_][]const u8{ "clear_imgui", "examples/clear_imgui.zig" },
         [_][]const u8{ "clear", "examples/clear.zig" },
     };
 
@@ -80,12 +80,8 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     addGameKitToArtifact(b, exe, target, prefix_path);
 }
 
-/// optionally adds gamekit, sdl and imgui packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
+/// optionally adds gamekit and sdl packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
 pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
-    if (enable_imgui == null)
-        enable_imgui = b.option(bool, "imgui", "enable imgui") orelse false;
-    exe.addBuildOption(bool, "enable_imgui", enable_imgui.?);
-
     // sdl
     const sdl_builder = @import(prefix_path ++ "gamekit/deps/sdl/build.zig");
     sdl_builder.linkArtifact(exe, target, prefix_path);
@@ -97,18 +93,11 @@ pub fn addGameKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: 
     stb_builder.linkArtifact(b, exe, target, prefix_path);
     const stb_pkg = stb_builder.getPackage(prefix_path);
 
-    // imgui
-    // TODO: skip adding imgui altogether when enable_imgui is false
-    const imgui_builder = @import(prefix_path ++ "gamekit/deps/imgui/build.zig");
-    imgui_builder.linkArtifact(b, exe, target, prefix_path);
-    const imgui_pkg = imgui_builder.getImGuiPackage(prefix_path);
-    const imgui_gl_pkg = imgui_builder.getImGuiGlPackage(prefix_path);
-
     // gamekit
     const gamekit_package = Pkg{
         .name = "gamekit",
         .path = prefix_path ++ "gamekit/gamekit.zig",
-        .dependencies = &[_]Pkg{ getRenderKitPackage(prefix_path), sdl_pkg, stb_pkg, imgui_pkg, imgui_gl_pkg },
+        .dependencies = &[_]Pkg{ getRenderKitPackage(prefix_path), sdl_pkg, stb_pkg },
     };
     exe.addPackage(gamekit_package);
 }
@@ -127,7 +116,7 @@ fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Tar
 }
 
 fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
-    const frameworks_dir = @import("gamekit/deps/imgui/build.zig").macosFrameworksDir(b) catch unreachable;
+    const frameworks_dir = macosFrameworksDir(b) catch unreachable;
     exe.addFrameworkDir(frameworks_dir);
     exe.linkFramework("Foundation");
     exe.linkFramework("Cocoa");
@@ -139,4 +128,15 @@ fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.bu
     const cflags = [_][]const u8{ "-std=c99", "-ObjC", "-fobjc-arc" };
     exe.addIncludeDir("renderkit/renderer/metal/native");
     exe.addCSourceFile("renderkit/renderer/metal/native/metal.c", &cflags);
+}
+
+/// helper function to get SDK path on Mac
+fn macosFrameworksDir(b: *Builder) ![]u8 {
+    var str = try b.exec(&[_][]const u8{ "xcrun", "--show-sdk-path" });
+    const strip_newline = std.mem.lastIndexOf(u8, str, "\n");
+    if (strip_newline) |index| {
+        str = str[0..index];
+    }
+    framework_dir = try std.mem.concat(b.allocator, u8, &[_][]const u8{ str, "/System/Library/Frameworks" });
+    return framework_dir.?;
 }
