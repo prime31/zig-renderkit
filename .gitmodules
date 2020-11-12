@@ -1,3 +1,0 @@
-[submodule "gamekit/deps/imgui/cimgui"]
-	path = gamekit/deps/imgui/cimgui
-	url = https://github.com/cimgui/cimgui.git
