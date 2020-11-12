@@ -481,6 +481,7 @@ pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBin
         setter();
         vbuffer.setVertexAttributes = null;
     }
+    cache.bindVertexArray(0);
 
     return binding_cache.append(buffer);
 }
@@ -511,7 +512,6 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, element_count: c_int)
     }
 
     cache.bindVertexArray(bindings.vao);
-    cache.bindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
     glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, null);
 }
 
