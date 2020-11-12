@@ -104,7 +104,6 @@ const Camera = struct {
     }
 };
 
-var rt: Texture = undefined;
 var map: Texture = undefined;
 var block: Texture = undefined;
 var mode7_shader: gfx.Shader = undefined;
@@ -125,7 +124,6 @@ fn init() !void {
     const drawable_size = gamekit.window.drawableSize();
     camera = Camera.init(@intToFloat(f32, drawable_size.w), @intToFloat(f32, drawable_size.h));
 
-    rt = Texture.init(drawable_size.w, drawable_size.h);
     map = Texture.initFromFile(std.testing.allocator, "examples/assets/mario_kart.png", .nearest) catch unreachable;
     block = Texture.initFromFile(std.testing.allocator, "examples/assets/block.png", .nearest) catch unreachable;
     mode7_shader = try gfx.Shader.init(@embedFile("assets/shaders/vert.vs"), @embedFile("assets/shaders/mode7.fs"));
@@ -235,8 +233,10 @@ fn drawPlane() void {
     mode7_shader.setUniformName(f32, "x2", camera.x2);
     mode7_shader.setUniformName(f32, "y2", camera.y2);
 
+    // bind out map to the second texture slot and we need a full screen render for the shader so we just draw a full screen rect
     gfx.draw.bindTexture(map, 1);
-    gfx.draw.tex(rt, .{});
+    const drawable_size = gamekit.window.drawableSize();
+    gfx.draw.rect(.{}, @intToFloat(f32, drawable_size.w), @intToFloat(f32, drawable_size.h), math.Color.white);
     gfx.setShader(null);
     gfx.draw.unbindTexture(1);
 }
