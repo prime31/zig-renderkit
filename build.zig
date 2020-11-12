@@ -72,7 +72,7 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     exe.addBuildOption(Renderer, "renderer", renderer.?);
 
     // renderer specific linkage
-    if (target.isDarwin()) addMetalToArtifact(b, exe, target);
+    if (target.isDarwin()) addMetalToArtifact(b, exe, target, prefix_path);
     addOpenGlToArtifact(exe, target);
 
     exe.addPackage(getRenderKitPackage(prefix_path));
@@ -113,7 +113,7 @@ fn addOpenGlToArtifact(artifact: *std.build.LibExeObjStep, target: std.build.Tar
     }
 }
 
-fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
     const frameworks_dir = macosFrameworksDir(b) catch unreachable;
     exe.addFrameworkDir(frameworks_dir);
     exe.linkFramework("Foundation");
@@ -124,8 +124,8 @@ fn addMetalToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.bu
     exe.linkFramework("MetalKit");
 
     const cflags = [_][]const u8{ "-std=c99", "-ObjC", "-fobjc-arc" };
-    exe.addIncludeDir("renderkit/renderer/metal/native");
-    exe.addCSourceFile("renderkit/renderer/metal/native/metal.c", &cflags);
+    exe.addIncludeDir(prefix_path ++ "renderkit/renderer/metal/native");
+    exe.addCSourceFile(prefix_path ++ "renderkit/renderer/metal/native/metal.c", &cflags);
 }
 
 /// helper function to get SDK path on Mac

@@ -258,8 +258,8 @@ pub fn destroyImage(image: Image) void {
 }
 
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
-    std.debug.assert(@sizeOf(T) == image.width * image.height);
     var img = image_cache.get(image);
+
     glBindTexture(GL_TEXTURE_2D, img.tid);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content.ptr);
     glBindTexture(GL_TEXTURE_2D, 0);
