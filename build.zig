@@ -47,6 +47,7 @@ fn createExe(b: *Builder, target: std.build.Target, name: []const u8, source: []
     if (b.standardReleaseOptions() == std.builtin.Mode.ReleaseSmall) exe.strip = true;
 
     addRenderKitToArtifact(b, exe, target, prefix_path);
+    addGameKitToArtifact(b, exe, target, prefix_path);
 
     const run_cmd = exe.run();
     const exe_step = b.step(name, b.fmt("run {}.zig", .{name}));
@@ -75,9 +76,6 @@ pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target
     addOpenGlToArtifact(exe, target);
 
     exe.addPackage(getRenderKitPackage(prefix_path));
-
-    // optional gamekit package. TODO: dont automatically add this
-    addGameKitToArtifact(b, exe, target, prefix_path);
 }
 
 /// optionally adds gamekit and sdl packages to the LibExeObjStep. Note that gamekit relies on the main gfx package.
