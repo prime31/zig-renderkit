@@ -500,7 +500,8 @@ pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, 
     bindings.images[slot] = image;
 }
 
-pub fn drawBufferBindings(buffer_bindings: BufferBindings, element_count: c_int) void {
+pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {
+    if (instance_count > 0) @panic("OpenGL instanced rendering not supported yet");
     const bindings = binding_cache.get(buffer_bindings);
     const ibuffer = buffer_cache.get(bindings.index_buffer);
 
@@ -511,8 +512,11 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, element_count: c_int)
         cache.bindImage(img.tid, @intCast(c_uint, slot));
     }
 
+    const i_size: c_int = if (ibuffer.buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
+    var ib_offset = @intCast(usize, base_element * i_size);
+
     cache.bindVertexArray(bindings.vao);
-    glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, null);
+    glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, @intToPtr(?*GLvoid, ib_offset));
 }
 
 

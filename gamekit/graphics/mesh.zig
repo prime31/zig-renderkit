@@ -31,7 +31,7 @@ pub const Mesh = struct {
     }
 
     pub fn draw(self: Mesh) void {
-        renderer.drawBufferBindings(self.bindings, self.element_count);
+        renderer.drawBufferBindings(self.bindings, 0, self.element_count, 0);
     }
 };
 
@@ -88,7 +88,7 @@ pub fn DynamicMesh(comptime VertT: type, comptime IndexT: type) type {
         }
 
         pub fn draw(self: Self, element_count: c_int) void {
-            renderer.drawBufferBindings(self.bindings, element_count);
+            renderer.drawBufferBindings(self.bindings, 0, element_count, 0);
         }
 
         pub fn drawAllVerts(self: Self) void {

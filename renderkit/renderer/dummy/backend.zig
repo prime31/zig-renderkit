@@ -31,7 +31,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {}
 // buffer bindings
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings { return 0; }
 pub fn destroyBufferBindings(bindings: BufferBindings) void {}
-pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {}
+pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {}
 
 // shaders
 pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram { return 0; }

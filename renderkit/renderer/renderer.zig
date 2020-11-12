@@ -107,8 +107,8 @@ pub fn bindImageToBufferBindings(bindings: BufferBindings, image: Image, slot: c
     backend.bindImageToBufferBindings(bindings, image, slot);
 }
 
-pub fn drawBufferBindings(bindings: BufferBindings, element_count: c_int) void {
-    return backend.drawBufferBindings(bindings, element_count);
+pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {
+    return backend.drawBufferBindings(bindings, base_element, element_count, instance_count);
 }
 
 // shaders
