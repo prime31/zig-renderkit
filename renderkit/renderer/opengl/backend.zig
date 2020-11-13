@@ -614,8 +614,14 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
         var data = @field(value, ti.Struct.fields[0].name);
         glUniformMatrix3x2fv(location, 1, GL_FALSE, &data);
     } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec2")) {
-        var val = @field(value, ti.Struct.fields[0].name);
-        glUniform1fv(location, 2, &val);
+        var val = &@field(value, ti.Struct.fields[0].name);
+        glUniform2fv(location, 1, val);
+    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec3")) {
+        var val = &@field(value, ti.Struct.fields[0].name);
+        glUniform3fv(location, 1, val);
+    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec4")) {
+        var val = &@field(value, ti.Struct.fields[0].name);
+        glUniform4fv(location, 1, val);
     } else if (ti == .Int) {
         glUniform1i(location, value);
     } else if (ti == .Float) {
