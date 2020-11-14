@@ -37,6 +37,11 @@ pub const VertexBufferUsage = extern enum {
     dynamic_draw,
 };
 
+pub const ShaderStage = extern enum {
+    fs,
+    vs,
+};
+
 pub const PrimitiveType = extern enum {
     points,
     line_strip,

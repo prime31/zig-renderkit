@@ -601,7 +601,7 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
     cache.useShaderProgram(shdr.program);
 }
 
-pub fn setShaderProgramFragmentUniform(comptime FragUniformT: type, shader: ShaderProgram, value: FragUniformT) void {
+pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {
     const shdr = shader_cache.get(shader);
 
     // in debug builds ensure the shader we are setting the uniform on is bound
