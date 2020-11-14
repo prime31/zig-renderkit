@@ -568,10 +568,12 @@ pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
     glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
     glUseProgram(id);
 
+    var image_slot: GLint = 0;
     for (desc.images) |image, i| {
         const loc = glGetUniformLocation(id, image);
         if (loc != -1) {
-            glUniform1i(loc, @intCast(GLint, i));
+            glUniform1i(loc, image_slot);
+            image_slot += 1;
         }
     }
 
@@ -595,7 +597,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     const shdr = shader_cache.get(shader);
     const location = glGetUniformLocation(shdr.program, name);
     if (location == -1) {
-        std.debug.print("could not locate uniform {}\n", .{name});
+        std.debug.print("could not locate uniform: [{}]\n", .{name});
         return;
     }
 
