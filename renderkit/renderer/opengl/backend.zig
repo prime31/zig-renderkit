@@ -116,30 +116,33 @@ pub fn setRenderState(state: RenderState) void {
         pip_cache.stencil.enabled = state.stencil.enabled;
     }
 
-    // TODO: fix these when Zig can compile them and remove the full copy at the end of this method
+    if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
+        glStencilMask(@intCast(GLuint, state.stencil.write_mask));
+        pip_cache.stencil = state.stencil;
+        pip_cache.stencil.write_mask = state.stencil.write_mask;
+    }
 
-    // if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
-    glStencilMask(@intCast(GLuint, state.stencil.write_mask));
-    pip_cache.stencil = state.stencil;
-    // pip_cache.stencil.write_mask = state.stencil.write_mask;
-    // }
+    if (state.stencil.compare_func != pip_cache.stencil.compare_func or
+        state.stencil.read_mask != pip_cache.stencil.read_mask or
+        state.stencil.ref != pip_cache.stencil.ref)
+    {
+        glStencilFuncSeparate(GL_FRONT, translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
+        pip_cache.stencil.compare_func = state.stencil.compare_func;
+        pip_cache.stencil.read_mask = state.stencil.read_mask;
+        pip_cache.stencil.ref = state.stencil.ref;
+    }
 
-    // if (state.stencil.compare_func != pip_cache.stencil.compare_func or
-    //     state.stencil.read_mask != pip_cache.stencil.read_mask or
-    //     state.stencil.ref != pip_cache.stencil.ref) {
-    glStencilFuncSeparate(GL_FRONT, translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
-    // }
+    if (state.stencil.fail_op != pip_cache.stencil.fail_op or
+        state.stencil.depth_fail_op != pip_cache.stencil.depth_fail_op or
+        state.stencil.pass_op != pip_cache.stencil.pass_op)
+    {
+        glStencilOpSeparate(GL_FRONT, translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
+        pip_cache.stencil.fail_op = state.stencil.fail_op;
+        pip_cache.stencil.depth_fail_op = state.stencil.depth_fail_op;
+        pip_cache.stencil.pass_op = state.stencil.pass_op;
+    }
 
-    // if (state.stencil.fail_op != pip_cache.stencil.fail_op or
-    //     state.stencil.depth_fail_op != pip_cache.stencil.depth_fail_op or
-    //     state.stencil.pass_op != pip_cache.stencil.pass_op) {
-    glStencilOpSeparate(GL_FRONT, translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
-    pip_cache.stencil.fail_op = state.stencil.fail_op;
-    // pip_cache.stencil.depth_fail_op = state.stencil.depth_fail_op;
-    // pip_cache.stencil.pass_op = state.stencil.pass_op;
-    // }
-
-    // // blend
+    // blend
     if (state.blend.enabled != pip_cache.blend.enabled) {
         if (state.blend.enabled) glEnable(GL_BLEND) else glDisable(GL_BLEND);
         pip_cache.blend.enabled = state.blend.enabled;
@@ -186,8 +189,6 @@ pub fn setRenderState(state: RenderState) void {
         if (state.scissor) glEnable(GL_SCISSOR_TEST) else glDisable(GL_SCISSOR_TEST);
         pip_cache.scissor = state.scissor;
     }
-
-    pip_cache = state;
 }
 
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
@@ -268,7 +269,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
 pub fn getImageNativeId(image: Image) u32 {
     return image_cache.get(image).tid;
 }
-
 
 // offscreen pass
 const GLPass = struct {
@@ -364,7 +364,6 @@ pub fn endPass() void {
 
 pub fn commitFrame() void {}
 
-
 // buffers
 const GLBuffer = struct {
     vbo: GLuint,
@@ -457,7 +456,6 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
-
 // buffer bindings
 const GLBufferBindings = struct {
     vao: GLuint,
@@ -523,10 +521,10 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, 
     glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, @intToPtr(?*GLvoid, ib_offset));
 }
 
-
 // shader
 const GLShaderProgram = struct {
     program: GLuint,
+    fs_uniform_cache: [16]GLint,
 };
 
 fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
@@ -541,7 +539,7 @@ fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
     return shader;
 }
 
-pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
+pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
     var shader = std.mem.zeroes(GLShaderProgram);
 
     const vertex_shader = compileShader(GL_VERTEX_SHADER, desc.vs);
@@ -563,17 +561,27 @@ pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
 
     shader.program = id;
 
-    // resolve images
+    // store currently bound program and rebind when done
     var cur_prog: GLint = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
     glUseProgram(id);
 
+    // resolve images
     var image_slot: GLint = 0;
     for (desc.images) |image, i| {
         const loc = glGetUniformLocation(id, image);
         if (loc != -1) {
             glUniform1i(loc, image_slot);
             image_slot += 1;
+        }
+    }
+
+    // uniforms, allow void to indicate no cached uniforms
+    const frag_ti = @typeInfo(FragUniformT);
+    if (frag_ti == .Struct) {
+        inline for (frag_ti.Struct.fields) |field, i| {
+            shader.fs_uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
+            if (std.builtin.mode == .Debug and shader.fs_uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
         }
     }
 
@@ -591,6 +599,68 @@ pub fn destroyShaderProgram(shader: ShaderProgram) void {
 pub fn useShaderProgram(shader: ShaderProgram) void {
     const shdr = shader_cache.get(shader);
     cache.useShaderProgram(shdr.program);
+}
+
+pub fn setShaderProgramFragmentUniform(comptime FragUniformT: type, shader: ShaderProgram, value: FragUniformT) void {
+    const shdr = shader_cache.get(shader);
+
+    // in debug builds ensure the shader we are setting the uniform on is bound
+    if (std.builtin.mode == .Debug) {
+        var cur_prog: GLint = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
+        std.debug.assert(cur_prog == shdr.program);
+    }
+
+    inline for (@typeInfo(FragUniformT).Struct.fields) |field, i| {
+        const location = shdr.fs_uniform_cache[i];
+        if (location > -1) {
+            switch (@typeInfo(field.field_type)) {
+                .Float => glUniform1f(location, @field(value, field.name)),
+                .Int => glUniform1i(location, @field(value, field.name)),
+                .Struct => |type_info| {
+                    // special case for matrix, which is often "struct { data[n] }". We also support vec2/3/4
+                    switch (@typeInfo(type_info.fields[0].field_type)) {
+                        .Array => |array_ti| {
+                            const struct_value = @field(value, field.name);
+                            var array_value = &@field(struct_value, type_info.fields[0].name);
+                            switch (array_ti.len) {
+                                6 => glUniformMatrix3x2fv(location, 1, GL_FALSE, array_value),
+                                9 => glUniformMatrix3fv(location, 1, GL_FALSE, array_value),
+                                else => @compileError("Structs with array fields must be 6/9 elements: " ++ @typeName(field.field_type)),
+                            }
+                        },
+                        .Float => {
+                            const struct_value = @field(value, field.name);
+                            var struct_field_value = &@field(struct_value, type_info.fields[0].name);
+                            switch (type_info.fields.len) {
+                                2 => glUniform2fv(location, 1, struct_field_value),
+                                3 => glUniform3fv(location, 1, struct_field_value),
+                                4 => glUniform4fv(location, 1, struct_field_value),
+                                else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
+                            }
+                        },
+                        else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
+                    }
+                },
+                .Array => |array_type_info| {
+                    var array_value = @field(value, field.name);
+                    switch (@typeInfo(array_type_info.child)) {
+                        .Int => |type_info| {
+                            std.debug.assert(type_info.bits == 32);
+                            glUniform1iv(location, @intCast(c_int, array_type_info.len), &array_value);
+                        },
+                        .Float => |type_info| {
+                            std.debug.assert(type_info.bits == 32);
+                            glUniform1fv(location, @intCast(c_int, array_type_info.len), &array_value);
+                        },
+                        .Struct => @panic("array of structs not supported"),
+                        else => unreachable,
+                    }
+                },
+                else => @compileError("Need support for uniform type: " ++ @typeName(field.field_type)),
+            }
+        }
+    }
 }
 
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {

@@ -116,8 +116,8 @@ pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element
 }
 
 // shaders
-pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram {
-    return backend.createShaderProgram(desc);
+pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+    return backend.createShaderProgram(FragUniformT, desc);
 }
 
 pub fn destroyShaderProgram(shader: ShaderProgram) void {
@@ -126,6 +126,10 @@ pub fn destroyShaderProgram(shader: ShaderProgram) void {
 
 pub fn useShaderProgram(shader: ShaderProgram) void {
     backend.useShaderProgram(shader);
+}
+
+pub fn setShaderProgramFragmentUniform(comptime FragUniformT: type, shader: ShaderProgram, value: FragUniformT) void {
+    backend.setShaderProgramFragmentUniform(FragUniformT, shader, value);
 }
 
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {

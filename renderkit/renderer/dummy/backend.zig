@@ -38,4 +38,5 @@ pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element
 pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram { return 0; }
 pub fn destroyShaderProgram(shader: ShaderProgram) void {}
 pub fn useShaderProgram(shader: ShaderProgram) void {}
+pub fn setShaderProgramFragmentUniform(comptime FragUniformT: type, shader: ShaderProgram, value: FragUniformT) void {}
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {}
