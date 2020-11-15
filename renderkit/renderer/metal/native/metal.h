@@ -223,7 +223,7 @@ void metal_update_image(uint16_t arg0, void* arg1);
 void metal_bind_image(uint16_t arg0, uint32_t arg1);
 
 uint16_t metal_create_pass(PassDesc_t desc);
-void mmetal_destroy_pass(uint16_t pass);
+void metal_destroy_pass(uint16_t pass);
 void metal_begin_pass(uint16_t pass, ClearCommand_t clear, int w, int h);
 void metal_end_pass();
 void metal_commit_frame();

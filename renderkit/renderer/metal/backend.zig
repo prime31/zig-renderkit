@@ -74,7 +74,7 @@ pub extern fn metal_destroy_image(arg0: u16) void;
 pub extern fn metal_update_image(arg0: u16, arg1: ?*c_void) void;
 pub extern fn metal_bind_image(arg0: u16, arg1: u32) void;
 pub extern fn metal_create_pass(arg0: PassDesc) u16;
-pub extern fn mmetal_destroy_pass(arg0: u16) void;
+pub extern fn metal_destroy_pass(arg0: u16) void;
 pub extern fn metal_begin_pass(pass: u16, arg0: ClearCommand, w: c_int, h: c_int) void;
 pub extern fn metal_end_pass() void;
 pub extern fn metal_commit_frame() void;
