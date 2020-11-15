@@ -99,8 +99,8 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 }
 
 // buffer bindings
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
-    return backend.createBufferBindings(index_buffer, vert_buffer);
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
+    return backend.createBufferBindings(index_buffer, vert_buffers);
 }
 
 pub fn destroyBufferBindings(bindings: BufferBindings) void {

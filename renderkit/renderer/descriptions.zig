@@ -37,12 +37,19 @@ pub const PassDesc = struct {
     depth_stencil_img: ?renderkit.Image = null,
 };
 
+/// whether the pointer is advanced "per vertex" or "per instance". The latter is used for instanced rendering.
+pub const VertexStep = enum {
+    per_vertex,
+    per_instance,
+};
+
 pub fn BufferDesc(comptime T: type) type {
     return struct {
         size: c_long = 0, // either size (for stream buffers) or content (for static/dynamic) must be set
         type: renderkit.BufferType = .vertex,
         usage: renderkit.Usage = .immutable,
         content: ?[]const T = null,
+        step_func: VertexStep = .per_vertex, // step function used for instanced drawing
 
         pub fn getSize(self: @This()) c_long {
             std.debug.assert(self.usage != .immutable or self.content != null);

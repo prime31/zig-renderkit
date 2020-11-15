@@ -50,7 +50,7 @@ pub fn destroyBuffer(buffer: Buffer) void {}
 pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {}
 
 // buffer bindings
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings { return 0; }
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings { return 0; }
 pub fn destroyBufferBindings(bindings: BufferBindings) void {}
 pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, slot: c_uint) void {}
 pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {}

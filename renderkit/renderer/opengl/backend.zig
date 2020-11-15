@@ -20,7 +20,7 @@ var shader_cache: HandledCache(GLShaderProgram) = undefined;
 pub fn setup(desc: RendererDesc) void {
     image_cache = HandledCache(GLImage).init(desc.allocator, desc.pool_sizes.texture);
     pass_cache = HandledCache(GLPass).init(desc.allocator, desc.pool_sizes.offscreen_pass);
-    buffer_cache = HandledCache(GLBuffer).init(desc.allocator, desc.pool_sizes.offscreen_pass);
+    buffer_cache = HandledCache(GLBuffer).init(desc.allocator, desc.pool_sizes.buffers);
     binding_cache = HandledCache(GLBufferBindings).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     shader_cache = HandledCache(GLShaderProgram).init(desc.allocator, desc.pool_sizes.shaders);
 
@@ -368,17 +368,19 @@ pub fn commitFrame() void {}
 const GLBuffer = struct {
     vbo: GLuint,
     stream: bool,
-    buffer_type: GLenum,
-    setVertexAttributes: ?fn () void,
+    index_buffer_type: GLenum,
+    vert_buffer_step_func: GLuint,
+    setVertexAttributes: ?fn (attr_index: *GLuint, step_func: GLuint) void,
 };
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
     var buffer = std.mem.zeroes(GLBuffer);
     buffer.stream = desc.usage == .stream;
+    buffer.vert_buffer_step_func = if (desc.step_func == .per_vertex) 0 else 1;
 
     if (@typeInfo(T) == .Struct) {
         buffer.setVertexAttributes = struct {
-            fn cb() void {
+            fn cb(attr_index: *GLuint, step_func: GLuint) void {
                 inline for (@typeInfo(T).Struct.fields) |field, i| {
                     const offset: ?usize = if (i == 0) null else @byteOffsetOf(T, field.name);
 
@@ -390,8 +392,10 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
                                 switch (type_info.bits) {
                                     32 => {
                                         // u32 is color
-                                        glVertexAttribPointer(i, 4, GL_UNSIGNED_BYTE, GL_TRUE, @sizeOf(T), offset);
-                                        glEnableVertexAttribArray(i);
+                                        glVertexAttribPointer(attr_index.*, 4, GL_UNSIGNED_BYTE, GL_TRUE, @sizeOf(T), offset);
+                                        glEnableVertexAttribArray(attr_index.*);
+                                        glVertexAttribDivisor(attr_index.*, step_func);
+                                        attr_index.* += 1;
                                     },
                                     else => unreachable,
                                 }
@@ -408,9 +412,11 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
                             switch (@typeInfo(field_type)) {
                                 .Float => {
                                     switch (type_info.fields.len) {
-                                        2 => {
-                                            glVertexAttribPointer(i, 2, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
-                                            glEnableVertexAttribArray(i);
+                                        2, 3, 4 => {
+                                            glVertexAttribPointer(attr_index.*, type_info.fields.len, GL_FLOAT, GL_FALSE, @sizeOf(T), offset);
+                                            glEnableVertexAttribArray(attr_index.*);
+                                            glVertexAttribDivisor(attr_index.*, step_func);
+                                            attr_index.* += 1;
                                         },
                                         else => unreachable,
                                     }
@@ -424,20 +430,20 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
             }
         }.cb;
     } else {
-        buffer.buffer_type = if (T == u16) GL_UNSIGNED_SHORT else GL_UNSIGNED_INT;
+        buffer.index_buffer_type = if (T == u16) GL_UNSIGNED_SHORT else GL_UNSIGNED_INT;
     }
 
-    const buffer_type: GLenum = if (desc.type == .index) GL_ELEMENT_ARRAY_BUFFER else GL_ARRAY_BUFFER;
+    const buffer_kind: GLenum = if (desc.type == .index) GL_ELEMENT_ARRAY_BUFFER else GL_ARRAY_BUFFER;
     glGenBuffers(1, &buffer.vbo);
-    cache.bindBuffer(buffer_type, buffer.vbo);
+    cache.bindBuffer(buffer_kind, buffer.vbo);
 
     const usage: GLenum = switch (desc.usage) {
         .stream => GL_STREAM_DRAW,
         .immutable => GL_STATIC_DRAW,
         .dynamic => GL_DYNAMIC_DRAW,
     };
-    glBufferData(buffer_type, desc.getSize(), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
 
+    glBufferData(buffer_kind, desc.getSize(), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
     return buffer_cache.append(buffer);
 }
 
@@ -460,17 +466,16 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
 const GLBufferBindings = struct {
     vao: GLuint,
     index_buffer: Buffer,
-    vert_buffer: Buffer,
+    vert_buffers: [4]Buffer,
     images: [8]Image = [_]Image{0} ** 8,
 };
 
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBindings {
+pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
+    std.debug.assert(vert_buffers.len <= 4);
     const ibuffer = buffer_cache.get(index_buffer);
-    const vbuffer = buffer_cache.get(vert_buffer);
 
     var buffer = std.mem.zeroes(GLBufferBindings);
     buffer.index_buffer = index_buffer;
-    buffer.vert_buffer = vert_buffer;
 
     glGenVertexArrays(1, &buffer.vao);
     cache.bindVertexArray(buffer.vao);
@@ -478,10 +483,16 @@ pub fn createBufferBindings(index_buffer: Buffer, vert_buffer: Buffer) BufferBin
     // vao needs us to issue binds here
     cache.forceBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
 
-    if (vbuffer.setVertexAttributes) |setter| {
-        cache.forceBindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
-        setter();
-        vbuffer.setVertexAttributes = null;
+    var vert_attr_index: GLuint = 0;
+    for (vert_buffers) |buff, i| {
+        buffer.vert_buffers[0] = buff;
+        var vbuffer = buffer_cache.get(buff);
+
+        if (vbuffer.setVertexAttributes) |setter| {
+            cache.forceBindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
+            setter(&vert_attr_index, vbuffer.vert_buffer_step_func);
+            vbuffer.setVertexAttributes = null;
+        }
     }
     cache.bindVertexArray(0);
 
@@ -494,7 +505,9 @@ pub fn destroyBufferBindings(buffer_bindings: BufferBindings) void {
 
     glDeleteVertexArrays(1, &bindings.vao);
     destroyBuffer(bindings.index_buffer);
-    destroyBuffer(bindings.vert_buffer);
+    for (bindings.vert_buffers) |buffer| {
+        if (buffer != 0) destroyBuffer(buffer);
+    }
 }
 
 pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, slot: c_uint) void {
@@ -503,7 +516,6 @@ pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, 
 }
 
 pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {
-    if (instance_count > 0) @panic("OpenGL instanced rendering not supported yet");
     const bindings = binding_cache.get(buffer_bindings);
     const ibuffer = buffer_cache.get(bindings.index_buffer);
 
@@ -514,11 +526,16 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, 
         cache.bindImage(img.tid, @intCast(c_uint, slot));
     }
 
-    const i_size: c_int = if (ibuffer.buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
+    const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
     var ib_offset = @intCast(usize, base_element * i_size);
 
     cache.bindVertexArray(bindings.vao);
-    glDrawElements(GL_TRIANGLES, element_count, ibuffer.buffer_type, @intToPtr(?*GLvoid, ib_offset));
+
+    if (instance_count == 0) {
+        glDrawElements(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset));
+    } else {
+        glDrawElementsInstanced(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset), instance_count);
+    }
 }
 
 // shader
@@ -681,7 +698,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     const ti = @typeInfo(T);
     const type_name = @typeName(T);
 
-    // cover common cases before we go down the rabbit hold
+    // cover common cases before we go down the rabbit hole
     if (ti == .Struct and std.mem.eql(u8, type_name, "Mat32") and ti.Struct.fields.len == 1 and std.mem.eql(u8, ti.Struct.fields[0].name, "data")) {
         var data = @field(value, ti.Struct.fields[0].name);
         glUniformMatrix3x2fv(location, 1, GL_FALSE, &data);
@@ -699,6 +716,7 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
     } else if (ti == .Float) {
         glUniform1f(location, value);
     } else if (ti == .Array) {
+        @panic("is it even possible to get to the branch?");
         switch (@typeInfo(ti.Array.child)) {
             .Int => |type_info| {
                 std.debug.assert(type_info.bits == 32);
@@ -742,20 +760,39 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
         }
     } else if (ti == .Pointer) {
         switch (ti.Pointer.size) {
-            .Slice, .Many, .C => {
+            .Slice => {
                 switch (@typeInfo(ti.Pointer.child)) {
-                    .Int => |info| {
-                        std.debug.assert(info.bits == 32);
+                    .Int => |type_info| {
+                        std.debug.assert(type_info.bits == 32);
                         glUniform1iv(location, @intCast(c_int, value.len), value.ptr);
                     },
-                    .Float => |info| {
-                        std.debug.assert(info.bits == 32);
+                    .Float => |type_info| {
+                        std.debug.assert(type_info.bits == 32);
                         glUniform1fv(location, @intCast(c_int, value.len), value.ptr);
+                    },
+                    .Struct => |type_info| {
+                        // assume all fields are the same type
+                        switch (@typeInfo(type_info.fields[0].field_type)) {
+                            .Float => |field_info| {
+                                // grab the first element, since we will need a pointer to its first field
+                                const first_element = value[0];
+                                var struct_field_value = &@field(first_element, type_info.fields[0].name);
+
+                                switch (type_info.fields.len) {
+                                    1 => glUniform1fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
+                                    2 => glUniform2fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
+                                    3 => glUniform3fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
+                                    4 => glUniform4fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
+                                    else => unreachable,
+                                }
+                            },
+                            else => @panic("only arrays of floats supported"),
+                        }
                     },
                     else => unreachable,
                 }
             },
-            else => unreachable,
+            else => @panic("only slices implemented"),
         }
     } else {
         unreachable;

@@ -74,6 +74,7 @@ const Funcs = struct {
     glUseProgram: fn (program: GLuint) void,
     glGetAttribLocation: fn (program: GLuint, name: [*:0]const GLchar) GLint,
     glBindFragDataLocation: fn (program: GLuint, colorNumber: GLuint, name: [*:0]const GLchar) void,
+    glVertexAttribDivisor: fn (index: GLuint, divisor: GLuint) void,
     glVertexAttribPointer: fn (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, offset: ?*const c_void) void,
     glBindVertexArray: fn (array: GLuint) void,
 
@@ -333,6 +334,10 @@ pub fn glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: [*:0]c
 pub fn glVertexAttribPointer(index: GLuint, size: GLint, kind: GLenum, normalized: GLboolean, stride: GLsizei, offset: ?usize) void {
     const off = if (offset) |o| @intToPtr(*c_void, o) else null;
     gl.glVertexAttribPointer(index, size, kind, normalized, stride, off);
+}
+
+pub fn glVertexAttribDivisor(index: GLuint, divisor: GLuint) void {
+    gl.glVertexAttribDivisor(index, divisor);
 }
 
 pub fn glBindVertexArray(array: GLuint) void {
