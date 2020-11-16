@@ -20,7 +20,7 @@ enum {
 //     int cur_width;
 //     int cur_height;
 //     // _sg_mtl_state_cache_t state_cache;
-//     // _sg_sampler_cache_t sampler_cache;
+//     // _mtl_sampler_cache_t sampler_cache;
 //     // _sg_mtl_idpool_t idpool;
 //     dispatch_semaphore_t sem;
 //     id<MTLDevice> device;
@@ -43,30 +43,6 @@ bool pass_valid = false;
 int cur_width;
 int cur_height;
 
-// setup
-void metal_setup(RendererDesc_t desc) {
-    render_semaphore = dispatch_semaphore_create(NUM_INFLIGHT_FRAMES);
-    layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
-    layer.device = MTLCreateSystemDefaultDevice();
-    layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-
-    cmd_queue = [layer.device newCommandQueue];
-}
-
-void metal_shutdown() {
-    printf("----- shutdown\n");
-
-    // wait for the last frame to finish
-    for (int i = 0; i < NUM_INFLIGHT_FRAMES; i++)
-        dispatch_semaphore_wait(render_semaphore, DISPATCH_TIME_FOREVER);
-
-    // semaphore must be "relinquished" before destruction
-    for (int i = 0; i < NUM_INFLIGHT_FRAMES; i++)
-        dispatch_semaphore_signal(render_semaphore);
-
-    cmd_buffer = nil;
-    cmd_encoder = nil;
-}
 
 // render state
 void metal_set_render_state(RenderState_t state) {
@@ -124,26 +100,195 @@ void metal_scissor(int x, int y, int w, int h) {
 }
 
 
-// images
-/* initialize MTLTextureDescritor with rendertarget attributes */
-void _mtl_init_texdesc_rt(MTLTextureDescriptor *mtl_desc) {
-	/* reset the cpuCacheMode to 'default' */
-	mtl_desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
-	/* render targets are only visible to the GPU */
-	mtl_desc.resourceOptions = MTLResourceStorageModePrivate;
-	mtl_desc.storageMode = MTLStorageModePrivate;
-	/* non-MSAA render targets are shader-readable */
-	mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+// id pool
+typedef struct {
+	NSMutableArray* pool;
+	uint32_t num_slots;
+	uint32_t free_queue_top;
+	uint32_t* free_queue;
+	uint32_t release_queue_front;
+	uint32_t release_queue_back;
+} _mtl_idpool_t;
+
+// sampler cache
+typedef struct {
+	TextureFilter_t min_filter;
+	TextureFilter_t mag_filter;
+	TextureWrap_t wrap_u;
+	TextureWrap_t wrap_v;
+	uintptr_t sampler_handle;
+} _mtl_sampler_cache_item_t;
+
+typedef struct {
+	int capacity;
+	int num_items;
+	_mtl_sampler_cache_item_t* items;
+} _mtl_sampler_cache_t;
+
+void _mtl_smpcache_init(_mtl_sampler_cache_t* cache, int capacity) {
+	RENDERKIT_ASSERT(cache && (capacity > 0));
+	memset(cache, 0, sizeof(_mtl_sampler_cache_t));
+	cache->capacity = capacity;
+	const int size = cache->capacity * sizeof(_mtl_sampler_cache_item_t);
+	cache->items = (_mtl_sampler_cache_item_t*) malloc(size);
+	memset(cache->items, 0, size);
 }
 
-uint16_t metal_create_image(ImageDesc_t desc) {
+void _mtl_smpcache_discard(_mtl_sampler_cache_t* cache) {
+	RENDERKIT_ASSERT(cache && cache->items);
+	free(cache->items);
+	cache->items = 0;
+	cache->num_items = 0;
+	cache->capacity = 0;
+}
+
+int _mtl_smpcache_find_item(const _mtl_sampler_cache_t* cache, const ImageDesc_t* img_desc) {
+	// return matching sampler cache item index or -1
+	RENDERKIT_ASSERT(cache && cache->items);
+	RENDERKIT_ASSERT(img_desc);
+
+	for (int i = 0; i < cache->num_items; i++) {
+		const _mtl_sampler_cache_item_t* item = &cache->items[i];
+		if ((img_desc->min_filter == item->min_filter) &&
+			(img_desc->mag_filter == item->mag_filter) &&
+			(img_desc->wrap_u == item->wrap_u) &&
+			(img_desc->wrap_v == item->wrap_v))
+		{
+			return i;
+		}
+	}
+	/* fallthrough: no matching cache item found */
+	return -1;
+}
+
+void _mtl_smpcache_add_item(_mtl_sampler_cache_t* cache, const ImageDesc_t* img_desc, uintptr_t sampler_handle) {
+	RENDERKIT_ASSERT(cache && cache->items);
+	RENDERKIT_ASSERT(img_desc);
+	RENDERKIT_ASSERT(cache->num_items < cache->capacity);
+	
+	const int item_index = cache->num_items++;
+	_mtl_sampler_cache_item_t* item = &cache->items[item_index];
+	item->min_filter = img_desc->min_filter;
+	item->mag_filter = img_desc->mag_filter;
+	item->wrap_u = img_desc->wrap_u;
+	item->wrap_v = img_desc->wrap_v;
+	item->sampler_handle = sampler_handle;
+}
+
+uintptr_t _mtl_smpcache_sampler(_mtl_sampler_cache_t* cache, int item_index) {
+	RENDERKIT_ASSERT(cache && cache->items);
+	RENDERKIT_ASSERT((item_index >= 0) && (item_index < cache->num_items));
+	return cache->items[item_index].sampler_handle;
+}
+
+typedef struct {
+	_mtl_sampler_cache_t sampler_cache;
+	_mtl_idpool_t idpool;
+} _mtl_backend_t;
+static _mtl_backend_t _mtl;
+
+//-- a pool for all Metal resource objects, with deferred release queue -------
+void _mtl_init_pool(const RendererDesc_t desc) {
+	_mtl.idpool.num_slots = 2 *
+		(
+			2 * desc.pool_sizes.buffers +
+			5 * desc.pool_sizes.texture +
+			4 * desc.pool_sizes.shaders +
+			desc.pool_sizes.offscreen_pass
+		);
+	_mtl.idpool.pool = [NSMutableArray arrayWithCapacity:_mtl.idpool.num_slots];
+	NSNull* null = [NSNull null];
+	for (uint32_t i = 0; i < _mtl.idpool.num_slots; i++) {
+		[_mtl.idpool.pool addObject:null];
+	}
+	RENDERKIT_ASSERT([_mtl.idpool.pool count] == _mtl.idpool.num_slots);
+	// a queue of currently free slot indices
+	_mtl.idpool.free_queue_top = 0;
+	_mtl.idpool.free_queue = (uint32_t*)malloc(_mtl.idpool.num_slots * sizeof(uint32_t));
+	// pool slot 0 is reserved!
+	for (int i = _mtl.idpool.num_slots-1; i >= 1; i--) {
+		_mtl.idpool.free_queue[_mtl.idpool.free_queue_top++] = (uint32_t)i;
+	}
+}
+
+// get a new free resource pool slot
+uint32_t _mtl_alloc_pool_slot(void) {
+	RENDERKIT_ASSERT(_mtl.idpool.free_queue_top > 0);
+	const uint32_t slot_index = _mtl.idpool.free_queue[--_mtl.idpool.free_queue_top];
+	RENDERKIT_ASSERT((slot_index > 0) && (slot_index < _mtl.idpool.num_slots));
+	return slot_index;
+}
+
+// add an MTLResource to the pool, return pool index or 0 if input was 'nil'
+uint32_t _mtl_add_resource(id res) {
+	if (nil == res) {
+		return 0;
+	}
+	const uint32_t slot_index = _mtl_alloc_pool_slot();
+	RENDERKIT_ASSERT([NSNull null] == _mtl.idpool.pool[slot_index]);
+	_mtl.idpool.pool[slot_index] = res;
+	return slot_index;
+}
+
+uint32_t _mtl_create_sampler(id<MTLDevice> mtl_device, const ImageDesc_t img_desc) {
+	int index = _mtl_smpcache_find_item(&_mtl.sampler_cache, &img_desc);
+	if (index >= 0) {
+		// reuse existing sampler
+		return (uint32_t) _mtl_smpcache_sampler(&_mtl.sampler_cache, index);
+	}
+	else {
+		/* create a new Metal sampler state object and add to sampler cache */
+		MTLSamplerDescriptor* mtl_desc = [[MTLSamplerDescriptor alloc] init];
+		mtl_desc.sAddressMode = _mtl_address_mode(img_desc.wrap_u);
+		mtl_desc.tAddressMode = _mtl_address_mode(img_desc.wrap_v);
+		mtl_desc.minFilter = _mtl_minmag_filter(img_desc.min_filter);
+		mtl_desc.magFilter = _mtl_minmag_filter(img_desc.mag_filter);
+		mtl_desc.normalizedCoordinates = YES;
+		id<MTLSamplerState> mtl_sampler = [mtl_device newSamplerStateWithDescriptor:mtl_desc];
+		uint32_t sampler_handle = _mtl_add_resource(mtl_sampler);
+		_mtl_smpcache_add_item(&_mtl.sampler_cache, &img_desc, sampler_handle);
+		return sampler_handle;
+	}
+}
+
+
+// setup
+void metal_setup(RendererDesc_t desc) {
+	_mtl_init_pool(desc);
+	_mtl_smpcache_init(&_mtl.sampler_cache, 50);
+	
+	render_semaphore = dispatch_semaphore_create(NUM_INFLIGHT_FRAMES);
+	layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
+	layer.device = MTLCreateSystemDefaultDevice();
+	layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+
+	cmd_queue = [layer.device newCommandQueue];
+}
+
+void metal_shutdown() {
+	printf("----- shutdown\n");
+
+	// wait for the last frame to finish
+	for (int i = 0; i < NUM_INFLIGHT_FRAMES; i++)
+		dispatch_semaphore_wait(render_semaphore, DISPATCH_TIME_FOREVER);
+
+	// semaphore must be "relinquished" before destruction
+	for (int i = 0; i < NUM_INFLIGHT_FRAMES; i++)
+		dispatch_semaphore_signal(render_semaphore);
+
+	cmd_buffer = nil;
+	cmd_encoder = nil;
+}
+
+
+// images
+_mtl_image metal_create_image(ImageDesc_t desc) {
     MTLTextureDescriptor* mtl_desc = [[MTLTextureDescriptor alloc] init];
     mtl_desc.textureType = MTLTextureType2D;
     mtl_desc.pixelFormat = MTLPixelFormatRGBA8Unorm;
     mtl_desc.width = desc.width;
     mtl_desc.height = desc.height;
     mtl_desc.depth = 1;
-    // mtl_desc.mipmapLevelCount = img->cmn.num_mipmaps;
     mtl_desc.arrayLength = 1;
     mtl_desc.usage = MTLTextureUsageShaderRead;
     if (desc.usage != usage_immutable)
@@ -151,16 +296,27 @@ uint16_t metal_create_image(ImageDesc_t desc) {
     mtl_desc.resourceOptions = MTLResourceStorageModeManaged;
     mtl_desc.storageMode = MTLStorageModeManaged;
 
-    if (desc.render_target)
-		_mtl_init_texdesc_rt(mtl_desc);
+	// initialize MTLTextureDescritor with rendertarget attributes
+	if (desc.render_target) {
+		// reset the cpuCacheMode to 'default'
+		mtl_desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+		// render targets are only visible to the GPU
+		mtl_desc.resourceOptions = MTLResourceStorageModePrivate;
+		mtl_desc.storageMode = MTLStorageModePrivate;
+		// render targets are shader-readable
+		mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+	}
 
+	_mtl_image img;
+	
     // special case depth-stencil-buffer
     if (desc.pixel_format == pixel_format_depth_stencil || desc.pixel_format == pixel_format_stencil) {
         assert(desc.render_target);
 
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
 		RENDERKIT_ASSERT(tex != nil);
-//		img->mtl.depth_tex = _sg_mtl_add_resource(tex);
+//		img.depth_tex = _mtl_add_resource(tex);
+		img.depth_tex = tex;
 		RENDERKIT_UNREACHABLE;
     } else {
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
@@ -175,10 +331,11 @@ uint16_t metal_create_image(ImageDesc_t desc) {
 		}
 		
         // create (possibly shared) sampler state
-        // img->mtl.sampler_state = _sg_mtl_create_sampler(layer.device, desc);
+        img.sampler_state = _mtl_create_sampler(layer.device, desc);
+		img.tex = tex;
     }
 	
-	return 0;
+	return img;
 }
 
 void metal_destroy_image(uint16_t img_index) {}
@@ -253,7 +410,6 @@ void metal_commit_frame() {
     assert(cmd_buffer != nil);
 
     // present, commit and signal semaphore when done
-    // id<CAMetalDrawable> drawable = [layer nextDrawable];
     [cmd_buffer presentDrawable:cur_drawable];
     [cmd_buffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
         dispatch_semaphore_signal(render_semaphore);

@@ -280,6 +280,13 @@ typedef struct ClearCommand_t {
 } ClearCommand_t;
 
 
+typedef struct _mtl_image {
+	id<MTLTexture> tex;
+	id<MTLTexture> depth_tex;
+	id<MTLTexture> stencil_tex;
+	uint32_t sampler_state;
+} _mtl_image;
+
 void metal_setup(RendererDesc_t desc);
 void metal_shutdown();
 
@@ -287,7 +294,7 @@ void metal_set_render_state(RenderState_t arg0);
 void metal_viewport(int arg0, int arg1, int arg2, int arg3);
 void metal_scissor(int arg0, int arg1, int arg2, int arg3);
 
-uint16_t metal_create_image(ImageDesc_t arg0);
+_mtl_image metal_create_image(ImageDesc_t arg0);
 void metal_destroy_image(uint16_t arg0);
 void metal_update_image(uint16_t arg0, void* arg1);
 void metal_bind_image(uint16_t arg0, uint32_t arg1);
