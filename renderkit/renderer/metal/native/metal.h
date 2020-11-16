@@ -1,17 +1,24 @@
+// this code is all entirely based off of the excellent Sokol by @floooh: https://github.com/floooh/sokol
+#pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#ifndef RENDERKIT_ASSERT
+#ifndef RK_ASSERT
 	#include <assert.h>
-	#define RENDERKIT_ASSERT(c) assert(c)
+	#define RK_ASSERT(c) assert(c)
 #endif
 
-#ifndef RENDERKIT_UNREACHABLE
-	#define RENDERKIT_UNREACHABLE RENDERKIT_ASSERT(false)
+#ifndef RK_UNREACHABLE
+	#define RK_UNREACHABLE RK_ASSERT(false)
 #endif
+
+enum {
+    NUM_INFLIGHT_FRAMES = 1,
+};
 
 typedef enum TextureFilter_t {
     texture_filter_nearest,
@@ -23,7 +30,7 @@ MTLSamplerMinMagFilter _mtl_minmag_filter(TextureFilter_t f) {
 		case texture_filter_nearest: return MTLSamplerMinMagFilterNearest;
 		case texture_filter_linear: return MTLSamplerMinMagFilterLinear;
 		default:
-			RENDERKIT_UNREACHABLE; return (MTLSamplerMinMagFilter)0;
+			RK_UNREACHABLE; return (MTLSamplerMinMagFilter)0;
 	}
 }
 
@@ -37,7 +44,7 @@ MTLSamplerAddressMode _mtl_address_mode(TextureWrap_t w) {
 	switch (w) {
 		case texture_wrap_repeat:    return MTLSamplerAddressModeRepeat;
 		case texture_wrap_clamp:     return MTLSamplerAddressModeClampToEdge;
-		default: RENDERKIT_UNREACHABLE; return (MTLSamplerAddressMode)0;
+		default: RK_UNREACHABLE; return (MTLSamplerAddressMode)0;
 	}
 }
 
@@ -61,7 +68,7 @@ MTLResourceOptions _mtl_buffer_resource_options(enum Usage_t usg) {
 		case usage_stream:
 			return MTLCPUCacheModeWriteCombined|MTLResourceStorageModeManaged;
 		default:
-			RENDERKIT_UNREACHABLE;
+			RK_UNREACHABLE;
 			return 0;
 	}
 }
@@ -148,7 +155,7 @@ MTLLoadAction _mtl_load_action(enum ClearAction_t a) {
         case clear_action_clear:    return MTLLoadActionClear;
         case clear_action_dontcare: return MTLLoadActionDontCare;
         case clear_action_load:     return MTLLoadActionLoad;
-		default: RENDERKIT_UNREACHABLE; return (MTLLoadAction)0;
+		default: RK_UNREACHABLE; return (MTLLoadAction)0;
     }
 }
 
@@ -225,7 +232,7 @@ MTLVertexStepFunction _mtl_step_function(VertexStep_t step) {
 	switch (step) {
 		case per_vertex:      return MTLVertexStepFunctionPerVertex;
 		case per_instance:    return MTLVertexStepFunctionPerInstance;
-		default: RENDERKIT_UNREACHABLE; return (MTLVertexStepFunction)0;
+		default: RK_UNREACHABLE; return (MTLVertexStepFunction)0;
 	}
 }
 
@@ -280,30 +287,33 @@ typedef struct ClearCommand_t {
 } ClearCommand_t;
 
 
+// internal storage that gets passed back to zig and cached there
 typedef struct _mtl_image {
-	id<MTLTexture> tex;
-	id<MTLTexture> depth_tex;
-	id<MTLTexture> stencil_tex;
+	uint32_t tex;
+    uint32_t depth_tex;
+    uint32_t stencil_tex;
 	uint32_t sampler_state;
 } _mtl_image;
 
+#import "backend.h"
+
 void metal_setup(RendererDesc_t desc);
-void metal_shutdown();
+void metal_shutdown(void);
 
 void metal_set_render_state(RenderState_t arg0);
 void metal_viewport(int arg0, int arg1, int arg2, int arg3);
 void metal_scissor(int arg0, int arg1, int arg2, int arg3);
 
-_mtl_image metal_create_image(ImageDesc_t arg0);
-void metal_destroy_image(uint16_t arg0);
+_mtl_image* metal_create_image(ImageDesc_t desc);
+void metal_destroy_image(_mtl_image* arg0);
 void metal_update_image(uint16_t arg0, void* arg1);
 void metal_bind_image(uint16_t arg0, uint32_t arg1);
 
 uint16_t metal_create_pass(PassDesc_t desc);
 void metal_destroy_pass(uint16_t pass);
 void metal_begin_pass(uint16_t pass, ClearCommand_t clear, int w, int h);
-void metal_end_pass();
-void metal_commit_frame();
+void metal_end_pass(void);
+void metal_commit_frame(void);
 
 void metal_destroy_buffer(uint16_t arg0);
 void metal_update_buffer(uint16_t arg0, void* arg1);
@@ -316,3 +326,4 @@ uint16_t metal_create_shader(ShaderDesc_t arg0);
 void metal_destroy_shader(uint16_t arg0);
 void metal_use_shader(uint16_t arg0);
 void metal_set_shader_uniform(uint16_t arg0, uint8_t* arg1, void* arg2);
+

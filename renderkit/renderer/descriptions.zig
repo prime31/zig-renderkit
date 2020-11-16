@@ -19,7 +19,7 @@ pub const RendererDesc = extern struct {
     metal: MetalSetup = .{},
 };
 
-pub const ImageDesc = struct {
+pub const ImageDesc = extern struct {
     render_target: bool = false,
     width: i32,
     height: i32,
@@ -29,7 +29,7 @@ pub const ImageDesc = struct {
     mag_filter: renderkit.TextureFilter = .nearest,
     wrap_u: renderkit.TextureWrap = .clamp,
     wrap_v: renderkit.TextureWrap = .clamp,
-    content: ?[]const u8 = null,
+    content: ?*const c_void = null,
 };
 
 pub const PassDesc = struct {
