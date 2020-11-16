@@ -56,7 +56,7 @@ pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, 
 pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {}
 
 // shaders
-pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram { return 0; }
+pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram { return 0; }
 pub fn destroyShaderProgram(shader: ShaderProgram) void {}
 pub fn useShaderProgram(shader: ShaderProgram) void {}
 pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {}

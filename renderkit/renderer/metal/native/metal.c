@@ -1,5 +1,5 @@
 #if __has_feature(objc_arc) && !__has_feature(objc_arc_fields)
-    #error "sokol_app.h requires __has_feature(objc_arc_field) if ARC is enabled (use a more recent compiler version)"
+    #error "Metal requires __has_feature(objc_arc_field) if ARC is enabled (use a more recent compiler version)"
 #endif
 
 #include "metal.h"
