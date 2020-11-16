@@ -4,32 +4,72 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-enum TextureFilter_t {
+#ifndef RENDERKIT_ASSERT
+	#include <assert.h>
+	#define RENDERKIT_ASSERT(c) assert(c)
+#endif
+
+#ifndef RENDERKIT_UNREACHABLE
+	#define RENDERKIT_UNREACHABLE RENDERKIT_ASSERT(false)
+#endif
+
+typedef enum TextureFilter_t {
     texture_filter_nearest,
     texture_filter_linear,
-};
+} TextureFilter_t;
 
-enum TextureWrap_t {
+MTLSamplerMinMagFilter _mtl_minmag_filter(TextureFilter_t f) {
+	switch (f) {
+		case texture_filter_nearest: return MTLSamplerMinMagFilterNearest;
+		case texture_filter_linear: return MTLSamplerMinMagFilterLinear;
+		default:
+			RENDERKIT_UNREACHABLE; return (MTLSamplerMinMagFilter)0;
+	}
+}
+
+
+typedef enum TextureWrap_t {
     texture_wrap_clamp,
     texture_wrap_repeat,
-};
+} TextureWrap_t;
 
-enum PixelFormat_t {
+MTLSamplerAddressMode _mtl_address_mode(TextureWrap_t w) {
+	switch (w) {
+		case texture_wrap_repeat:    return MTLSamplerAddressModeRepeat;
+		case texture_wrap_clamp:     return MTLSamplerAddressModeClampToEdge;
+		default: RENDERKIT_UNREACHABLE; return (MTLSamplerAddressMode)0;
+	}
+}
+
+typedef enum PixelFormat_t {
     pixel_format_rgba,
     pixel_format_stencil,
     pixel_format_depth_stencil,
-};
+} PixelFormat_t;
 
-enum Usage_t {
+typedef enum Usage_t {
     usage_immutable,
     usage_dynamic,
     usage_stream,
-};
+} Usage_t;
 
-enum BufferType_t {
+MTLResourceOptions _mtl_buffer_resource_options(enum Usage_t usg) {
+	switch (usg) {
+		case usage_immutable:
+			return MTLResourceStorageModeShared;
+		case usage_dynamic:
+		case usage_stream:
+			return MTLCPUCacheModeWriteCombined|MTLResourceStorageModeManaged;
+		default:
+			RENDERKIT_UNREACHABLE;
+			return 0;
+	}
+}
+
+typedef enum BufferType_t {
     buffer_type_vertex,
     buffer_type_index,
-};
+} BufferType_t;
 
 enum VertexBufferUsage_t {
     vertex_buffer_usage_stream_draw,
@@ -108,11 +148,11 @@ MTLLoadAction _mtl_load_action(enum ClearAction_t a) {
         case clear_action_clear:    return MTLLoadActionClear;
         case clear_action_dontcare: return MTLLoadActionDontCare;
         case clear_action_load:     return MTLLoadActionLoad;
-        default: return (MTLLoadAction)0;
+		default: RENDERKIT_UNREACHABLE; return (MTLLoadAction)0;
     }
 }
 
-enum ColorMask_t {
+typedef enum ColorMask_t {
     color_mask_none,
     color_mask_r,
     color_mask_g,
@@ -121,7 +161,24 @@ enum ColorMask_t {
     color_mask_rgb,
     color_mask_rgba = 15,
     color_mask_force_u32 = 2147483647,
-};
+} ColorMask_t;
+
+MTLColorWriteMask _mtl_color_write_mask(ColorMask_t m) {
+	MTLColorWriteMask mtl_mask = MTLColorWriteMaskNone;
+	if (m & color_mask_r) {
+		mtl_mask |= MTLColorWriteMaskRed;
+	}
+	if (m & color_mask_g) {
+		mtl_mask |= MTLColorWriteMaskGreen;
+	}
+	if (m & color_mask_b) {
+		mtl_mask |= MTLColorWriteMaskBlue;
+	}
+	if (m & color_mask_a) {
+		mtl_mask |= MTLColorWriteMaskAlpha;
+	}
+	return mtl_mask;
+}
 
 typedef struct PoolSizes_t {
    uint8_t texture;
@@ -158,6 +215,19 @@ typedef struct PassDesc_t {
    uint16_t color_img;
    uint16_t depth_stencil_img;
 } PassDesc_t;
+
+typedef enum VertexStep_t {
+	per_vertex,
+	per_instance,
+} VertexStep_t;
+
+MTLVertexStepFunction _mtl_step_function(VertexStep_t step) {
+	switch (step) {
+		case per_vertex:      return MTLVertexStepFunctionPerVertex;
+		case per_instance:    return MTLVertexStepFunctionPerInstance;
+		default: RENDERKIT_UNREACHABLE; return (MTLVertexStepFunction)0;
+	}
+}
 
 typedef struct ShaderDesc_t {
    uint8_t* vs;

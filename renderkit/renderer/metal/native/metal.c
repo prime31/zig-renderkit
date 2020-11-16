@@ -125,6 +125,17 @@ void metal_scissor(int x, int y, int w, int h) {
 
 
 // images
+/* initialize MTLTextureDescritor with rendertarget attributes */
+void _mtl_init_texdesc_rt(MTLTextureDescriptor *mtl_desc) {
+	/* reset the cpuCacheMode to 'default' */
+	mtl_desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+	/* render targets are only visible to the GPU */
+	mtl_desc.resourceOptions = MTLResourceStorageModePrivate;
+	mtl_desc.storageMode = MTLStorageModePrivate;
+	/* non-MSAA render targets are shader-readable */
+	mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+}
+
 uint16_t metal_create_image(ImageDesc_t desc) {
     MTLTextureDescriptor* mtl_desc = [[MTLTextureDescriptor alloc] init];
     mtl_desc.textureType = MTLTextureType2D;
@@ -140,29 +151,34 @@ uint16_t metal_create_image(ImageDesc_t desc) {
     mtl_desc.resourceOptions = MTLResourceStorageModeManaged;
     mtl_desc.storageMode = MTLStorageModeManaged;
 
-    if (desc.render_target) {
-        // reset the cpuCacheMode to 'default'
-        mtl_desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
-        // render targets are only visible to the GPU
-        mtl_desc.resourceOptions = MTLResourceStorageModePrivate;
-        mtl_desc.storageMode = MTLStorageModePrivate;
-        // non-MSAA render targets are shader-readable
-        mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
-    }
+    if (desc.render_target)
+		_mtl_init_texdesc_rt(mtl_desc);
 
     // special case depth-stencil-buffer
     if (desc.pixel_format == pixel_format_depth_stencil || desc.pixel_format == pixel_format_stencil) {
         assert(desc.render_target);
 
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
-        // img->mtl.depth_tex = _sg_mtl_add_resource(tex);
+		RENDERKIT_ASSERT(tex != nil);
+//		img->mtl.depth_tex = _sg_mtl_add_resource(tex);
+		RENDERKIT_UNREACHABLE;
     } else {
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
-        // if (desc.usage == usage_immutable && !desc.render_target)
-        //     _sg_mtl_copy_image_content(img, tex, desc.content);
+		if (desc.usage == usage_immutable && !desc.render_target) {
+			MTLRegion region = MTLRegionMake2D(0, 0, desc.width, desc.height);
+			[tex replaceRegion:region
+				   mipmapLevel:0
+						 slice:0
+					 withBytes:desc.content
+				   bytesPerRow:desc.width * 4
+				 bytesPerImage:desc.height * desc.width * 4];
+		}
+		
         // create (possibly shared) sampler state
         // img->mtl.sampler_state = _sg_mtl_create_sampler(layer.device, desc);
     }
+	
+	return 0;
 }
 
 void metal_destroy_image(uint16_t img_index) {}
