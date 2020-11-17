@@ -194,9 +194,9 @@ typedef enum VertexStep_t {
 
 MTLVertexStepFunction _mtl_step_function(VertexStep_t step) {
 	switch (step) {
-		case per_vertex:      return MTLVertexStepFunctionPerVertex;
-		case per_instance:    return MTLVertexStepFunctionPerInstance;
-		default: RK_UNREACHABLE; return (MTLVertexStepFunction)0;
+		case per_vertex:            return MTLVertexStepFunctionPerVertex;
+		case per_instance:          return MTLVertexStepFunctionPerInstance;
+		default: RK_UNREACHABLE;    return (MTLVertexStepFunction)0;
 	}
 }
 
@@ -277,13 +277,52 @@ typedef struct ImageDesc_t {
    uint8_t* content;
 } ImageDesc_t;
 
+
+// MtlBufferDesc_T sub-types
+typedef enum VertexFormat_t {
+    vertex_format_float,
+    vertex_format_float2,
+    vertex_format_float3,
+    vertex_format_float4,
+    vertex_format_u_byte_4n,
+} VertexFormat_t;
+
+MTLVertexFormat _mtl_vertex_format(VertexFormat_t format) {
+    switch (format) {
+        case vertex_format_float:       return MTLVertexFormatFloat;
+        case vertex_format_float2:      return MTLVertexFormatFloat2;
+        case vertex_format_float3:      return MTLVertexFormatFloat3;
+        case vertex_format_float4:      return MTLVertexFormatFloat4;
+        case vertex_format_u_byte_4n:   return MTLVertexFormatUChar4Normalized;
+        default: RK_UNREACHABLE;        return (MTLVertexFormat)0;
+    }
+}
+
+typedef enum IndexType_t {
+    index_type_uint16,
+    index_type_uint32,
+} IndexType_t;
+
+typedef struct VertexAttribute_t {
+    VertexFormat_t format;
+    int offset;
+} VertexAttribute_t;
+
+typedef struct VertexLayout_t {
+    int stride;
+    VertexStep_t step_func;
+} VertexLayout_t;
+
 typedef struct MtlBufferDesc_T {
     long size; // either size (for stream buffers) or content (for static/dynamic) must be set
     BufferType_t type;
     Usage_t usage;
     uint8_t* content;
-    VertexStep_t step_func;
+    IndexType_t index_type;
+    VertexLayout_t vertex_layout[4];
+    VertexAttribute_t vertex_attrs[8];
 } MtlBufferDesc_T;
+
 
 typedef struct PassDesc_t {
    uint16_t color_img;
@@ -293,7 +332,6 @@ typedef struct PassDesc_t {
 typedef struct ShaderDesc_t {
 	const char* vs;
 	const char* fs;
-	const char** images;
 } ShaderDesc_t;
 
 // internal storage that gets passed back to zig and cached there
@@ -306,8 +344,20 @@ typedef struct _mtl_image {
 	uint32_t height;
 } _mtl_image;
 
+typedef struct mtl_vertex_layout_t {
+    int stride;
+    MTLVertexStepFunction step_func;
+} mtl_vertex_layout_t;
+
+typedef struct mtl_vertex_attribute_t {
+    MTLVertexFormat format;
+    int offset;
+} mtl_vertex_attribute_t;
+
 typedef struct _mtl_buffer {
 	uint32_t buffer;
+    mtl_vertex_layout_t vertex_layout[4];
+    mtl_vertex_attribute_t vertex_attrs[8];
 } _mtl_buffer;
 
 typedef struct _mtl_shader {
@@ -316,6 +366,12 @@ typedef struct _mtl_shader {
 	uint32_t fs_lib;
 	uint32_t fs_func;
 } _mtl_shader;
+
+typedef struct MtlBufferBindings_t {
+    _mtl_buffer* index_buffer;
+    _mtl_buffer* vertex_buffers[4];
+    _mtl_image* images[8];
+} MtlBufferBindings_t;
 
 
 #import "backend.h"
@@ -342,13 +398,10 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc);
 void metal_destroy_buffer(_mtl_buffer* buffer);
 void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 
-uint16_t metal_create_buffer_bindings(uint16_t arg0, uint16_t arg1);
-void metal_destroy_buffer_bindings(uint16_t arg0);
-void metal_draw_buffer_bindings(uint16_t arg0, int arg1);
-void metal_bind_image_to_buffer_bindings(uint16_t bindings, _mtl_image* img, uint32_t slot);
-
 _mtl_shader* metal_create_shader(ShaderDesc_t arg0);
 void metal_destroy_shader(_mtl_shader* shader);
 void metal_use_shader(_mtl_shader* shader);
 void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2);
 
+void metal_apply_bindings(MtlBufferBindings_t bindings);
+void metal_draw(int base_element, int element_count, int instance_count);

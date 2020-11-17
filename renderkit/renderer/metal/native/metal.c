@@ -23,6 +23,11 @@ int cur_width;
 int cur_height;
 uint32_t frame_index;
 
+// pipeline state
+_mtl_shader* cur_shader;
+MtlBufferBindings_t cur_bindings;
+id<MTLRenderPipelineState> pipeline;
+
 // setup
 void metal_setup(RendererDesc_t desc) {
     mtl_backend = [[RKMetalBackend alloc] initWithRendererDesc:desc];
@@ -271,7 +276,20 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
     _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
     memset(buffer, 0, sizeof(_mtl_buffer));
     
-    // TODO: multiple buffers when they are mutable
+    // store off some data we will need for the pipeline later
+    if (desc.type == buffer_type_vertex) {
+        for (int i = 0; i < 4; i++) {
+            buffer->vertex_layout[i].stride = desc.vertex_layout[i].stride;
+            buffer->vertex_layout[i].step_func = _mtl_step_function(desc.vertex_layout[i].step_func);
+        }
+        
+        for (int i = 0; i < 8; i++) {
+            buffer->vertex_attrs[i].format = _mtl_vertex_format(desc.vertex_attrs[i].format);
+            buffer->vertex_attrs[i].offset = desc.vertex_attrs[i].offset;
+        }
+    }
+    
+    // TODO: support multiple in-flight buffers when they are mutable
     MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
     id<MTLBuffer> mtl_buf;
     if (desc.usage == usage_immutable)
@@ -284,6 +302,7 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
 }
 
 void metal_destroy_buffer(_mtl_buffer* buffer) {
+    printf("metal_destroy_buffer\n");
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffer];
     free(buffer);
 }
@@ -313,7 +332,7 @@ _mtl_shader* metal_create_shader(ShaderDesc_t desc) {
 	}
 	
 	err = NULL;
-	id<MTLLibrary> fs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.vs]
+	id<MTLLibrary> fs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.fs]
 													  options:nil
 														error:&err];
 	if (err) {
@@ -322,7 +341,7 @@ _mtl_shader* metal_create_shader(ShaderDesc_t desc) {
 	}
 	
 	id<MTLFunction> vs_func = [vs_lib newFunctionWithName:@"_main"];
-	id<MTLFunction> fs_func = [vs_lib newFunctionWithName:@"_main"];
+	id<MTLFunction> fs_func = [fs_lib newFunctionWithName:@"_main"];
 	
 	if (vs_func == nil) {
 		NSLog(@"failed to location vs function");
@@ -348,46 +367,90 @@ void metal_destroy_shader(_mtl_shader* shader) {
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_lib];
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_func];
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_func];
+    
+    // TODO: destroy all Pipelines that use this shader
 }
 
 void metal_use_shader(_mtl_shader* shader) {
-	// TODO: this obviously shouldnt be set per frame! It needs a proper home.
-	// Graphics Pipeline
-	MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-	pipelineStateDescriptor.label = @"Sprite Pipeline";
-	pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[shader->vs_func];
-	pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[shader->fs_func];
-	pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
-
-	// Input Assembly
-	MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
-	vertexDesc.attributes[0].format = MTLVertexFormatFloat2;
-	vertexDesc.attributes[0].offset = 0;
-	vertexDesc.attributes[0].bufferIndex = 0;
-	vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
-	vertexDesc.attributes[1].offset = sizeof(float) * 2;
-	vertexDesc.attributes[1].bufferIndex = 0;
-	vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized;
-	vertexDesc.attributes[2].offset = sizeof(float) * 4;
-	vertexDesc.attributes[2].bufferIndex = 0;
-	vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-	vertexDesc.layouts[0].stride = sizeof(float) * 4 + sizeof(uint32_t);
-
-	pipelineStateDescriptor.vertexDescriptor = vertexDesc;
-
-	// Create Pipeline State Object
-	NSError* error = nil;
-	id<MTLRenderPipelineState> pipelineState = [layer.device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
-
-	if (error) {
-		NSLog(@"Failed to created pipeline state, error %@", error);
-		return;
-	}
-	
-	[cmd_encoder setRenderPipelineState:pipelineState];
+    cur_shader = shader;
 }
 
 void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
 	
 }
 
+
+// bindings and draw
+void metal_apply_bindings(MtlBufferBindings_t bindings) {
+    printf("metal_apply_bindings\n");
+    cur_bindings = bindings;
+    
+    for (int i = 0; i < 4; i++) {
+        if (bindings.vertex_buffers[i] == NULL) break;
+    }
+    
+    for (int i = 0; i < 8; i++) {
+        if (bindings.images[i] == NULL) break;
+        RK_ASSERT(bindings.images[i]->sampler_state != 0);
+        [cmd_encoder setFragmentTexture:mtl_backend.objectPool[bindings.images[i]->tex] atIndex:i];
+        [cmd_encoder setFragmentSamplerState:mtl_backend.objectPool[bindings.images[i]->sampler_state] atIndex:i];
+    }
+    
+    if (pipeline == nil) {
+        // TODO: this needs a proper home and proper caching
+        // Graphics Pipeline
+        MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+        pipelineStateDescriptor.label = @"Sprite Pipeline";
+        pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[cur_shader->vs_func];
+        pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[cur_shader->fs_func];
+        pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
+
+        // Input Assembly
+        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
+        vertexDesc.attributes[0].format = MTLVertexFormatFloat2;
+        vertexDesc.attributes[0].offset = 0;
+        vertexDesc.attributes[0].bufferIndex = 0;
+        vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
+        vertexDesc.attributes[1].offset = sizeof(float) * 2;
+        vertexDesc.attributes[1].bufferIndex = 0;
+        vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized;
+        vertexDesc.attributes[2].offset = sizeof(float) * 4;
+        vertexDesc.attributes[2].bufferIndex = 0;
+        
+        vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+        vertexDesc.layouts[0].stride = sizeof(float) * 4 + sizeof(uint32_t);
+
+        pipelineStateDescriptor.vertexDescriptor = vertexDesc;
+
+        // Create Pipeline State Object
+        NSError* error = nil;
+        id<MTLRenderPipelineState> pipelineState = [layer.device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+
+        if (error) {
+            NSLog(@"Failed to created pipeline state, error %@", error);
+            return;
+        }
+        
+        pipeline = pipelineState;
+    }
+    
+    [cmd_encoder setRenderPipelineState:pipeline];
+    [cmd_encoder setCullMode:MTLCullModeNone];
+    [cmd_encoder setVertexBuffer:mtl_backend.objectPool[cur_bindings.vertex_buffers[0]->buffer] offset:0 atIndex:0];
+}
+
+void metal_draw(int base_element, int element_count, int instance_count) {
+    printf("metal_draw\n");
+    
+     [cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                             indexCount:element_count
+                              indexType:MTLIndexTypeUInt16
+                            indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
+                      indexBufferOffset:0
+                          instanceCount:instance_count];
+    
+//    [cmd_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+//                    vertexStart:base_element
+//                    vertexCount:element_count
+//                  instanceCount:instance_count];
+}
