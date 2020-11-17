@@ -173,14 +173,16 @@ void metal_destroy_image(_mtl_image* img) {
     // it's valid to call release resource with a 'null resource'
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->tex];
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->depth_tex];
+    [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->stencil_tex];
     free(img);
-    // NOTE: sampler state objects are shared and not released until shutdown
 }
 
-void metal_update_image(uint16_t img_index, void* arg1) {}
+void metal_update_image(_mtl_image* img, void* data) {
+    printf("metal_update_image\n");
+}
 
-void metal_bind_image(uint16_t img_index, uint32_t arg1) {}
 
+// passes
 
 void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     in_pass = true;
@@ -259,4 +261,36 @@ void metal_commit_frame() {
     
     cmd_buffer = nil;
     cur_drawable = nil;
+}
+
+
+// buffers
+_mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
+    printf("metal_create_buffer\n");
+    _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
+    memset(buffer, 0, sizeof(_mtl_buffer));
+    
+    // TODO: multiple buffers when they are mutable
+    MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
+    id<MTLBuffer> mtl_buf;
+    if (desc.usage == usage_immutable)
+        mtl_buf = [layer.device newBufferWithBytes:desc.content length:desc.size options:mtl_options];
+    else
+        mtl_buf = [layer.device newBufferWithLength:desc.size options:mtl_options];
+    buffer->buffer = [mtl_backend addResource:mtl_buf];
+    
+    return buffer;
+}
+
+void metal_destroy_buffer(_mtl_buffer* buffer) {
+    [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffer];
+    free(buffer);
+}
+
+void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size) {
+    printf("metal_update_buffer\n");
+    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
+    void* dst_ptr = [mtl_buf contents];
+    memcpy(dst_ptr, data, data_size);
+    [mtl_buf didModifyRange:NSMakeRange(0, data_size)];
 }

@@ -95,9 +95,8 @@ static mtl_idpool_t idpool;
 }
 
 - (uint32_t)addResource:(id)res {
-    if (nil == res) {
+    if (nil == res)
         return 0;
-    }
     
     // get a new free resource pool slot
     RK_ASSERT(idpool.free_queue_top > 0);

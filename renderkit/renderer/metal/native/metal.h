@@ -187,42 +187,6 @@ MTLColorWriteMask _mtl_color_write_mask(ColorMask_t m) {
 	return mtl_mask;
 }
 
-typedef struct PoolSizes_t {
-   uint8_t texture;
-   uint8_t offscreen_pass;
-   uint8_t buffers;
-   uint8_t shaders;
-} PoolSizes_t;
-
-typedef struct _t {
-   void* ca_layer;
-} MetalSetup_t;
-
-typedef struct RendererDesc_t {
-   void* allocator;
-   const void* (*getProcAddress)(uint8_t*);
-   PoolSizes_t pool_sizes;
-   MetalSetup_t metal;
-} RendererDesc_t;
-
-typedef struct ImageDesc_t {
-   bool render_target;
-   int32_t width;
-   int32_t height;
-   enum Usage_t usage;
-   enum PixelFormat_t pixel_format;
-   enum TextureFilter_t min_filter;
-   enum TextureFilter_t mag_filter;
-   enum TextureWrap_t wrap_u;
-   enum TextureWrap_t wrap_v;
-   uint8_t* content;
-} ImageDesc_t;
-
-typedef struct PassDesc_t {
-   uint16_t color_img;
-   uint16_t depth_stencil_img;
-} PassDesc_t;
-
 typedef enum VertexStep_t {
 	per_vertex,
 	per_instance,
@@ -235,12 +199,6 @@ MTLVertexStepFunction _mtl_step_function(VertexStep_t step) {
 		default: RK_UNREACHABLE; return (MTLVertexStepFunction)0;
 	}
 }
-
-typedef struct ShaderDesc_t {
-   uint8_t* vs;
-   uint8_t* fs;
-   uint8_t** images;
-} ShaderDesc_t;
 
 typedef struct Depth_t {
    bool enabled;
@@ -287,6 +245,57 @@ typedef struct ClearCommand_t {
 } ClearCommand_t;
 
 
+// descriptor structs
+typedef struct PoolSizes_t {
+   uint8_t texture;
+   uint8_t offscreen_pass;
+   uint8_t buffers;
+   uint8_t shaders;
+} PoolSizes_t;
+
+typedef struct MetalSetup_t {
+   void* ca_layer;
+} MetalSetup_t;
+
+typedef struct RendererDesc_t {
+   void* allocator;
+   const void* (*getProcAddress)(uint8_t*);
+   PoolSizes_t pool_sizes;
+   MetalSetup_t metal;
+} RendererDesc_t;
+
+typedef struct ImageDesc_t {
+   bool render_target;
+   int32_t width;
+   int32_t height;
+   enum Usage_t usage;
+   enum PixelFormat_t pixel_format;
+   enum TextureFilter_t min_filter;
+   enum TextureFilter_t mag_filter;
+   enum TextureWrap_t wrap_u;
+   enum TextureWrap_t wrap_v;
+   uint8_t* content;
+} ImageDesc_t;
+
+typedef struct MtlBufferDesc_T {
+    long size; // either size (for stream buffers) or content (for static/dynamic) must be set
+    BufferType_t type;
+    Usage_t usage;
+    uint8_t* content;
+    VertexStep_t step_func;
+} MtlBufferDesc_T;
+
+typedef struct PassDesc_t {
+   uint16_t color_img;
+   uint16_t depth_stencil_img;
+} PassDesc_t;
+
+typedef struct ShaderDesc_t {
+   uint8_t* vs;
+   uint8_t* fs;
+   uint8_t** images;
+} ShaderDesc_t;
+
 // internal storage that gets passed back to zig and cached there
 typedef struct _mtl_image {
 	uint32_t tex;
@@ -294,6 +303,11 @@ typedef struct _mtl_image {
     uint32_t stencil_tex;
 	uint32_t sampler_state;
 } _mtl_image;
+
+typedef struct _mtl_buffer {
+	uint32_t buffer;
+} _mtl_buffer;
+
 
 #import "backend.h"
 
@@ -306,8 +320,8 @@ void metal_scissor(int arg0, int arg1, int arg2, int arg3);
 
 _mtl_image* metal_create_image(ImageDesc_t desc);
 void metal_destroy_image(_mtl_image* arg0);
-void metal_update_image(uint16_t arg0, void* arg1);
-void metal_bind_image(uint16_t arg0, uint32_t arg1);
+void metal_update_image(_mtl_image* img, void* data);
+void metal_bind_image(_mtl_image* img, uint32_t slot);
 
 uint16_t metal_create_pass(PassDesc_t desc);
 void metal_destroy_pass(uint16_t pass);
@@ -315,12 +329,14 @@ void metal_begin_pass(uint16_t pass, ClearCommand_t clear, int w, int h);
 void metal_end_pass(void);
 void metal_commit_frame(void);
 
-void metal_destroy_buffer(uint16_t arg0);
-void metal_update_buffer(uint16_t arg0, void* arg1);
+_mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc);
+void metal_destroy_buffer(_mtl_buffer* buffer);
+void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 
 uint16_t metal_create_buffer_bindings(uint16_t arg0, uint16_t arg1);
 void metal_destroy_buffer_bindings(uint16_t arg0);
 void metal_draw_buffer_bindings(uint16_t arg0, int arg1);
+void metal_bind_image_to_buffer_bindings(uint16_t bindings, _mtl_image* img, uint32_t slot);
 
 uint16_t metal_create_shader(ShaderDesc_t arg0);
 void metal_destroy_shader(uint16_t arg0);
