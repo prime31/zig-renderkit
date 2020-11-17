@@ -6,12 +6,15 @@ const HandledCache = @import("../handles.zig").HandledCache;
 
 var image_cache: HandledCache(*MtlImage) = undefined;
 var buffer_cache: HandledCache(*MtlBuffer) = undefined;
+var shader_cache: HandledCache(*MtlShader) = undefined;
 
 pub fn setup(desc: RendererDesc) void {
     image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture);
     buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers);
+    shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders);
 
     metal_setup(desc);
+    setRenderState(.{});
 }
 
 pub fn shutdown() void {
@@ -100,12 +103,27 @@ pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element
 
 // shaders
 pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
-    return 0;
+    const shader = metal_create_shader(MtlShaderDesc.init(desc));
+    return shader_cache.append(shader);
 }
-pub fn destroyShaderProgram(shader: ShaderProgram) void {}
-pub fn useShaderProgram(shader: ShaderProgram) void {}
-pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {}
-pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {}
+
+pub fn destroyShaderProgram(shader: ShaderProgram) void {
+    var shd = shader_cache.free(shader);
+    metal_destroy_shader(shd.*);
+}
+
+pub fn useShaderProgram(shader: ShaderProgram) void {
+    var shdr = shader_cache.get(shader);
+    metal_use_shader(shdr.*);
+}
+
+pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {
+    var shdr = shader_cache.get(shader);
+}
+
+pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
+    var shdr = shader_cache.get(shader);
+}
 
 // C api
 // we need this due to the normal descriptor being generic which cant be sent to C: BufferDesc(T)
@@ -127,15 +145,41 @@ const MtlBufferDesc = extern struct {
     }
 };
 
+pub const MtlShaderDesc = extern struct {
+    vs: [*c]const u8,
+    fs: [*c]const u8,
+    images: [4][*c]const u8 = &[_][*c]const u8{},
+
+    pub fn init(desc: ShaderDesc) MtlShaderDesc {
+        var images: [4][*c]const u8 = undefined;
+        for (desc.images) |img, i| images[i] = img;
+
+        return .{
+            .vs = desc.vs,
+            .fs = desc.fs,
+            .images = images,
+        };
+    }
+};
+
 const MtlImage = extern struct {
     tex: u32,
     depth_tex: u32,
     stencil_tex: u32,
     sampler_state: u32,
+    width: u32,
+    height: u32,
 };
 
 const MtlBuffer = extern struct {
-    ting: u32,
+    buffer: u32,
+};
+
+const MtlShader = extern struct {
+    vs_lib: u32,
+    vs_func: u32,
+    fs_lib: u32,
+    fs_func: u32,
 };
 
 extern fn metal_setup(arg0: RendererDesc) void;
@@ -164,7 +208,8 @@ extern fn metal_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_siz
 extern fn metal_create_buffer_bindings(arg0: u16, arg1: u16) u16;
 extern fn metal_destroy_buffer_bindings(arg0: u16) void;
 extern fn metal_draw_buffer_bindings(arg0: u16, arg1: c_int) void;
-extern fn metal_create_shader(arg0: ShaderDesc) u16;
-extern fn metal_destroy_shader(arg0: u16) void;
-extern fn metal_use_shader(arg0: u16) void;
-extern fn metal_set_shader_uniform(arg0: u16, arg1: [*c]u8, arg2: ?*const c_void) void;
+
+extern fn metal_create_shader(desc: MtlShaderDesc) *MtlShader;
+extern fn metal_destroy_shader(shader: *MtlShader) void;
+extern fn metal_use_shader(shader: *MtlShader) void;
+extern fn metal_set_shader_uniform(shader: *MtlShader, arg1: [*c]u8, arg2: ?*const c_void) void;

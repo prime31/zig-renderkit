@@ -36,7 +36,7 @@ void metal_setup(RendererDesc_t desc) {
 }
 
 void metal_shutdown() {
-	printf("----- shutdown\n");
+	printf("----- metal_shutdown\n");
 
 	// wait for the last frame to finish
 	for (int i = 0; i < NUM_INFLIGHT_FRAMES; i++)
@@ -66,7 +66,6 @@ void metal_set_render_state(RenderState_t state) {
 }
 
 void metal_viewport(int x, int y, int w, int h) {
-    printf("metal_viewport\n");
     assert(in_pass);
     if (!pass_valid) return;
     assert(cmd_encoder != nil);
@@ -134,7 +133,10 @@ _mtl_image* metal_create_image(ImageDesc_t desc) {
 		mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
 	}
 
-	_mtl_image img;
+	_mtl_image* img = malloc(sizeof(_mtl_image));
+	memset(img, 0, sizeof(_mtl_image));
+	img->width = desc.width;
+	img->height = desc.height;
 
     // special case depth-stencil-buffer
     if (desc.pixel_format == pixel_format_depth_stencil || desc.pixel_format == pixel_format_stencil) {
@@ -142,7 +144,7 @@ _mtl_image* metal_create_image(ImageDesc_t desc) {
 
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
 		RK_ASSERT(tex != nil);
-        img.depth_tex = [mtl_backend addResource:tex];
+        img->depth_tex = [mtl_backend addResource:tex];
 		RK_UNREACHABLE;
     } else {
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
@@ -155,17 +157,11 @@ _mtl_image* metal_create_image(ImageDesc_t desc) {
 		}
 
         // create (possibly shared) sampler state
-        img.sampler_state = [mtl_backend createSampler:layer.device withImageDesc:&desc];
-        img.tex = [mtl_backend addResource:tex];
+        img->sampler_state = [mtl_backend createSampler:layer.device withImageDesc:&desc];
+        img->tex = [mtl_backend addResource:tex];
     }
 
-    // HACK: for some reason zig doesnt like getting passed the struct by value
-	_mtl_image* img_ptr = malloc(sizeof(_mtl_image));
-    memset(img_ptr, 0, sizeof(_mtl_image));
-    *img_ptr = img;
-    printf("metal_destroy_image\n");
-
-	return img_ptr;
+	return img;
 }
 
 void metal_destroy_image(_mtl_image* img) {
@@ -179,11 +175,13 @@ void metal_destroy_image(_mtl_image* img) {
 
 void metal_update_image(_mtl_image* img, void* data) {
     printf("metal_update_image\n");
+	__unsafe_unretained id<MTLTexture> mtl_tex = mtl_backend.objectPool[img->tex];
+	MTLRegion region = MTLRegionMake2D(0, 0, img->width, img->height);
+	[mtl_tex replaceRegion:region mipmapLevel:0 withBytes:data bytesPerRow:img->width * 4];
 }
 
 
 // passes
-
 void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     in_pass = true;
     cur_width = w;
@@ -201,6 +199,7 @@ void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     if (pass_index > 0) { // offscreen render pass
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
     } else {
+		metal_viewport(0, 0, w, h);
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
         // only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.
         if (cur_drawable == nil)
@@ -250,8 +249,10 @@ void metal_commit_frame() {
 
     // present, commit and signal semaphore when done
     [cmd_buffer presentDrawable:cur_drawable];
+	
+	__block dispatch_semaphore_t block_sema = render_semaphore;
     [cmd_buffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
-        dispatch_semaphore_signal(render_semaphore);
+        dispatch_semaphore_signal(block_sema);
     }];
     [cmd_buffer commit];
     
@@ -294,3 +295,99 @@ void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_si
     memcpy(dst_ptr, data, data_size);
     [mtl_buf didModifyRange:NSMakeRange(0, data_size)];
 }
+
+
+// shaders
+_mtl_shader* metal_create_shader(ShaderDesc_t desc) {
+	_mtl_shader* shader = malloc(sizeof(_mtl_shader));
+	memset(shader, 0, sizeof(_mtl_shader));
+	
+	// create metal libray objects and lookup entry functions
+	NSError* err = NULL;
+	id<MTLLibrary> vs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.vs]
+													  options:nil
+														error:&err];
+	if (err) {
+		NSLog(@"failed to compile vs library: %@", err.localizedDescription);
+		return NULL;
+	}
+	
+	err = NULL;
+	id<MTLLibrary> fs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.vs]
+													  options:nil
+														error:&err];
+	if (err) {
+		NSLog(@"failed to compile vs library: %@", err.localizedDescription);
+		return NULL;
+	}
+	
+	id<MTLFunction> vs_func = [vs_lib newFunctionWithName:@"_main"];
+	id<MTLFunction> fs_func = [vs_lib newFunctionWithName:@"_main"];
+	
+	if (vs_func == nil) {
+		NSLog(@"failed to location vs function");
+		return NULL;
+	}
+	
+	if (fs_func == nil) {
+		NSLog(@"failed to location vs function");
+		return NULL;
+	}
+	
+	shader->vs_lib  = [mtl_backend addResource:vs_lib];
+	shader->fs_lib  = [mtl_backend addResource:fs_lib];
+	shader->vs_func = [mtl_backend addResource:vs_func];
+	shader->fs_func = [mtl_backend addResource:fs_func];
+	
+	return shader;
+}
+
+void metal_destroy_shader(_mtl_shader* shader) {
+	printf("metal_destroy_shader\n");
+	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_lib];
+	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_lib];
+	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_func];
+	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_func];
+}
+
+void metal_use_shader(_mtl_shader* shader) {
+	// TODO: this obviously shouldnt be set per frame! It needs a proper home.
+	// Graphics Pipeline
+	MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+	pipelineStateDescriptor.label = @"Sprite Pipeline";
+	pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[shader->vs_func];
+	pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[shader->fs_func];
+	pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
+
+	// Input Assembly
+	MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
+	vertexDesc.attributes[0].format = MTLVertexFormatFloat2;
+	vertexDesc.attributes[0].offset = 0;
+	vertexDesc.attributes[0].bufferIndex = 0;
+	vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
+	vertexDesc.attributes[1].offset = sizeof(float) * 2;
+	vertexDesc.attributes[1].bufferIndex = 0;
+	vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized;
+	vertexDesc.attributes[2].offset = sizeof(float) * 4;
+	vertexDesc.attributes[2].bufferIndex = 0;
+	vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+	vertexDesc.layouts[0].stride = sizeof(float) * 4 + sizeof(uint32_t);
+
+	pipelineStateDescriptor.vertexDescriptor = vertexDesc;
+
+	// Create Pipeline State Object
+	NSError* error = nil;
+	id<MTLRenderPipelineState> pipelineState = [layer.device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+
+	if (error) {
+		NSLog(@"Failed to created pipeline state, error %@", error);
+		return;
+	}
+	
+	[cmd_encoder setRenderPipelineState:pipelineState];
+}
+
+void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
+	
+}
+

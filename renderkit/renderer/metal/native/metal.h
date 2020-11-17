@@ -291,9 +291,9 @@ typedef struct PassDesc_t {
 } PassDesc_t;
 
 typedef struct ShaderDesc_t {
-   uint8_t* vs;
-   uint8_t* fs;
-   uint8_t** images;
+	const char* vs;
+	const char* fs;
+	const char** images;
 } ShaderDesc_t;
 
 // internal storage that gets passed back to zig and cached there
@@ -302,11 +302,20 @@ typedef struct _mtl_image {
     uint32_t depth_tex;
     uint32_t stencil_tex;
 	uint32_t sampler_state;
+	uint32_t width;
+	uint32_t height;
 } _mtl_image;
 
 typedef struct _mtl_buffer {
 	uint32_t buffer;
 } _mtl_buffer;
+
+typedef struct _mtl_shader {
+	uint32_t vs_lib;
+	uint32_t vs_func;
+	uint32_t fs_lib;
+	uint32_t fs_func;
+} _mtl_shader;
 
 
 #import "backend.h"
@@ -338,8 +347,8 @@ void metal_destroy_buffer_bindings(uint16_t arg0);
 void metal_draw_buffer_bindings(uint16_t arg0, int arg1);
 void metal_bind_image_to_buffer_bindings(uint16_t bindings, _mtl_image* img, uint32_t slot);
 
-uint16_t metal_create_shader(ShaderDesc_t arg0);
-void metal_destroy_shader(uint16_t arg0);
-void metal_use_shader(uint16_t arg0);
-void metal_set_shader_uniform(uint16_t arg0, uint8_t* arg1, void* arg2);
+_mtl_shader* metal_create_shader(ShaderDesc_t arg0);
+void metal_destroy_shader(_mtl_shader* shader);
+void metal_use_shader(_mtl_shader* shader);
+void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2);
 
