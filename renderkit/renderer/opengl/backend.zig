@@ -9,11 +9,12 @@ const RenderCache = @import("render_cache.zig").RenderCache;
 
 var cache = RenderCache.init();
 var pip_cache: RenderState = undefined;
+var vao: GLuint = undefined;
+var cur_bindings: BufferBindings = undefined;
 
 var image_cache: HandledCache(GLImage) = undefined;
 var pass_cache: HandledCache(GLPass) = undefined;
 var buffer_cache: HandledCache(GLBuffer) = undefined;
-var binding_cache: HandledCache(GLBufferBindings) = undefined;
 var shader_cache: HandledCache(GLShaderProgram) = undefined;
 
 // setup
@@ -21,7 +22,6 @@ pub fn setup(desc: RendererDesc) void {
     image_cache = HandledCache(GLImage).init(desc.allocator, desc.pool_sizes.texture);
     pass_cache = HandledCache(GLPass).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     buffer_cache = HandledCache(GLBuffer).init(desc.allocator, desc.pool_sizes.buffers);
-    binding_cache = HandledCache(GLBufferBindings).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     shader_cache = HandledCache(GLShaderProgram).init(desc.allocator, desc.pool_sizes.shaders);
 
     if (desc.gl_loader) |loader| {
@@ -31,6 +31,9 @@ pub fn setup(desc: RendererDesc) void {
     }
 
     setRenderState(.{});
+
+    glGenVertexArrays(1, &vao);
+    cache.bindVertexArray(vao);
 }
 
 pub fn shutdown() void {
@@ -38,7 +41,6 @@ pub fn shutdown() void {
     image_cache.deinit();
     pass_cache.deinit();
     buffer_cache.deinit();
-    binding_cache.deinit();
     shader_cache.deinit();
 }
 
@@ -462,65 +464,31 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
-// buffer bindings
-const GLBufferBindings = struct {
-    vao: GLuint,
-    index_buffer: Buffer,
-    vert_buffers: [4]Buffer,
-    images: [8]Image = [_]Image{0} ** 8,
-};
+// bindings and drawing
+pub fn applyBindings(bindings: BufferBindings) void {
+    // TODO: consider adding a "vao: GLuint" to BufferBindings so they can use it for GL. not sure if its worth it though.
+    cur_bindings = bindings;
 
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
-    std.debug.assert(vert_buffers.len <= 4);
-    const ibuffer = buffer_cache.get(index_buffer);
-
-    var buffer = std.mem.zeroes(GLBufferBindings);
-    buffer.index_buffer = index_buffer;
-
-    glGenVertexArrays(1, &buffer.vao);
-    cache.bindVertexArray(buffer.vao);
-
-    // vao needs us to issue binds here
+    var ibuffer = buffer_cache.get(bindings.index_buffer);
     cache.forceBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
 
     var vert_attr_index: GLuint = 0;
-    for (vert_buffers) |buff, i| {
-        buffer.vert_buffers[0] = buff;
-        var vbuffer = buffer_cache.get(buff);
+    for (bindings.vert_buffers) |buff, i| {
+        if (buff == 0) break;
 
+        var vbuffer = buffer_cache.get(buff);
         if (vbuffer.setVertexAttributes) |setter| {
             cache.forceBindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
             setter(&vert_attr_index, vbuffer.vert_buffer_step_func);
-            vbuffer.setVertexAttributes = null;
         }
     }
-    cache.bindVertexArray(0);
-
-    return binding_cache.append(buffer);
 }
 
-pub fn destroyBufferBindings(buffer_bindings: BufferBindings) void {
-    var bindings = binding_cache.free(buffer_bindings);
-    cache.invalidateVertexArray(bindings.vao);
-
-    glDeleteVertexArrays(1, &bindings.vao);
-    destroyBuffer(bindings.index_buffer);
-    for (bindings.vert_buffers) |buffer| {
-        if (buffer != 0) destroyBuffer(buffer);
-    }
-}
-
-pub fn bindImageToBufferBindings(buffer_bindings: BufferBindings, image: Image, slot: c_uint) void {
-    const bindings = binding_cache.get(buffer_bindings);
-    bindings.images[slot] = image;
-}
-
-pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {
-    const bindings = binding_cache.get(buffer_bindings);
-    const ibuffer = buffer_cache.get(bindings.index_buffer);
+pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void {
+    const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
 
     // bind images
-    for (bindings.images) |image, slot| {
+    for (cur_bindings.images) |image, slot| {
         if (image == 0) break;
         const img = image_cache.get(image);
         cache.bindImage(img.tid, @intCast(c_uint, slot));
@@ -529,7 +497,7 @@ pub fn drawBufferBindings(buffer_bindings: BufferBindings, base_element: c_int, 
     const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
     var ib_offset = @intCast(usize, base_element * i_size);
 
-    cache.bindVertexArray(bindings.vao);
+    // cache.bindVertexArray(bindings.vao);
 
     if (instance_count == 0) {
         glDrawElements(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset));

@@ -98,21 +98,13 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
-// buffer bindings
-pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
-    return backend.createBufferBindings(index_buffer, vert_buffers);
+// bindings and drawing
+pub fn applyBindings(bindings: BufferBindings) void {
+    backend.applyBindings(bindings);
 }
 
-pub fn destroyBufferBindings(bindings: BufferBindings) void {
-    return backend.destroyBufferBindings(bindings);
-}
-
-pub fn bindImageToBufferBindings(bindings: BufferBindings, image: Image, slot: c_uint) void {
-    backend.bindImageToBufferBindings(bindings, image, slot);
-}
-
-pub fn drawBufferBindings(bindings: BufferBindings, base_element: c_int, element_count: c_int, instance_count: c_int) void {
-    return backend.drawBufferBindings(bindings, base_element, element_count, instance_count);
+pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void {
+    backend.draw(base_element, element_count, instance_count);
 }
 
 // shaders

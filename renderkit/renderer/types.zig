@@ -1,6 +1,5 @@
 pub const Image = u16;
 pub const ShaderProgram = u16;
-pub const BufferBindings = u16;
 pub const Pass = u16;
 pub const Buffer = u16;
 
@@ -159,4 +158,24 @@ pub const ClearCommand = extern struct {
     stencil: u8 = 0,
     depth_action: ClearAction = .dont_care,
     depth: f64 = 0,
+};
+
+pub const BufferBindings = struct {
+    index_buffer: Buffer,
+    vert_buffers: [4]Buffer,
+    images: [8]Image = [_]Image{0} ** 8,
+
+    pub fn init(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
+        var vbuffers: [4]Buffer = [_]Buffer{0} ** 4;
+        for (vert_buffers) |vb, i| vbuffers[i] = vb;
+
+        return .{
+            .index_buffer = index_buffer,
+            .vert_buffers = vbuffers,
+        };
+    }
+
+    pub fn bindImage(self: *BufferBindings, image: Image, slot: c_uint) void {
+        self.images[slot] = image;
+    }
 };
