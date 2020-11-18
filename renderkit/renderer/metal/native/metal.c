@@ -20,7 +20,7 @@ bool in_pass = false;
 bool pass_valid = false;
 int cur_width;
 int cur_height;
-uint32_t frame_index;
+uint32_t frame_index = 1;
 
 // pipeline state
 _mtl_shader* cur_shader;
@@ -295,6 +295,8 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc) {
     printf("metal_create_buffer\n");
     _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
     memset(buffer, 0, sizeof(_mtl_buffer));
+    
+    buffer->size = (int)desc.size;
 
     // store off some data we will need for the pipeline later
     if (desc.type == buffer_type_vertex) {
@@ -329,11 +331,63 @@ void mtl_destroy_buffer(_mtl_buffer* buffer) {
     free(buffer);
 }
 
-void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size) {
+void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes) {
+    RK_ASSERT(num_bytes <= buffer->size);
+    // only one update allowed per buffer and frame
+    RK_ASSERT(buffer->update_frame_index != frame_index);
+    // update and append on same buffer in same frame not allowed
+    RK_ASSERT(buffer->append_frame_index != frame_index);
+    
+    if (++buffer->active_slot >= buffer->num_slots)
+        buffer->active_slot = 0;
+    
     __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
     void* dst_ptr = [mtl_buf contents];
-    memcpy(dst_ptr, data, data_size);
-    [mtl_buf didModifyRange:NSMakeRange(0, data_size)];
+    memcpy(dst_ptr, data, num_bytes);
+    [mtl_buf didModifyRange:NSMakeRange(0, num_bytes)];
+    
+    buffer->update_frame_index = frame_index;
+}
+
+// this is the workhorse for buffer appends, called by mtl_append_buffer after it does its validation and bookkeeping
+uint32_t _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes, bool new_frame) {
+    // if this is our first append this frame rotate the active slot
+    if (new_frame) {
+        if (++buffer->active_slot >= buffer->num_slots)
+            buffer->active_slot = 0;
+    }
+    
+    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
+    uint8_t* dst_ptr = (uint8_t*) [mtl_buf contents];
+    dst_ptr += buffer->append_pos;
+    memcpy(dst_ptr, data, num_bytes);
+    [mtl_buf didModifyRange:NSMakeRange(buffer->append_pos, num_bytes)];
+
+    return num_bytes;
+}
+
+int mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes) {
+    RK_ASSERT(num_bytes <= buffer->size);
+    
+    // rewind append cursor in a new frame
+    if (buffer->append_frame_index != frame_index) {
+        buffer->append_pos = 0;
+        buffer->append_overflow = false;
+    }
+    
+    if ((buffer->append_pos + num_bytes) > buffer->size)
+        buffer->append_overflow = true;
+    
+    const int start_pos = buffer->append_pos;
+    if (!buffer->append_overflow && (num_bytes > 0)) {
+        // update and append on same buffer in same frame not allowed
+        RK_ASSERT(buffer->update_frame_index != frame_index);
+        uint32_t copied_num_bytes = _mtl_append_buffer(buffer, data, num_bytes, buffer->append_frame_index != frame_index);
+        buffer->append_pos += copied_num_bytes;
+        buffer->append_frame_index = frame_index;
+    }
+    
+    return start_pos;
 }
 
 

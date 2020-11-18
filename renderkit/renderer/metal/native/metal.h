@@ -422,6 +422,13 @@ typedef struct mtl_vertex_attribute_t {
 } mtl_vertex_attribute_t;
 
 typedef struct _mtl_buffer {
+    int size;                       // size of the buffer in bytes
+    uint32_t update_frame_index;    // frame index of last mtl_update_buffer()
+    uint32_t append_frame_index;    // frame index of last mtl_append_buffer()
+    int append_pos;                 // current position in buffer for sg_append_buffer()
+    bool append_overflow;           // is buffer in overflow state (due to sg_append_buffer)
+    int num_slots;                  // number of renaming-slots for dynamically updated buffers
+    int active_slot;                // currently active write-slot for dynamically updated buffers
 	uint32_t buffer;
     mtl_vertex_layout_t vertex_layout[4];
     mtl_vertex_attribute_t vertex_attrs[8];
@@ -465,6 +472,7 @@ void mtl_commit_frame(void);
 _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc);
 void mtl_destroy_buffer(_mtl_buffer* buffer);
 void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
+int mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 
 _mtl_shader* mtl_create_shader(ShaderDesc_t desc);
 void mtl_destroy_shader(_mtl_shader* shader);
