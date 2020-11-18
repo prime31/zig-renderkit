@@ -66,8 +66,7 @@ void metal_set_render_state(RenderState_t state) {
 
     [cmd_encoder setBlendColorRed:state.blend.color[0] green: state.blend.color[1] blue: state.blend.color[2] alpha: state.blend.color[3]];
     [cmd_encoder setStencilReferenceValue:state.stencil.ref];
-    // [cmd_encoder setRenderPipelineState:_sg_mtl_id(pip->mtl.rps)];
-    // [cmd_encoder setDepthStencilState:_sg_mtl_id(pip->mtl.dss)];
+    [cmd_encoder setCullMode:MTLCullModeNone];
 }
 
 void metal_viewport(int x, int y, int w, int h) {
@@ -203,6 +202,7 @@ void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     MTLRenderPassDescriptor *pass_desc = nil;
     if (pass_index > 0) { // offscreen render pass
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
+        RK_ASSERT(NO);
     } else {
 		metal_viewport(0, 0, w, h);
         pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -308,7 +308,6 @@ void metal_destroy_buffer(_mtl_buffer* buffer) {
 }
 
 void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size) {
-    printf("metal_update_buffer\n");
     __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
     void* dst_ptr = [mtl_buf contents];
     memcpy(dst_ptr, data, data_size);
@@ -382,20 +381,8 @@ void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
 
 // bindings and draw
 void metal_apply_bindings(MtlBufferBindings_t bindings) {
-    printf("metal_apply_bindings\n");
     cur_bindings = bindings;
-    
-    for (int i = 0; i < 4; i++) {
-        if (bindings.vertex_buffers[i] == NULL) break;
-    }
-    
-    for (int i = 0; i < 8; i++) {
-        if (bindings.images[i] == NULL) break;
-        RK_ASSERT(bindings.images[i]->sampler_state != 0);
-        [cmd_encoder setFragmentTexture:mtl_backend.objectPool[bindings.images[i]->tex] atIndex:i];
-        [cmd_encoder setFragmentSamplerState:mtl_backend.objectPool[bindings.images[i]->sampler_state] atIndex:i];
-    }
-    
+        
     if (pipeline == nil) {
         // TODO: this needs a proper home and proper caching
         // Graphics Pipeline
@@ -405,21 +392,38 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
         pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[cur_shader->fs_func];
         pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
 
-        // Input Assembly
-        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
-        vertexDesc.attributes[0].format = MTLVertexFormatFloat2;
-        vertexDesc.attributes[0].offset = 0;
-        vertexDesc.attributes[0].bufferIndex = 0;
-        vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
-        vertexDesc.attributes[1].offset = sizeof(float) * 2;
-        vertexDesc.attributes[1].bufferIndex = 0;
-        vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized;
-        vertexDesc.attributes[2].offset = sizeof(float) * 4;
-        vertexDesc.attributes[2].bufferIndex = 0;
         
-        vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-        vertexDesc.layouts[0].stride = sizeof(float) * 4 + sizeof(uint32_t);
-
+        // preprare the MTLVertexDescriptor
+        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
+        
+        int attr_index = 0;
+        for (int i = 0; i < 4; i++) {
+            if (bindings.vertex_buffers[i] == NULL) break;
+            _mtl_buffer* buff = bindings.vertex_buffers[i];
+            
+            // attributes
+            for (int j = 0; j < 8; j++) {
+                mtl_vertex_attribute_t attr = buff->vertex_attrs[j];
+                // an offset of 0 for an attribute other than the first indicates we are done
+                if (j > 0 && attr.offset == 0) break;
+                
+                vertexDesc.attributes[attr_index].format = attr.format;
+                vertexDesc.attributes[attr_index].offset = attr.offset;
+                vertexDesc.attributes[attr_index].bufferIndex = i;
+                
+                attr_index++;
+            }
+            
+            // layout
+            for (int j = 0; j < 4; j++) {
+                mtl_vertex_layout_t layout = buff->vertex_layout[j];
+                if (layout.stride == 0) break;
+                
+                vertexDesc.layouts[j].stepFunction = layout.step_func;
+                vertexDesc.layouts[j].stride = layout.stride;
+            }
+        }
+        
         pipelineStateDescriptor.vertexDescriptor = vertexDesc;
 
         // Create Pipeline State Object
@@ -435,22 +439,29 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
     }
     
     [cmd_encoder setRenderPipelineState:pipeline];
+    
+    // bind vertex buffers
+    for (int i = 0; i < 4; i++) {
+        if (bindings.vertex_buffers[i] == NULL) break;
+        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[bindings.vertex_buffers[i]->buffer] offset:0 atIndex:0];
+    }
+    
+    // set textures
+    for (int i = 0; i < 8; i++) {
+        if (bindings.images[i] == NULL) break;
+        RK_ASSERT(bindings.images[i]->sampler_state != 0);
+        [cmd_encoder setFragmentTexture:mtl_backend.objectPool[bindings.images[i]->tex] atIndex:i];
+        [cmd_encoder setFragmentSamplerState:mtl_backend.objectPool[bindings.images[i]->sampler_state] atIndex:i];
+    }
+        
     [cmd_encoder setCullMode:MTLCullModeNone];
-    [cmd_encoder setVertexBuffer:mtl_backend.objectPool[cur_bindings.vertex_buffers[0]->buffer] offset:0 atIndex:0];
 }
 
 void metal_draw(int base_element, int element_count, int instance_count) {
-    printf("metal_draw\n");
-    
      [cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                              indexCount:element_count
                               indexType:MTLIndexTypeUInt16
                             indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
                       indexBufferOffset:0
                           instanceCount:instance_count];
-    
-//    [cmd_encoder drawPrimitives:MTLPrimitiveTypeTriangle
-//                    vertexStart:base_element
-//                    vertexCount:element_count
-//                  instanceCount:instance_count];
 }
