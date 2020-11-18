@@ -15,7 +15,7 @@ pub fn setup(desc: RendererDesc) void {
     buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers);
     shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders);
 
-    metal_setup(desc);
+    mtl_setup(desc);
     setRenderState(.{});
 }
 
@@ -25,35 +25,35 @@ pub fn shutdown() void {
     pass_cache.deinit();
     buffer_cache.deinit();
     shader_cache.deinit();
-    metal_shutdown();
+    mtl_shutdown();
 }
 
 pub fn setRenderState(state: RenderState) void {
-    metal_set_render_state(state);
+    mtl_set_render_state(state);
 }
 
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    metal_viewport(x, y, width, height);
+    mtl_viewport(x, y, width, height);
 }
 
 pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    metal_scissor(x, y, width, height);
+    mtl_scissor(x, y, width, height);
 }
 
 // images
 pub fn createImage(desc: ImageDesc) Image {
-    const img = metal_create_image(desc);
+    const img = mtl_create_image(desc);
     return image_cache.append(img);
 }
 
 pub fn destroyImage(image: Image) void {
     var img = image_cache.free(image);
-    metal_destroy_image(img.*);
+    mtl_destroy_image(img.*);
 }
 
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     var img = image_cache.get(image);
-    @panic("not implemented");
+    mtl_update_image(img.*, content.ptr);
 }
 
 pub fn getImageNativeId(image: Image) u32 {
@@ -63,62 +63,62 @@ pub fn getImageNativeId(image: Image) u32 {
 
 // passes
 pub fn createPass(desc: PassDesc) Pass {
-    const pass = metal_create_pass(MtlPassDesc.init(desc));
+    const pass = mtl_create_pass(MtlPassDesc.init(desc));
     return pass_cache.append(pass);
 }
 
 pub fn destroyPass(pass: Pass) void {
     var p = pass_cache.free(pass);
-    metal_destroy_pass(p.*);
+    mtl_destroy_pass(p.*);
 }
 
 pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
-    metal_begin_pass(null, action, width, height);
+    mtl_begin_pass(null, action, width, height);
 }
 
 pub fn beginPass(pass: Pass, action: ClearCommand) void {
     var p = pass_cache.get(pass);
-    metal_begin_pass(p.*, action, -1, -1);
+    mtl_begin_pass(p.*, action, -1, -1);
 }
 
 pub fn endPass() void {
-    metal_end_pass();
+    mtl_end_pass();
 }
 
 pub fn commitFrame() void {
-    metal_commit_frame();
+    mtl_commit_frame();
 }
 
 // buffers
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
-    const buffer = metal_create_buffer(MtlBufferDesc.init(T, desc));
+    const buffer = mtl_create_buffer(MtlBufferDesc.init(T, desc));
     return buffer_cache.append(buffer);
 }
 
 pub fn destroyBuffer(buffer: Buffer) void {
     var buff = buffer_cache.free(buffer);
-    metal_destroy_buffer(buff.*);
+    mtl_destroy_buffer(buff.*);
 }
 
 pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     var buff = buffer_cache.get(buffer);
-    metal_update_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
+    mtl_update_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
 
 // shaders
 pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
-    const shader = metal_create_shader(MtlShaderDesc.init(desc));
+    const shader = mtl_create_shader(MtlShaderDesc.init(desc));
     return shader_cache.append(shader);
 }
 
 pub fn destroyShaderProgram(shader: ShaderProgram) void {
     var shd = shader_cache.free(shader);
-    metal_destroy_shader(shd.*);
+    mtl_destroy_shader(shd.*);
 }
 
 pub fn useShaderProgram(shader: ShaderProgram) void {
     var shdr = shader_cache.get(shader);
-    metal_use_shader(shdr.*);
+    mtl_use_shader(shdr.*);
 }
 
 pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {
@@ -131,11 +131,11 @@ pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:
 
 // bindings and drawing
 pub fn applyBindings(bindings: BufferBindings) void {
-    metal_apply_bindings(MtlBufferBindings.init(bindings));
+    mtl_apply_bindings(MtlBufferBindings.init(bindings));
 }
 
 pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void {
-    metal_draw(base_element, element_count, instance_count);
+    mtl_draw(base_element, element_count, instance_count);
 }
 
 // C api
@@ -156,6 +156,11 @@ const MtlIndexType = extern enum {
 const MtlVertexAttribute = extern struct {
     format: MtlVertexFormat = .float,
     offset: c_int = 0,
+};
+
+pub const MtlVertexStep = extern enum {
+    per_vertex,
+    per_instance,
 };
 
 const MtlVertexLayout = extern struct {
@@ -305,11 +310,21 @@ const MtlImage = extern struct {
     height: u32,
 };
 
+const MtlNativeVertexLayout = extern struct {
+    stride: c_int = 0,
+    step_func: c_ulong = 0,
+};
+
+const MtlNativeVertexAttribute = extern struct {
+    format: c_ulong = 0,
+    offset: c_int = 0,
+};
+
 const MtlBuffer = extern struct {
     buffer: u32,
-    vertex_layout: [4]MtlVertexLayout,
-    vertex_attrs: [8]MtlVertexAttribute,
-    index_type: u32,
+    vertex_layout: [4]MtlNativeVertexLayout,
+    vertex_attrs: [8]MtlNativeVertexAttribute,
+    index_type: c_ulong,
 };
 
 const MtlPass = extern struct {
@@ -324,33 +339,31 @@ const MtlShader = extern struct {
     fs_func: u32,
 };
 
-extern fn metal_setup(desc: RendererDesc) void;
-extern fn metal_shutdown() void;
+extern fn mtl_setup(desc: RendererDesc) void;
+extern fn mtl_shutdown() void;
 
-extern fn metal_set_render_state(state: RenderState) void;
-extern fn metal_viewport(x: c_int, y: c_int, w: c_int, h: c_int) void;
-extern fn metal_scissor(x: c_int, y: c_int, w: c_int, h: c_int) void;
-extern fn metal_clear(command: ClearCommand) void;
+extern fn mtl_set_render_state(state: RenderState) void;
+extern fn mtl_viewport(x: c_int, y: c_int, w: c_int, h: c_int) void;
+extern fn mtl_scissor(x: c_int, y: c_int, w: c_int, h: c_int) void;
 
-extern fn metal_create_image(desc: ImageDesc) *MtlImage;
-extern fn metal_destroy_image(image: *MtlImage) void;
-extern fn metal_update_image(image: *MtlImage, arg1: ?*const c_void) void;
-extern fn metal_bind_image(arg0: u16, arg1: u32) void;
+extern fn mtl_create_image(desc: ImageDesc) *MtlImage;
+extern fn mtl_destroy_image(image: *MtlImage) void;
+extern fn mtl_update_image(image: *MtlImage, arg1: ?*const c_void) void;
 
-extern fn metal_create_pass(desc: MtlPassDesc) *MtlPass;
-extern fn metal_destroy_pass(pass: *MtlPass) void;
-extern fn metal_begin_pass(pass: ?*MtlPass, arg0: ClearCommand, w: c_int, h: c_int) void;
-extern fn metal_end_pass() void;
-extern fn metal_commit_frame() void;
+extern fn mtl_create_pass(desc: MtlPassDesc) *MtlPass;
+extern fn mtl_destroy_pass(pass: *MtlPass) void;
+extern fn mtl_begin_pass(pass: ?*MtlPass, arg0: ClearCommand, w: c_int, h: c_int) void;
+extern fn mtl_end_pass() void;
+extern fn mtl_commit_frame() void;
 
-extern fn metal_create_buffer(desc: MtlBufferDesc) *MtlBuffer;
-extern fn metal_destroy_buffer(buffer: *MtlBuffer) void;
-extern fn metal_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) void;
+extern fn mtl_create_buffer(desc: MtlBufferDesc) *MtlBuffer;
+extern fn mtl_destroy_buffer(buffer: *MtlBuffer) void;
+extern fn mtl_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) void;
 
-extern fn metal_create_shader(desc: MtlShaderDesc) *MtlShader;
-extern fn metal_destroy_shader(shader: *MtlShader) void;
-extern fn metal_use_shader(shader: *MtlShader) void;
-extern fn metal_set_shader_uniform(shader: *MtlShader, arg1: [*c]u8, arg2: ?*const c_void) void;
+extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
+extern fn mtl_destroy_shader(shader: *MtlShader) void;
+extern fn mtl_use_shader(shader: *MtlShader) void;
+extern fn mtl_set_shader_uniform(shader: *MtlShader, arg1: [*c]u8, arg2: ?*const c_void) void;
 
-extern fn metal_apply_bindings(bindings: MtlBufferBindings) void;
-extern fn metal_draw(base_element: c_int, element_count: c_int, instance_count: c_int) void;
+extern fn mtl_apply_bindings(bindings: MtlBufferBindings) void;
+extern fn mtl_draw(base_element: c_int, element_count: c_int, instance_count: c_int) void;

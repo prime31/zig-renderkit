@@ -444,33 +444,32 @@ typedef struct MtlBufferBindings_t {
 
 #import "backend.h"
 
-void metal_setup(RendererDesc_t desc);
-void metal_shutdown(void);
+void mtl_setup(RendererDesc_t desc);
+void mtl_shutdown(void);
 
-void metal_set_render_state(RenderState_t arg0);
-void metal_viewport(int arg0, int arg1, int arg2, int arg3);
-void metal_scissor(int arg0, int arg1, int arg2, int arg3);
+void mtl_set_render_state(RenderState_t arg0);
+void mtl_viewport(int arg0, int arg1, int arg2, int arg3);
+void mtl_scissor(int arg0, int arg1, int arg2, int arg3);
 
-_mtl_image* metal_create_image(ImageDesc_t desc);
-void metal_destroy_image(_mtl_image* arg0);
-void metal_update_image(_mtl_image* img, void* data);
-void metal_bind_image(_mtl_image* img, uint32_t slot);
+_mtl_image* mtl_create_image(ImageDesc_t desc);
+void mtl_destroy_image(_mtl_image* arg0);
+void mtl_update_image(_mtl_image* img, void* data);
 
-_mtl_pass* metal_create_pass(PassDesc_t desc);
-void metal_destroy_pass(_mtl_pass* pass);
+_mtl_pass* mtl_create_pass(PassDesc_t desc);
+void mtl_destroy_pass(_mtl_pass* pass);
 
-void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h);
-void metal_end_pass(void);
-void metal_commit_frame(void);
+void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h);
+void mtl_end_pass(void);
+void mtl_commit_frame(void);
 
-_mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc);
-void metal_destroy_buffer(_mtl_buffer* buffer);
-void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
+_mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc);
+void mtl_destroy_buffer(_mtl_buffer* buffer);
+void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 
-_mtl_shader* metal_create_shader(ShaderDesc_t arg0);
-void metal_destroy_shader(_mtl_shader* shader);
-void metal_use_shader(_mtl_shader* shader);
-void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2);
+_mtl_shader* mtl_create_shader(ShaderDesc_t desc);
+void mtl_destroy_shader(_mtl_shader* shader);
+void mtl_use_shader(_mtl_shader* shader);
+void mtl_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2);
 
-void metal_apply_bindings(MtlBufferBindings_t bindings);
-void metal_draw(int base_element, int element_count, int instance_count);
+void mtl_apply_bindings(MtlBufferBindings_t bindings);
+void mtl_draw(int base_element, int element_count, int instance_count);

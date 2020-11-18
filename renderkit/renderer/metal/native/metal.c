@@ -29,7 +29,7 @@ MtlBufferBindings_t cur_bindings;
 id<MTLRenderPipelineState> pipeline;
 
 // setup
-void metal_setup(RendererDesc_t desc) {
+void mtl_setup(RendererDesc_t desc) {
     mtl_backend = [[RKMetalBackend alloc] initWithRendererDesc:desc];
 
 	render_semaphore = dispatch_semaphore_create(NUM_INFLIGHT_FRAMES);
@@ -41,7 +41,7 @@ void metal_setup(RendererDesc_t desc) {
 	cmd_queue = [layer.device newCommandQueue];
 }
 
-void metal_shutdown() {
+void mtl_shutdown() {
 	printf("----- metal_shutdown\n");
 
 	// wait for the last frame to finish
@@ -59,13 +59,13 @@ void metal_shutdown() {
 
 
 // render state
-void metal_set_render_state(RenderState_t state) {
+void mtl_set_render_state(RenderState_t state) {
     printf("metal_set_render_state\n");
     assert(!in_pass);
 	cur_render_state = state;
 }
 
-void metal_viewport(int x, int y, int w, int h) {
+void mtl_viewport(int x, int y, int w, int h) {
     assert(in_pass);
     if (!pass_valid) return;
     assert(cmd_encoder != nil);
@@ -80,7 +80,7 @@ void metal_viewport(int x, int y, int w, int h) {
     [cmd_encoder setViewport:vp];
 }
 
-void metal_scissor(int x, int y, int w, int h) {
+void mtl_scissor(int x, int y, int w, int h) {
     printf("metal_scissor\n");
     assert(in_pass);
     if (!pass_valid) return;
@@ -108,7 +108,10 @@ void metal_scissor(int x, int y, int w, int h) {
 
 
 // images
-_mtl_image* metal_create_image(ImageDesc_t desc) {
+_mtl_image* mtl_create_image(ImageDesc_t desc) {
+    _mtl_image* img = malloc(sizeof(_mtl_image));
+    memset(img, 0, sizeof(_mtl_image));
+    
     MTLTextureDescriptor* mtl_desc = [[MTLTextureDescriptor alloc] init];
     mtl_desc.textureType = MTLTextureType2D;
     mtl_desc.pixelFormat = MTLPixelFormatRGBA8Unorm;
@@ -131,10 +134,9 @@ _mtl_image* metal_create_image(ImageDesc_t desc) {
 		mtl_desc.storageMode = MTLStorageModePrivate;
 		// render targets are shader-readable
 		mtl_desc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+        mtl_desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
 	}
 
-	_mtl_image* img = malloc(sizeof(_mtl_image));
-	memset(img, 0, sizeof(_mtl_image));
 	img->width = desc.width;
 	img->height = desc.height;
 
@@ -160,11 +162,11 @@ _mtl_image* metal_create_image(ImageDesc_t desc) {
         img->sampler_state = [mtl_backend createSampler:layer.device withImageDesc:&desc];
         img->tex = [mtl_backend addResource:tex];
     }
-
-	return img;
+    
+    return img;
 }
 
-void metal_destroy_image(_mtl_image* img) {
+void mtl_destroy_image(_mtl_image* img) {
 	printf("metal_destroy_image\n");
     // it's valid to call release resource with a 'null resource'
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->tex];
@@ -173,7 +175,7 @@ void metal_destroy_image(_mtl_image* img) {
     free(img);
 }
 
-void metal_update_image(_mtl_image* img, void* data) {
+void mtl_update_image(_mtl_image* img, void* data) {
     printf("metal_update_image\n");
 	__unsafe_unretained id<MTLTexture> mtl_tex = mtl_backend.objectPool[img->tex];
 	MTLRegion region = MTLRegionMake2D(0, 0, img->width, img->height);
@@ -182,19 +184,20 @@ void metal_update_image(_mtl_image* img, void* data) {
 
 
 // passes
-_mtl_pass* metal_create_pass(PassDesc_t desc) {
-	_mtl_pass* pass = malloc(sizeof(_mtl_pass));
-	memset(pass, 0, sizeof(_mtl_pass));
+_mtl_pass* mtl_create_pass(PassDesc_t desc) {
+    _mtl_pass* pass = malloc(sizeof(_mtl_pass));
+    memset(pass, 0, sizeof(_mtl_pass));
+    
 	pass->color_tex = desc.color_img;
 	pass->stencil_tex = desc.depth_stencil_img;
-	return pass;
+    return pass;
 }
 
-void metal_destroy_pass(_mtl_pass* pass) {
+void mtl_destroy_pass(_mtl_pass* pass) {
 	free(pass);
 }
 
-void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
+void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
     in_pass = true;
 	cur_width = pass ? pass->color_tex->width : w;
 	cur_height = pass ? pass->color_tex->height : h;
@@ -220,7 +223,7 @@ void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
     if (pass) {
 		pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->color_tex->tex];
 		pass_desc.colorAttachments[0].storeAction = MTLStoreActionStore;
-		
+
 		if (pass->stencil_tex) {
 			pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->stencil_tex->tex];
 		}
@@ -230,7 +233,7 @@ void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
 			cur_drawable = [layer nextDrawable];
 		pass_desc.colorAttachments[0].texture = cur_drawable.texture;
     }
-	
+
 	// common pass descriptor setup
 	pass_desc.colorAttachments[0].clearColor = MTLClearColorMake(clear.color[0], clear.color[1], clear.color[2], clear.color[3]);
 	pass_desc.colorAttachments[0].loadAction  = _mtl_load_action(clear.color_action);
@@ -245,16 +248,16 @@ void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
         pass_valid = false;
         return;
     }
-	
-	metal_viewport(0, 0, cur_width, cur_height);
-	
+
+	mtl_viewport(0, 0, cur_width, cur_height);
+
 	// setup our render state
 	[cmd_encoder setBlendColorRed:cur_render_state.blend.color[0] green: cur_render_state.blend.color[1] blue: cur_render_state.blend.color[2] alpha: cur_render_state.blend.color[3]];
 	[cmd_encoder setStencilReferenceValue:cur_render_state.stencil.ref];
 	[cmd_encoder setCullMode:MTLCullModeNone];
 }
 
-void metal_end_pass() {
+void mtl_end_pass() {
     in_pass = false;
     pass_valid = false;
     if (cmd_encoder != nil) {
@@ -263,7 +266,7 @@ void metal_end_pass() {
     }
 }
 
-void metal_commit_frame() {
+void mtl_commit_frame() {
 	RK_ASSERT(!in_pass);
     RK_ASSERT(!pass_valid);
 	RK_ASSERT(cmd_encoder == nil);
@@ -271,35 +274,35 @@ void metal_commit_frame() {
 
     // present, commit and signal semaphore when done
     [cmd_buffer presentDrawable:cur_drawable];
-	
+
 	__block dispatch_semaphore_t block_sema = render_semaphore;
     [cmd_buffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
         dispatch_semaphore_signal(block_sema);
     }];
     [cmd_buffer commit];
-    
+
     // garbage-collect resources pending for release
     [mtl_backend garbageCollectResources:frame_index];
     frame_index++;
-    
+
     cmd_buffer = nil;
     cur_drawable = nil;
 }
 
 
 // buffers
-_mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
+_mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc) {
     printf("metal_create_buffer\n");
     _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
     memset(buffer, 0, sizeof(_mtl_buffer));
-    
+
     // store off some data we will need for the pipeline later
     if (desc.type == buffer_type_vertex) {
         for (int i = 0; i < 4; i++) {
             buffer->vertex_layout[i].stride = desc.vertex_layout[i].stride;
             buffer->vertex_layout[i].step_func = _mtl_step_function(desc.vertex_layout[i].step_func);
         }
-        
+
         for (int i = 0; i < 8; i++) {
             buffer->vertex_attrs[i].format = _mtl_vertex_format(desc.vertex_attrs[i].format);
             buffer->vertex_attrs[i].offset = desc.vertex_attrs[i].offset;
@@ -307,7 +310,7 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
 	} else {
 		buffer->index_type = _mtl_index_type(desc.index_type);
 	}
-    
+
     // TODO: support multiple in-flight buffers when they are mutable
     MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
     id<MTLBuffer> mtl_buf;
@@ -320,13 +323,13 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
     return buffer;
 }
 
-void metal_destroy_buffer(_mtl_buffer* buffer) {
+void mtl_destroy_buffer(_mtl_buffer* buffer) {
     printf("metal_destroy_buffer\n");
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffer];
     free(buffer);
 }
 
-void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size) {
+void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size) {
     __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
     void* dst_ptr = [mtl_buf contents];
     memcpy(dst_ptr, data, data_size);
@@ -335,10 +338,10 @@ void metal_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_si
 
 
 // shaders
-_mtl_shader* metal_create_shader(ShaderDesc_t desc) {
-	_mtl_shader* shader = malloc(sizeof(_mtl_shader));
-	memset(shader, 0, sizeof(_mtl_shader));
-	
+_mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
+    _mtl_shader* shader = malloc(sizeof(_mtl_shader));
+    memset(shader, 0, sizeof(_mtl_shader));
+    
 	// create metal libray objects and lookup entry functions
 	NSError* err = NULL;
 	id<MTLLibrary> vs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.vs]
@@ -348,60 +351,61 @@ _mtl_shader* metal_create_shader(ShaderDesc_t desc) {
 		NSLog(@"failed to compile vs library: %@", err.localizedDescription);
 		return NULL;
 	}
-	
+
 	err = NULL;
 	id<MTLLibrary> fs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.fs]
 													  options:nil
 														error:&err];
 	if (err) {
 		NSLog(@"failed to compile vs library: %@", err.localizedDescription);
-		return NULL;
+        return NULL;
 	}
-	
+
 	id<MTLFunction> vs_func = [vs_lib newFunctionWithName:@"_main"];
 	id<MTLFunction> fs_func = [fs_lib newFunctionWithName:@"_main"];
-	
+
 	if (vs_func == nil) {
 		NSLog(@"failed to location vs function");
-		return NULL;
+        return NULL;
 	}
-	
+
 	if (fs_func == nil) {
 		NSLog(@"failed to location vs function");
-		return NULL;
+        return NULL;
 	}
-	
+
 	shader->vs_lib  = [mtl_backend addResource:vs_lib];
 	shader->fs_lib  = [mtl_backend addResource:fs_lib];
 	shader->vs_func = [mtl_backend addResource:vs_func];
 	shader->fs_func = [mtl_backend addResource:fs_func];
-	
-	return shader;
+    
+    return shader;
 }
 
-void metal_destroy_shader(_mtl_shader* shader) {
+void mtl_destroy_shader(_mtl_shader* shader) {
 	printf("metal_destroy_shader\n");
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_lib];
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_lib];
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_func];
 	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_func];
-    
+
     // TODO: destroy all Pipelines that use this shader
+    free(shader);
 }
 
-void metal_use_shader(_mtl_shader* shader) {
+void mtl_use_shader(_mtl_shader* shader) {
     cur_shader = shader;
 }
 
-void metal_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
-	
+void mtl_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
+
 }
 
 
 // bindings and draw
-void metal_apply_bindings(MtlBufferBindings_t bindings) {
+void mtl_apply_bindings(MtlBufferBindings_t bindings) {
     cur_bindings = bindings;
-        
+
     if (pipeline == nil) {
         // TODO: this needs a proper home and proper caching
         // Graphics Pipeline
@@ -419,38 +423,38 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
 		pipelineStateDescriptor.colorAttachments[0].sourceAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_alpha);
 		pipelineStateDescriptor.colorAttachments[0].sourceRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_rgb);
 
-        
+
         // preprare the MTLVertexDescriptor
         MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
-        
+
         int attr_index = 0;
         for (int i = 0; i < 4; i++) {
             if (bindings.vertex_buffers[i] == NULL) break;
             _mtl_buffer* buff = bindings.vertex_buffers[i];
-            
+
             // attributes
             for (int j = 0; j < 8; j++) {
                 mtl_vertex_attribute_t attr = buff->vertex_attrs[j];
                 // an offset of 0 for an attribute other than the first indicates we are done
                 if (j > 0 && attr.offset == 0) break;
-                
+
                 vertexDesc.attributes[attr_index].format = attr.format;
                 vertexDesc.attributes[attr_index].offset = attr.offset;
                 vertexDesc.attributes[attr_index].bufferIndex = i;
-                
+
                 attr_index++;
             }
-            
+
             // layout
             for (int j = 0; j < 4; j++) {
                 mtl_vertex_layout_t layout = buff->vertex_layout[j];
                 if (layout.stride == 0) break;
-                
+
                 vertexDesc.layouts[j].stepFunction = layout.step_func;
                 vertexDesc.layouts[j].stride = layout.stride;
             }
         }
-        
+
         pipelineStateDescriptor.vertexDescriptor = vertexDesc;
 
         // Create Pipeline State Object
@@ -461,18 +465,18 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
             NSLog(@"Failed to created pipeline state, error %@", error);
             return;
         }
-        
+
         pipeline = pipelineState;
     }
-    
+
     [cmd_encoder setRenderPipelineState:pipeline];
-    
+
     // bind vertex buffers
     for (int i = 0; i < 4; i++) {
         if (bindings.vertex_buffers[i] == NULL) break;
         [cmd_encoder setVertexBuffer:mtl_backend.objectPool[bindings.vertex_buffers[i]->buffer] offset:0 atIndex:0];
     }
-    
+
     // set textures
     for (int i = 0; i < 8; i++) {
         if (bindings.images[i] == NULL) break;
@@ -480,15 +484,15 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
         [cmd_encoder setFragmentTexture:mtl_backend.objectPool[bindings.images[i]->tex] atIndex:i];
         [cmd_encoder setFragmentSamplerState:mtl_backend.objectPool[bindings.images[i]->sampler_state] atIndex:i];
     }
-        
+
     [cmd_encoder setCullMode:MTLCullModeNone];
 }
 
-void metal_draw(int base_element, int element_count, int instance_count) {
+void mtl_draw(int base_element, int element_count, int instance_count) {
 	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
 							indexCount:element_count
 							 indexType:cur_bindings.index_buffer->index_type
 						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
 					 indexBufferOffset:0
-						 instanceCount:instance_count];
+						 instanceCount:1];
 }

@@ -86,7 +86,8 @@ pub fn Handles(comptime HandleType: type, comptime IndexType: type, comptime Ver
     };
 }
 
-/// Fixed size object cache that uses versioned Handles to identify resources
+/// Fixed size object cache that uses versioned Handles to identify resources. All objects are stored in a preallocated array
+/// so they do not need to be stack allocated outside of the HandledCache.
 pub fn HandledCache(comptime T: type) type {
     const HandleType = u16;
 
