@@ -5,11 +5,13 @@ usingnamespace @import("../descriptions.zig");
 const HandledCache = @import("../handles.zig").HandledCache;
 
 var image_cache: HandledCache(*MtlImage) = undefined;
+var pass_cache: HandledCache(*MtlPass) = undefined;
 var buffer_cache: HandledCache(*MtlBuffer) = undefined;
 var shader_cache: HandledCache(*MtlShader) = undefined;
 
 pub fn setup(desc: RendererDesc) void {
     image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture);
+    pass_cache = HandledCache(*MtlPass).init(desc.allocator, desc.pool_sizes.offscreen_pass);
     buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers);
     shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders);
 
@@ -18,6 +20,11 @@ pub fn setup(desc: RendererDesc) void {
 }
 
 pub fn shutdown() void {
+    // TODO: destroy the items in the caches as well
+    image_cache.deinit();
+    pass_cache.deinit();
+    buffer_cache.deinit();
+    shader_cache.deinit();
     metal_shutdown();
 }
 
@@ -45,7 +52,7 @@ pub fn destroyImage(image: Image) void {
 }
 
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
-    var img = image_cache.free(image);
+    var img = image_cache.get(image);
     @panic("not implemented");
 }
 
@@ -56,17 +63,22 @@ pub fn getImageNativeId(image: Image) u32 {
 
 // passes
 pub fn createPass(desc: PassDesc) Pass {
-    return 0;
+    const pass = metal_create_pass(MtlPassDesc.init(desc));
+    return pass_cache.append(pass);
 }
 
-pub fn destroyPass(pass: Pass) void {}
+pub fn destroyPass(pass: Pass) void {
+    var p = pass_cache.free(pass);
+    metal_destroy_pass(p.*);
+}
 
 pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
-    metal_begin_pass(0, action, width, height);
+    metal_begin_pass(null, action, width, height);
 }
 
 pub fn beginPass(pass: Pass, action: ClearCommand) void {
-    metal_begin_pass(pass, action, -1, -1);
+    var p = pass_cache.get(pass);
+    metal_begin_pass(p.*, action, -1, -1);
 }
 
 pub fn endPass() void {
@@ -128,7 +140,7 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 
 // C api
 // we need these due to the normal descriptors either being generic or not able to be extern
-const VertexFormat = extern enum {
+const MtlVertexFormat = extern enum {
     float,
     float2,
     float3,
@@ -136,17 +148,17 @@ const VertexFormat = extern enum {
     u_byte_4n,
 };
 
-const IndexType = extern enum {
+const MtlIndexType = extern enum {
     uint16,
     uint32,
 };
 
-const VertexAttribute = extern struct {
-    format: VertexFormat = .float,
+const MtlVertexAttribute = extern struct {
+    format: MtlVertexFormat = .float,
     offset: c_int = 0,
 };
 
-const VertexLayout = extern struct {
+const MtlVertexLayout = extern struct {
     stride: c_int = 0,
     step_func: VertexStep = .per_vertex,
 };
@@ -156,12 +168,12 @@ const MtlBufferDesc = extern struct {
     type: BufferType = .vertex,
     usage: Usage = .immutable,
     content: ?*const c_void = null,
-    index_type: IndexType = .uint16,
-    vertex_layout: [4]VertexLayout,
-    vertex_attrs: [8]VertexAttribute,
+    index_type: MtlIndexType = .uint16,
+    vertex_layout: [4]MtlVertexLayout,
+    vertex_attrs: [8]MtlVertexAttribute,
 
     pub fn init(comptime T: type, buffer_desc: BufferDesc(T)) MtlBufferDesc {
-        var vertex_attrs: [8]VertexAttribute = [_]VertexAttribute{.{}} ** 8;
+        var vertex_attrs: [8]MtlVertexAttribute = [_]MtlVertexAttribute{.{}} ** 8;
 
         if (@typeInfo(T) == .Struct) {
             var attr_index: usize = 0;
@@ -200,7 +212,7 @@ const MtlBufferDesc = extern struct {
                                         var buf: [6]u8 = undefined;
                                         var enum_name = std.fmt.bufPrint(&buf, "float{}", .{type_info.fields.len}) catch unreachable;
 
-                                        vertex_attrs[attr_index].format = std.meta.stringToEnum(VertexFormat, enum_name).?;
+                                        vertex_attrs[attr_index].format = std.meta.stringToEnum(MtlVertexFormat, enum_name).?;
                                         vertex_attrs[attr_index].offset = offset;
                                         attr_index += 1;
                                     },
@@ -215,7 +227,7 @@ const MtlBufferDesc = extern struct {
             }
         }
 
-        var vertex_layout: [4]VertexLayout = [_]VertexLayout{.{}} ** 4;
+        var vertex_layout: [4]MtlVertexLayout = [_]MtlVertexLayout{.{}} ** 4;
         vertex_layout[0].stride = @sizeOf(T);
         vertex_layout[0].step_func = buffer_desc.step_func;
 
@@ -228,6 +240,22 @@ const MtlBufferDesc = extern struct {
             .vertex_layout = vertex_layout,
             .vertex_attrs = vertex_attrs,
         };
+    }
+};
+
+const MtlPassDesc = extern struct {
+    color_img: ?*MtlImage,
+    depth_stencil_img: ?*MtlImage = null,
+
+    pub fn init(desc: PassDesc) MtlPassDesc {
+        var mtl_desc = MtlPassDesc{
+            .color_img = image_cache.get(desc.color_img).*,
+        };
+
+        if (desc.depth_stencil_img) |depth_stencil_handle| {
+            mtl_desc.depth_stencil_img = image_cache.get(depth_stencil_handle).*;
+        }
+        return mtl_desc;
     }
 };
 
@@ -267,6 +295,7 @@ const MtlBufferBindings = extern struct {
     }
 };
 
+// TODO: make all these opaque
 const MtlImage = extern struct {
     tex: u32,
     depth_tex: u32,
@@ -276,15 +305,16 @@ const MtlImage = extern struct {
     height: u32,
 };
 
-const MtlVertexLayout = extern struct {
-    stride: c_int,
-    step_func: c_int,
-};
-
 const MtlBuffer = extern struct {
     buffer: u32,
     vertex_layout: [4]MtlVertexLayout,
-    vertex_attrs: [8]VertexAttribute,
+    vertex_attrs: [8]MtlVertexAttribute,
+    index_type: u32,
+};
+
+const MtlPass = extern struct {
+    color_tex: ?*MtlImage,
+    stencil_tex: ?*MtlImage,
 };
 
 const MtlShader = extern struct {
@@ -294,22 +324,22 @@ const MtlShader = extern struct {
     fs_func: u32,
 };
 
-extern fn metal_setup(arg0: RendererDesc) void;
+extern fn metal_setup(desc: RendererDesc) void;
 extern fn metal_shutdown() void;
 
-extern fn metal_set_render_state(arg0: RenderState) void;
-extern fn metal_viewport(arg0: c_int, arg1: c_int, w: c_int, h: c_int) void;
-extern fn metal_scissor(arg0: c_int, arg1: c_int, w: c_int, h: c_int) void;
-extern fn metal_clear(arg0: ClearCommand) void;
+extern fn metal_set_render_state(state: RenderState) void;
+extern fn metal_viewport(x: c_int, y: c_int, w: c_int, h: c_int) void;
+extern fn metal_scissor(x: c_int, y: c_int, w: c_int, h: c_int) void;
+extern fn metal_clear(command: ClearCommand) void;
 
 extern fn metal_create_image(desc: ImageDesc) *MtlImage;
 extern fn metal_destroy_image(image: *MtlImage) void;
 extern fn metal_update_image(image: *MtlImage, arg1: ?*const c_void) void;
 extern fn metal_bind_image(arg0: u16, arg1: u32) void;
 
-extern fn metal_create_pass(arg0: PassDesc) u16;
-extern fn metal_destroy_pass(arg0: u16) void;
-extern fn metal_begin_pass(pass: u16, arg0: ClearCommand, w: c_int, h: c_int) void;
+extern fn metal_create_pass(desc: MtlPassDesc) *MtlPass;
+extern fn metal_destroy_pass(pass: *MtlPass) void;
+extern fn metal_begin_pass(pass: ?*MtlPass, arg0: ClearCommand, w: c_int, h: c_int) void;
 extern fn metal_end_pass() void;
 extern fn metal_commit_frame() void;
 

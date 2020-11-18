@@ -30,12 +30,6 @@ pub const BufferType = extern enum {
     index,
 };
 
-pub const VertexBufferUsage = extern enum {
-    stream_draw,
-    static_draw,
-    dynamic_draw,
-};
-
 pub const ShaderStage = extern enum {
     fs,
     vs,

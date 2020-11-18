@@ -20,6 +20,9 @@ enum {
     NUM_INFLIGHT_FRAMES = 1,
 };
 
+// forward declarations
+typedef struct _mtl_image _mtl_image;
+
 typedef enum TextureFilter_t {
     texture_filter_nearest,
     texture_filter_linear,
@@ -62,11 +65,10 @@ typedef enum Usage_t {
 
 MTLResourceOptions _mtl_buffer_resource_options(enum Usage_t usg) {
 	switch (usg) {
-		case usage_immutable:
-			return MTLResourceStorageModeShared;
+		case usage_immutable: return MTLResourceStorageModeShared;
 		case usage_dynamic:
 		case usage_stream:
-			return MTLCPUCacheModeWriteCombined|MTLResourceStorageModeManaged;
+			return MTLCPUCacheModeWriteCombined | MTLResourceStorageModeManaged;
 		default:
 			RK_UNREACHABLE;
 			return 0;
@@ -78,27 +80,21 @@ typedef enum BufferType_t {
     buffer_type_index,
 } BufferType_t;
 
-enum VertexBufferUsage_t {
-    vertex_buffer_usage_stream_draw,
-    vertex_buffer_usage_static_draw,
-    vertex_buffer_usage_dynamic_draw,
-};
-
-enum PrimitiveType_t {
+typedef enum PrimitiveType_t {
     primitive_type_points,
     primitive_type_line_strip,
     primitive_type_lines,
     primitive_type_triangle_strip,
     primitive_type_triangles,
-};
+} PrimitiveType_t;
 
-enum ElementType_t {
+typedef enum ElementType_t {
     element_type_u8,
     element_type_u16,
     element_type_u32,
-};
+} ElementType_t;
 
-enum CompareFunc_t {
+typedef enum CompareFunc_t {
     compre_func_never,
     compre_func_less,
     compre_func_equal,
@@ -107,9 +103,23 @@ enum CompareFunc_t {
     compre_func_not_equal,
     compre_func_greater_equal,
     compre_func_always,
-};
+} CompareFunc_t;
 
-enum StencilOp_t {
+MTLCompareFunction _mtl_compare_func(CompareFunc_t f) {
+	switch (f) {
+		case compre_func_never:          return MTLCompareFunctionNever;
+		case compre_func_less:           return MTLCompareFunctionLess;
+		case compre_func_equal:          return MTLCompareFunctionEqual;
+		case compre_func_less_equal:     return MTLCompareFunctionLessEqual;
+		case compre_func_greater:        return MTLCompareFunctionGreater;
+		case compre_func_not_equal:      return MTLCompareFunctionNotEqual;
+		case compre_func_greater_equal:  return MTLCompareFunctionGreaterEqual;
+		case compre_func_always:         return MTLCompareFunctionAlways;
+		default: RK_UNREACHABLE; return (MTLCompareFunction)0;
+	}
+}
+
+typedef enum StencilOp_t {
     stencil_op_keep,
     stencil_op_zero,
     stencil_op_replace,
@@ -118,9 +128,23 @@ enum StencilOp_t {
     stencil_op_invert,
     stencil_op_incr_wrap,
     stencil_op_decr_wrap,
-};
+} StencilOp_t;
 
-enum BlendFactor_t {
+MTLStencilOperation _sg_mtl_stencil_op(StencilOp_t op) {
+	switch (op) {
+		case stencil_op_keep:         return MTLStencilOperationKeep;
+		case stencil_op_zero:         return MTLStencilOperationZero;
+		case stencil_op_replace:      return MTLStencilOperationReplace;
+		case stencil_op_incr_clamp:   return MTLStencilOperationIncrementClamp;
+		case stencil_op_decr_clamp:   return MTLStencilOperationDecrementClamp;
+		case stencil_op_invert:       return MTLStencilOperationInvert;
+		case stencil_op_incr_wrap:    return MTLStencilOperationIncrementWrap;
+		case stencil_op_decr_wrap:    return MTLStencilOperationDecrementWrap;
+		default: RK_UNREACHABLE; return (MTLStencilOperation)0;
+	}
+}
+
+typedef enum BlendFactor_t {
     blend_zero,
     blend_one,
     blend_src_color,
@@ -136,13 +160,43 @@ enum BlendFactor_t {
     blend_one_minus_blend_color,
     blend_blend_alpha,
     blend_one_minus_blend_alpha,
-};
+} BlendFactor_t;
 
-enum BlendOp_t {
+MTLBlendFactor _mtl_blend_factor(BlendFactor_t f) {
+	switch (f) {
+		case blend_zero:                   return MTLBlendFactorZero;
+		case blend_one:                    return MTLBlendFactorOne;
+		case blend_src_color:              return MTLBlendFactorSourceColor;
+		case blend_one_minus_src_color:    return MTLBlendFactorOneMinusSourceColor;
+		case blend_src_alpha:              return MTLBlendFactorSourceAlpha;
+		case blend_one_minus_src_alpha:    return MTLBlendFactorOneMinusSourceAlpha;
+		case blend_dst_color:              return MTLBlendFactorDestinationColor;
+		case blend_one_minus_dst_color:    return MTLBlendFactorOneMinusDestinationColor;
+		case blend_dst_alpha:              return MTLBlendFactorDestinationAlpha;
+		case blend_one_minus_dst_alpha:    return MTLBlendFactorOneMinusDestinationAlpha;
+		case blend_src_alpha_saturated:    return MTLBlendFactorSourceAlphaSaturated;
+		case blend_blend_color:            return MTLBlendFactorBlendColor;
+		case blend_one_minus_blend_color:  return MTLBlendFactorOneMinusBlendColor;
+		case blend_blend_alpha:            return MTLBlendFactorBlendAlpha;
+		case blend_one_minus_blend_alpha:  return MTLBlendFactorOneMinusBlendAlpha;
+		default: RK_UNREACHABLE; 			return (MTLBlendFactor)0;
+	}
+}
+
+typedef enum BlendOp_t {
     blend_op_add,
     blend_op_subtract,
     blend_op_reverse_subtract,
-};
+} BlendOp_t;
+
+MTLBlendOperation _mtl_blend_op(BlendOp_t op) {
+	switch (op) {
+		case blend_op_add:                	return MTLBlendOperationAdd;
+		case blend_op_subtract:           	return MTLBlendOperationSubtract;
+		case blend_op_reverse_subtract:   	return MTLBlendOperationReverseSubtract;
+		default: RK_UNREACHABLE; 			return (MTLBlendOperation)0;
+	}
+}
 
 enum ClearAction_t {
     clear_action_clear,
@@ -303,6 +357,14 @@ typedef enum IndexType_t {
     index_type_uint32,
 } IndexType_t;
 
+MTLIndexType _mtl_index_type(IndexType_t t) {
+	switch (t) {
+		case index_type_uint16:   return MTLIndexTypeUInt16;
+		case index_type_uint32:   return MTLIndexTypeUInt32;
+		default: RK_UNREACHABLE; return (MTLIndexType)0;
+	}
+}
+
 typedef struct VertexAttribute_t {
     VertexFormat_t format;
     int offset;
@@ -325,8 +387,8 @@ typedef struct MtlBufferDesc_T {
 
 
 typedef struct PassDesc_t {
-   uint16_t color_img;
-   uint16_t depth_stencil_img;
+	_mtl_image* color_img;
+	_mtl_image* depth_stencil_img;
 } PassDesc_t;
 
 typedef struct ShaderDesc_t {
@@ -344,6 +406,11 @@ typedef struct _mtl_image {
 	uint32_t height;
 } _mtl_image;
 
+typedef struct _mtl_pass {
+	_mtl_image* color_tex;
+	_mtl_image* stencil_tex;
+} _mtl_pass;
+
 typedef struct mtl_vertex_layout_t {
     int stride;
     MTLVertexStepFunction step_func;
@@ -358,6 +425,7 @@ typedef struct _mtl_buffer {
 	uint32_t buffer;
     mtl_vertex_layout_t vertex_layout[4];
     mtl_vertex_attribute_t vertex_attrs[8];
+	MTLIndexType index_type;
 } _mtl_buffer;
 
 typedef struct _mtl_shader {
@@ -388,9 +456,10 @@ void metal_destroy_image(_mtl_image* arg0);
 void metal_update_image(_mtl_image* img, void* data);
 void metal_bind_image(_mtl_image* img, uint32_t slot);
 
-uint16_t metal_create_pass(PassDesc_t desc);
-void metal_destroy_pass(uint16_t pass);
-void metal_begin_pass(uint16_t pass, ClearCommand_t clear, int w, int h);
+_mtl_pass* metal_create_pass(PassDesc_t desc);
+void metal_destroy_pass(_mtl_pass* pass);
+
+void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h);
 void metal_end_pass(void);
 void metal_commit_frame(void);
 

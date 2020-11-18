@@ -16,7 +16,6 @@ id<MTLRenderCommandEncoder> cmd_encoder;
 id<CAMetalDrawable> cur_drawable;
 dispatch_semaphore_t render_semaphore;
 
-bool origin_top_left = true;
 bool in_pass = false;
 bool pass_valid = false;
 int cur_width;
@@ -25,6 +24,7 @@ uint32_t frame_index;
 
 // pipeline state
 _mtl_shader* cur_shader;
+RenderState_t cur_render_state;
 MtlBufferBindings_t cur_bindings;
 id<MTLRenderPipelineState> pipeline;
 
@@ -36,6 +36,7 @@ void metal_setup(RendererDesc_t desc) {
 	layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
 	layer.device = MTLCreateSystemDefaultDevice();
 	layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+	// layer.displaySyncEnabled = NO; // disables vsunc
 
 	cmd_queue = [layer.device newCommandQueue];
 }
@@ -61,12 +62,7 @@ void metal_shutdown() {
 void metal_set_render_state(RenderState_t state) {
     printf("metal_set_render_state\n");
     assert(!in_pass);
-    if (!pass_valid) return;
-    assert(cmd_encoder != nil);
-
-    [cmd_encoder setBlendColorRed:state.blend.color[0] green: state.blend.color[1] blue: state.blend.color[2] alpha: state.blend.color[3]];
-    [cmd_encoder setStencilReferenceValue:state.stencil.ref];
-    [cmd_encoder setCullMode:MTLCullModeNone];
+	cur_render_state = state;
 }
 
 void metal_viewport(int x, int y, int w, int h) {
@@ -76,7 +72,7 @@ void metal_viewport(int x, int y, int w, int h) {
 
     MTLViewport vp;
     vp.originX = (double) x;
-    vp.originY = (double) (origin_top_left ? y : (cur_height - (y + h)));
+    vp.originY = (double) y;
     vp.width   = (double) w;
     vp.height  = (double) h;
     vp.znear   = 0.0;
@@ -104,7 +100,7 @@ void metal_scissor(int x, int y, int w, int h) {
 
     MTLScissorRect r;
     r.x = x;
-    r.y = origin_top_left ? y : (cur_height - (y + h));
+    r.y = y;
     r.width = w;
     r.height = h;
     [cmd_encoder setScissorRect:r];
@@ -186,10 +182,22 @@ void metal_update_image(_mtl_image* img, void* data) {
 
 
 // passes
-void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
+_mtl_pass* metal_create_pass(PassDesc_t desc) {
+	_mtl_pass* pass = malloc(sizeof(_mtl_pass));
+	memset(pass, 0, sizeof(_mtl_pass));
+	pass->color_tex = desc.color_img;
+	pass->stencil_tex = desc.depth_stencil_img;
+	return pass;
+}
+
+void metal_destroy_pass(_mtl_pass* pass) {
+	free(pass);
+}
+
+void metal_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
     in_pass = true;
-    cur_width = w;
-    cur_height = h;
+	cur_width = pass ? pass->color_tex->width : w;
+	cur_height = pass ? pass->color_tex->height : h;
 
     // if this is the first pass in the frame, create a command buffer
     if (cmd_buffer == nil) {
@@ -199,18 +207,7 @@ void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     }
 
     // initialize a render pass descriptor
-    MTLRenderPassDescriptor *pass_desc = nil;
-    if (pass_index > 0) { // offscreen render pass
-        pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
-        RK_ASSERT(NO);
-    } else {
-		metal_viewport(0, 0, w, h);
-        pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
-        // only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.
-        if (cur_drawable == nil)
-            cur_drawable = [layer nextDrawable];
-        pass_desc.colorAttachments[0].texture = cur_drawable.texture;
-    }
+	MTLRenderPassDescriptor* pass_desc = [MTLRenderPassDescriptor renderPassDescriptor];
 
     // default pass descriptor will not be valid if window is minimized
     if (pass_desc == nil) {
@@ -220,15 +217,27 @@ void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
     pass_valid = true;
 
     // setup pass descriptor for backbuffer or offscreen rendering
-    if (pass_index > 0) {
+    if (pass) {
+		pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->color_tex->tex];
+		pass_desc.colorAttachments[0].storeAction = MTLStoreActionStore;
+		
+		if (pass->stencil_tex) {
+			pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->stencil_tex->tex];
+		}
     } else {
-        pass_desc.colorAttachments[0].clearColor = MTLClearColorMake(clear.color[0], clear.color[1], clear.color[2], clear.color[3]);
-        pass_desc.colorAttachments[0].loadAction  = _mtl_load_action(clear.color_action);
-        pass_desc.depthAttachment.loadAction = _mtl_load_action(clear.depth_action);
-        pass_desc.depthAttachment.clearDepth = clear.depth;
-        pass_desc.stencilAttachment.loadAction = _mtl_load_action(clear.stencil_action);
-        pass_desc.stencilAttachment.clearStencil = clear.stencil;
+		// only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.
+		if (cur_drawable == nil)
+			cur_drawable = [layer nextDrawable];
+		pass_desc.colorAttachments[0].texture = cur_drawable.texture;
     }
+	
+	// common pass descriptor setup
+	pass_desc.colorAttachments[0].clearColor = MTLClearColorMake(clear.color[0], clear.color[1], clear.color[2], clear.color[3]);
+	pass_desc.colorAttachments[0].loadAction  = _mtl_load_action(clear.color_action);
+	pass_desc.depthAttachment.loadAction = _mtl_load_action(clear.depth_action);
+	pass_desc.depthAttachment.clearDepth = clear.depth;
+	pass_desc.stencilAttachment.loadAction = _mtl_load_action(clear.stencil_action);
+	pass_desc.stencilAttachment.clearStencil = clear.stencil;
 
     // create a render command encoder, this might return nil if window is minimized
     cmd_encoder = [cmd_buffer renderCommandEncoderWithDescriptor:pass_desc];
@@ -236,6 +245,13 @@ void metal_begin_pass(uint16_t pass_index, ClearCommand_t clear, int w, int h) {
         pass_valid = false;
         return;
     }
+	
+	metal_viewport(0, 0, cur_width, cur_height);
+	
+	// setup our render state
+	[cmd_encoder setBlendColorRed:cur_render_state.blend.color[0] green: cur_render_state.blend.color[1] blue: cur_render_state.blend.color[2] alpha: cur_render_state.blend.color[3]];
+	[cmd_encoder setStencilReferenceValue:cur_render_state.stencil.ref];
+	[cmd_encoder setCullMode:MTLCullModeNone];
 }
 
 void metal_end_pass() {
@@ -248,9 +264,10 @@ void metal_end_pass() {
 }
 
 void metal_commit_frame() {
-    assert(!pass_valid);
-    assert(cmd_encoder == nil);
-    assert(cmd_buffer != nil);
+	RK_ASSERT(!in_pass);
+    RK_ASSERT(!pass_valid);
+	RK_ASSERT(cmd_encoder == nil);
+	RK_ASSERT(cmd_buffer != nil);
 
     // present, commit and signal semaphore when done
     [cmd_buffer presentDrawable:cur_drawable];
@@ -287,7 +304,9 @@ _mtl_buffer* metal_create_buffer(MtlBufferDesc_T desc) {
             buffer->vertex_attrs[i].format = _mtl_vertex_format(desc.vertex_attrs[i].format);
             buffer->vertex_attrs[i].offset = desc.vertex_attrs[i].offset;
         }
-    }
+	} else {
+		buffer->index_type = _mtl_index_type(desc.index_type);
+	}
     
     // TODO: support multiple in-flight buffers when they are mutable
     MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
@@ -391,6 +410,14 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
         pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[cur_shader->vs_func];
         pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[cur_shader->fs_func];
         pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
+		pipelineStateDescriptor.colorAttachments[0].writeMask = _mtl_color_write_mask(cur_render_state.blend.color_write_mask);
+		pipelineStateDescriptor.colorAttachments[0].blendingEnabled = cur_render_state.blend.enabled;
+		pipelineStateDescriptor.colorAttachments[0].alphaBlendOperation = _mtl_blend_op(cur_render_state.blend.op_alpha);
+		pipelineStateDescriptor.colorAttachments[0].rgbBlendOperation = _mtl_blend_op(cur_render_state.blend.op_rgb);
+		pipelineStateDescriptor.colorAttachments[0].destinationAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_alpha);
+		pipelineStateDescriptor.colorAttachments[0].destinationRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_rgb);
+		pipelineStateDescriptor.colorAttachments[0].sourceAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_alpha);
+		pipelineStateDescriptor.colorAttachments[0].sourceRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_rgb);
 
         
         // preprare the MTLVertexDescriptor
@@ -458,10 +485,10 @@ void metal_apply_bindings(MtlBufferBindings_t bindings) {
 }
 
 void metal_draw(int base_element, int element_count, int instance_count) {
-     [cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                             indexCount:element_count
-                              indexType:MTLIndexTypeUInt16
-                            indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
-                      indexBufferOffset:0
-                          instanceCount:instance_count];
+	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+							indexCount:element_count
+							 indexType:cur_bindings.index_buffer->index_type
+						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
+					 indexBufferOffset:0
+						 instanceCount:instance_count];
 }
