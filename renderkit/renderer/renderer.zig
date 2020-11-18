@@ -98,6 +98,10 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {
+    return backend.appendBuffer(T, buffer, verts);
+}
+
 // bindings and drawing
 pub fn applyBindings(bindings: BufferBindings) void {
     backend.applyBindings(bindings);

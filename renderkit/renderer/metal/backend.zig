@@ -3,6 +3,7 @@ usingnamespace @import("../types.zig");
 usingnamespace @import("../descriptions.zig");
 
 const HandledCache = @import("../handles.zig").HandledCache;
+const num_in_flight_frames: usize = 1;
 
 var image_cache: HandledCache(*MtlImage) = undefined;
 var pass_cache: HandledCache(*MtlPass) = undefined;
@@ -10,10 +11,10 @@ var buffer_cache: HandledCache(*MtlBuffer) = undefined;
 var shader_cache: HandledCache(*MtlShader) = undefined;
 
 pub fn setup(desc: RendererDesc) void {
-    image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture);
-    pass_cache = HandledCache(*MtlPass).init(desc.allocator, desc.pool_sizes.offscreen_pass);
-    buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers);
-    shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders);
+    image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture * num_in_flight_frames);
+    pass_cache = HandledCache(*MtlPass).init(desc.allocator, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
+    buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers * num_in_flight_frames);
+    shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders * num_in_flight_frames);
 
     mtl_setup(desc);
     setRenderState(.{});
@@ -105,6 +106,11 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     mtl_update_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
 
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {
+    var buff = buffer_cache.get(buffer);
+    return mtl_append_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
+}
+
 // shaders
 pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
     const shader = mtl_create_shader(MtlShaderDesc.init(desc));
@@ -156,11 +162,6 @@ const MtlIndexType = extern enum {
 const MtlVertexAttribute = extern struct {
     format: MtlVertexFormat = .float,
     offset: c_int = 0,
-};
-
-pub const MtlVertexStep = extern enum {
-    per_vertex,
-    per_instance,
 };
 
 const MtlVertexLayout = extern struct {
@@ -300,44 +301,11 @@ const MtlBufferBindings = extern struct {
     }
 };
 
-// TODO: make all these opaque
-const MtlImage = extern struct {
-    tex: u32,
-    depth_tex: u32,
-    stencil_tex: u32,
-    sampler_state: u32,
-    width: u32,
-    height: u32,
-};
-
-const MtlNativeVertexLayout = extern struct {
-    stride: c_int = 0,
-    step_func: c_ulong = 0,
-};
-
-const MtlNativeVertexAttribute = extern struct {
-    format: c_ulong = 0,
-    offset: c_int = 0,
-};
-
-const MtlBuffer = extern struct {
-    buffer: u32,
-    vertex_layout: [4]MtlNativeVertexLayout,
-    vertex_attrs: [8]MtlNativeVertexAttribute,
-    index_type: c_ulong,
-};
-
-const MtlPass = extern struct {
-    color_tex: ?*MtlImage,
-    stencil_tex: ?*MtlImage,
-};
-
-const MtlShader = extern struct {
-    vs_lib: u32,
-    vs_func: u32,
-    fs_lib: u32,
-    fs_func: u32,
-};
+// opaque objects returned by the metal C code
+const MtlImage = opaque {};
+const MtlBuffer = opaque {};
+const MtlPass = opaque {};
+const MtlShader = opaque {};
 
 extern fn mtl_setup(desc: RendererDesc) void;
 extern fn mtl_shutdown() void;
@@ -359,6 +327,7 @@ extern fn mtl_commit_frame() void;
 extern fn mtl_create_buffer(desc: MtlBufferDesc) *MtlBuffer;
 extern fn mtl_destroy_buffer(buffer: *MtlBuffer) void;
 extern fn mtl_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) void;
+extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) c_int;
 
 extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;

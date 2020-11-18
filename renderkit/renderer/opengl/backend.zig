@@ -464,6 +464,10 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {
+    @panic("appendBuffer not implemented");
+}
+
 // bindings and drawing
 pub fn applyBindings(bindings: BufferBindings) void {
     // TODO: consider adding a "vao: GLuint" to BufferBindings so they can use it for GL. not sure if its worth it though.

@@ -27,6 +27,7 @@ pub fn commitFrame() void {}
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer { return 0; }
 pub fn destroyBuffer(buffer: Buffer) void {}
 pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {}
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {}
 
 // buffer bindings
 pub fn createBufferBindings(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings { return 0; }
