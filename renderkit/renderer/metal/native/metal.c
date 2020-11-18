@@ -297,6 +297,7 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc) {
     memset(buffer, 0, sizeof(_mtl_buffer));
     
     buffer->size = (int)desc.size;
+    buffer->num_slots = (desc.usage == usage_immutable) ? 1 : NUM_INFLIGHT_FRAMES;
 
     // store off some data we will need for the pipeline later
     if (desc.type == buffer_type_vertex) {
@@ -315,19 +316,25 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc) {
 
     // TODO: support multiple in-flight buffers when they are mutable
     MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
-    id<MTLBuffer> mtl_buf;
-    if (desc.usage == usage_immutable)
-        mtl_buf = [layer.device newBufferWithBytes:desc.content length:desc.size options:mtl_options];
-    else
-        mtl_buf = [layer.device newBufferWithLength:desc.size options:mtl_options];
-    buffer->buffer = [mtl_backend addResource:mtl_buf];
+    
+    for (int slot = 0; slot < buffer->num_slots; slot++) {
+        id<MTLBuffer> mtl_buf;
+        if (desc.usage == usage_immutable)
+            mtl_buf = [layer.device newBufferWithBytes:desc.content length:desc.size options:mtl_options];
+        else
+            mtl_buf = [layer.device newBufferWithLength:desc.size options:mtl_options];
+        buffer->buffers[slot] = [mtl_backend addResource:mtl_buf];
+    }
     
     return buffer;
 }
 
 void mtl_destroy_buffer(_mtl_buffer* buffer) {
     printf("metal_destroy_buffer\n");
-    [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffer];
+    for (int slot = 0; slot < buffer->num_slots; slot++) {
+        // it's valid to call release resource with
+        [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffers[slot]];
+    }
     free(buffer);
 }
 
@@ -341,7 +348,7 @@ void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes
     if (++buffer->active_slot >= buffer->num_slots)
         buffer->active_slot = 0;
     
-    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
+    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffers[buffer->active_slot]];
     void* dst_ptr = [mtl_buf contents];
     memcpy(dst_ptr, data, num_bytes);
     [mtl_buf didModifyRange:NSMakeRange(0, num_bytes)];
@@ -357,7 +364,7 @@ uint32_t _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_
             buffer->active_slot = 0;
     }
     
-    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffer];
+    __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffers[buffer->active_slot]];
     uint8_t* dst_ptr = (uint8_t*) [mtl_buf contents];
     dst_ptr += buffer->append_pos;
     memcpy(dst_ptr, data, num_bytes);
@@ -527,8 +534,9 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
 
     // bind vertex buffers
     for (int i = 0; i < 4; i++) {
-        if (bindings.vertex_buffers[i] == NULL) break;
-        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[bindings.vertex_buffers[i]->buffer] offset:0 atIndex:0];
+        _mtl_buffer* buffer = bindings.vertex_buffers[i];
+        if (buffer == NULL) break;
+        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]] offset:0 atIndex:0];
     }
 
     // set textures
@@ -546,7 +554,7 @@ void mtl_draw(int base_element, int element_count, int instance_count) {
 	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
 							indexCount:element_count
 							 indexType:cur_bindings.index_buffer->index_type
-						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffer]
+						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffers[cur_bindings.index_buffer->active_slot]]
 					 indexBufferOffset:0
 						 instanceCount:1];
 }

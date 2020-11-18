@@ -429,7 +429,7 @@ typedef struct _mtl_buffer {
     bool append_overflow;           // is buffer in overflow state (due to sg_append_buffer)
     int num_slots;                  // number of renaming-slots for dynamically updated buffers
     int active_slot;                // currently active write-slot for dynamically updated buffers
-	uint32_t buffer;
+    uint32_t buffers[NUM_INFLIGHT_FRAMES];
     mtl_vertex_layout_t vertex_layout[4];
     mtl_vertex_attribute_t vertex_attrs[8];
 	MTLIndexType index_type;
