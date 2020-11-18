@@ -172,11 +172,32 @@ const MtlVertexLayout = extern struct {
 const MtlBufferDesc = extern struct {
     size: c_long = 0, // either size (for stream buffers) or content (for static/dynamic) must be set
     type: BufferType = .vertex,
+    type_id: u8,
     usage: Usage = .immutable,
     content: ?*const c_void = null,
     index_type: MtlIndexType = .uint16,
     vertex_layout: [4]MtlVertexLayout,
     vertex_attrs: [8]MtlVertexAttribute,
+
+    var type_id_counter: u8 = 1;
+
+    /// registered vertex types. this provides a way for us to send a unique id for each vertex type that can be used
+    /// on the C side to identify a vertex buffer
+    fn typeHandle(comptime T: type) *u8 {
+        return &(struct {
+            pub var handle: u8 = std.math.maxInt(u8);
+        }.handle);
+    }
+
+    fn getTypeId(comptime T: type) u8 {
+        var handle = typeHandle(T);
+        if (handle.* < std.math.maxInt(u8)) {
+            return handle.*;
+        }
+        handle.* = type_id_counter;
+        type_id_counter += 1;
+        return handle.*;
+    }
 
     pub fn init(comptime T: type, buffer_desc: BufferDesc(T)) MtlBufferDesc {
         var vertex_attrs: [8]MtlVertexAttribute = [_]MtlVertexAttribute{.{}} ** 8;
@@ -240,6 +261,7 @@ const MtlBufferDesc = extern struct {
         return .{
             .size = buffer_desc.getSize(),
             .type = buffer_desc.type,
+            .type_id = getTypeId(T),
             .usage = buffer_desc.usage,
             .content = if (buffer_desc.content) |content| content.ptr else null,
             .index_type = if (T == u16) .uint16 else .uint32,

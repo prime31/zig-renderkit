@@ -378,6 +378,7 @@ typedef struct VertexLayout_t {
 typedef struct MtlBufferDesc_T {
     long size; // either size (for stream buffers) or content (for static/dynamic) must be set
     BufferType_t type;
+    uint8_t type_id;
     Usage_t usage;
     uint8_t* content;
     IndexType_t index_type;
@@ -433,6 +434,7 @@ typedef struct _mtl_buffer {
     mtl_vertex_layout_t vertex_layout[4];
     mtl_vertex_attribute_t vertex_attrs[8];
 	MTLIndexType index_type;
+    uint8_t type_id;                // unique identifier for they type of the buffer
 } _mtl_buffer;
 
 typedef struct _mtl_shader {

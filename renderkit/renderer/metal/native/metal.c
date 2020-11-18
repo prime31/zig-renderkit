@@ -298,6 +298,7 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc) {
     
     buffer->size = (int)desc.size;
     buffer->num_slots = (desc.usage == usage_immutable) ? 1 : NUM_INFLIGHT_FRAMES;
+    buffer->type_id = desc.type_id;
 
     // store off some data we will need for the pipeline later
     if (desc.type == buffer_type_vertex) {
