@@ -358,7 +358,7 @@ void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes
 }
 
 // this is the workhorse for buffer appends, called by mtl_append_buffer after it does its validation and bookkeeping
-uint32_t _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes, bool new_frame) {
+void _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes, bool new_frame) {
     // if this is our first append this frame rotate the active slot
     if (new_frame) {
         if (++buffer->active_slot >= buffer->num_slots)
@@ -370,11 +370,9 @@ uint32_t _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_
     dst_ptr += buffer->append_pos;
     memcpy(dst_ptr, data, num_bytes);
     [mtl_buf didModifyRange:NSMakeRange(buffer->append_pos, num_bytes)];
-
-    return num_bytes;
 }
 
-int mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes) {
+uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes) {
     RK_ASSERT(num_bytes <= buffer->size);
     
     // rewind append cursor in a new frame
@@ -383,15 +381,16 @@ int mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes)
         buffer->append_overflow = false;
     }
     
+	// check for overflow
     if ((buffer->append_pos + num_bytes) > buffer->size)
         buffer->append_overflow = true;
     
-    const int start_pos = buffer->append_pos;
+    const uint32_t start_pos = buffer->append_pos;
     if (!buffer->append_overflow && (num_bytes > 0)) {
         // update and append on same buffer in same frame not allowed
         RK_ASSERT(buffer->update_frame_index != frame_index);
-        uint32_t copied_num_bytes = _mtl_append_buffer(buffer, data, num_bytes, buffer->append_frame_index != frame_index);
-        buffer->append_pos += copied_num_bytes;
+        _mtl_append_buffer(buffer, data, num_bytes, buffer->append_frame_index != frame_index);
+        buffer->append_pos += num_bytes;
         buffer->append_frame_index = frame_index;
     }
     
@@ -539,7 +538,9 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
     for (int i = 0; i < 4; i++) {
         _mtl_buffer* buffer = bindings.vertex_buffers[i];
         if (buffer == NULL) break;
-        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]] offset:0 atIndex:0];
+        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]]
+							  offset:bindings.vertex_buffer_offsets[i]
+							 atIndex:0];
     }
 
     // set textures
@@ -559,5 +560,5 @@ void mtl_draw(int base_element, int element_count, int instance_count) {
 							 indexType:cur_bindings.index_buffer->index_type
 						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffers[cur_bindings.index_buffer->active_slot]]
 					 indexBufferOffset:0
-						 instanceCount:1];
+						 instanceCount:instance_count];
 }

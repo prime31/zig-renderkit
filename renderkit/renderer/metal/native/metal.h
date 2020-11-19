@@ -447,6 +447,7 @@ typedef struct _mtl_shader {
 typedef struct MtlBufferBindings_t {
     _mtl_buffer* index_buffer;
     _mtl_buffer* vertex_buffers[4];
+	uint32_t vertex_buffer_offsets[4];
     _mtl_image* images[8];
 } MtlBufferBindings_t;
 
@@ -474,7 +475,7 @@ void mtl_commit_frame(void);
 _mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc);
 void mtl_destroy_buffer(_mtl_buffer* buffer);
 void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
-int mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
+uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 
 _mtl_shader* mtl_create_shader(ShaderDesc_t desc);
 void mtl_destroy_shader(_mtl_shader* shader);

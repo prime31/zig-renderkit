@@ -24,7 +24,7 @@ pub const ImageDesc = extern struct {
     width: i32,
     height: i32,
     usage: renderkit.Usage = .immutable,
-    pixel_format: renderkit.PixelFormat = .rgba,
+    pixel_format: renderkit.PixelFormat = .rgba8,
     min_filter: renderkit.TextureFilter = .nearest,
     mag_filter: renderkit.TextureFilter = .nearest,
     wrap_u: renderkit.TextureWrap = .clamp,

@@ -106,7 +106,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     mtl_update_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
 
-pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
     var buff = buffer_cache.get(buffer);
     return mtl_append_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
@@ -302,6 +302,7 @@ const MtlShaderDesc = extern struct {
 const MtlBufferBindings = extern struct {
     index_buffer: ?*MtlBuffer,
     vert_buffers: [4]?*MtlBuffer = [_]?*MtlBuffer{null} ** 4,
+    vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
     images: [8]?*MtlImage = [_]?*MtlImage{null} ** 8,
 
     pub fn init(bindings: BufferBindings) MtlBufferBindings {
@@ -313,6 +314,8 @@ const MtlBufferBindings = extern struct {
             if (vb == 0) break;
             mtl_bindings.vert_buffers[i] = buffer_cache.get(vb).*;
         }
+
+        std.mem.copy(u32, &mtl_bindings.vertex_buffer_offsets, &bindings.vertex_buffer_offsets);
 
         for (bindings.images) |img, i| {
             if (img == 0) break;
@@ -349,7 +352,7 @@ extern fn mtl_commit_frame() void;
 extern fn mtl_create_buffer(desc: MtlBufferDesc) *MtlBuffer;
 extern fn mtl_destroy_buffer(buffer: *MtlBuffer) void;
 extern fn mtl_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) void;
-extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) c_int;
+extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) u32;
 
 extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;

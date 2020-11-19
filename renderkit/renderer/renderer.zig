@@ -98,7 +98,7 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     backend.updateBuffer(T, buffer, verts);
 }
 
-pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) int {
+pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
     return backend.appendBuffer(T, buffer, verts);
 }
 

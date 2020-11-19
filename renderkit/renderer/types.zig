@@ -14,7 +14,7 @@ pub const TextureWrap = extern enum {
 };
 
 pub const PixelFormat = extern enum {
-    rgba,
+    rgba8,
     stencil,
     depth_stencil,
 };
@@ -157,6 +157,7 @@ pub const ClearCommand = extern struct {
 pub const BufferBindings = struct {
     index_buffer: Buffer,
     vert_buffers: [4]Buffer,
+    vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
     images: [8]Image = [_]Image{0} ** 8,
 
     pub fn init(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
