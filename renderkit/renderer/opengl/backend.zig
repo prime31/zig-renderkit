@@ -503,6 +503,8 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 pub fn applyBindings(bindings: BufferBindings) void {
     // TODO: consider adding a "vao: GLuint" to BufferBindings so they can use it for GL. not sure if its worth it though.
     // it would require calling code to store the BufferBindings the entire time the buffers are in use.
+    if (cur_bindings.eq(bindings)) return;
+
     cur_bindings = bindings;
 
     var ibuffer = buffer_cache.get(bindings.index_buffer);

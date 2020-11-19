@@ -1,3 +1,8 @@
+const std = @import("std");
+
+/// all resources are guaranteed to never have a handle of 0
+pub const invalid_resource_id: u16 = 0;
+
 pub const Image = u16;
 pub const ShaderProgram = u16;
 pub const Pass = u16;
@@ -172,5 +177,12 @@ pub const BufferBindings = struct {
 
     pub fn bindImage(self: *BufferBindings, image: Image, slot: c_uint) void {
         self.images[slot] = image;
+    }
+
+    pub fn eq(self: BufferBindings, other: BufferBindings) bool {
+        return self.index_buffer == other.index_buffer and
+            std.mem.eql(Buffer, &self.vert_buffers, &other.vert_buffers) and
+            std.mem.eql(u32, &self.vertex_buffer_offsets, &other.vertex_buffer_offsets) and
+            std.mem.eql(Image, &self.images, &other.images);
     }
 };

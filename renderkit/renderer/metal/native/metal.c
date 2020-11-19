@@ -533,6 +533,7 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
     }
 
     [cmd_encoder setRenderPipelineState:pipeline];
+    [cmd_encoder setCullMode:MTLCullModeNone];
 
     // bind vertex buffers
     for (int i = 0; i < 4; i++) {
@@ -550,15 +551,16 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
         [cmd_encoder setFragmentTexture:mtl_backend.objectPool[bindings.images[i]->tex] atIndex:i];
         [cmd_encoder setFragmentSamplerState:mtl_backend.objectPool[bindings.images[i]->sampler_state] atIndex:i];
     }
-
-    [cmd_encoder setCullMode:MTLCullModeNone];
 }
 
 void mtl_draw(int base_element, int element_count, int instance_count) {
+    const NSUInteger index_size = cur_bindings.index_buffer->index_type == MTLIndexTypeUInt16 ? 2 : 4;
+    const NSUInteger index_buffer_offset = base_element * index_size; // + cur_bindings.index_buffer_offset; // TODO: dynamic index buffers
+
 	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
 							indexCount:element_count
 							 indexType:cur_bindings.index_buffer->index_type
 						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffers[cur_bindings.index_buffer->active_slot]]
-					 indexBufferOffset:0
+					 indexBufferOffset:index_buffer_offset
 						 instanceCount:instance_count];
 }
