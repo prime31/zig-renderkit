@@ -380,7 +380,7 @@ const GLBuffer = struct {
     append_overflow: bool,
     index_buffer_type: GLenum,
     vert_buffer_step_func: GLuint,
-    setVertexAttributes: ?fn (attr_index: *GLuint, step_func: GLuint, vertex_buffer_offsets: [4]u32) void,
+    setVertexAttributes: ?fn (attr_index: *GLuint, step_func: GLuint, vertex_buffer_offset: u32) void,
 };
 
 pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
@@ -391,9 +391,9 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
 
     if (@typeInfo(T) == .Struct) {
         buffer.setVertexAttributes = struct {
-            fn cb(attr_index: *GLuint, step_func: GLuint, vertex_buffer_offsets: [4]u32) void {
+            fn cb(attr_index: *GLuint, step_func: GLuint, vertex_buffer_offset: u32) void {
                 inline for (@typeInfo(T).Struct.fields) |field, i| {
-                    const offset: ?usize = if (i + vertex_buffer_offsets[i] == 0) null else vertex_buffer_offsets[i] + @byteOffsetOf(T, field.name);
+                    const offset: ?usize = if (i + vertex_buffer_offset == 0) null else vertex_buffer_offset + @byteOffsetOf(T, field.name);
 
                     switch (@typeInfo(field.field_type)) {
                         .Int => |type_info| {
@@ -501,10 +501,7 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 
 // bindings and drawing
 pub fn applyBindings(bindings: BufferBindings) void {
-    // TODO: consider adding a "vao: GLuint" to BufferBindings so they can use it for GL. not sure if its worth it though.
-    // it would require calling code to store the BufferBindings the entire time the buffers are in use.
     if (cur_bindings.eq(bindings)) return;
-
     cur_bindings = bindings;
 
     var ibuffer = buffer_cache.get(bindings.index_buffer);
@@ -517,20 +514,19 @@ pub fn applyBindings(bindings: BufferBindings) void {
         var vbuffer = buffer_cache.get(buff);
         if (vbuffer.setVertexAttributes) |setter| {
             cache.forceBindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
-            setter(&vert_attr_index, vbuffer.vert_buffer_step_func, bindings.vertex_buffer_offsets);
+            setter(&vert_attr_index, vbuffer.vert_buffer_step_func, bindings.vertex_buffer_offsets[i]);
         }
+    }
+
+    // bind images
+    for (bindings.images) |image, slot| {
+        const tid = if (image == 0) 0 else image_cache.get(image).tid;
+        cache.bindImage(tid, @intCast(c_uint, slot));
     }
 }
 
 pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void {
     const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
-
-    // bind images
-    for (cur_bindings.images) |image, slot| {
-        if (image == 0) break;
-        const img = image_cache.get(image);
-        cache.bindImage(img.tid, @intCast(c_uint, slot));
-    }
 
     const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
     var ib_offset = @intCast(usize, base_element * i_size);
