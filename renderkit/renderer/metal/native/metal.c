@@ -16,6 +16,8 @@ id<MTLRenderCommandEncoder> cmd_encoder;
 id<CAMetalDrawable> cur_drawable;
 dispatch_semaphore_t render_semaphore;
 
+uint32_t shader_id = 1;
+
 bool in_pass = false;
 bool pass_valid = false;
 int cur_width;
@@ -26,7 +28,6 @@ uint32_t frame_index = 1;
 _mtl_shader* cur_shader;
 RenderState_t cur_render_state;
 MtlBufferBindings_t cur_bindings;
-id<MTLRenderPipelineState> pipeline;
 
 // setup
 void mtl_setup(RendererDesc_t desc) {
@@ -400,9 +401,6 @@ uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_b
 
 // shaders
 _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
-    _mtl_shader* shader = malloc(sizeof(_mtl_shader));
-    memset(shader, 0, sizeof(_mtl_shader));
-    
 	// create metal libray objects and lookup entry functions
 	NSError* err = NULL;
 	id<MTLLibrary> vs_lib = [layer.device newLibraryWithSource:[NSString stringWithUTF8String:desc.vs]
@@ -435,6 +433,10 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
         return NULL;
 	}
 
+	_mtl_shader* shader = malloc(sizeof(_mtl_shader));
+	memset(shader, 0, sizeof(_mtl_shader));
+	
+	shader->shader_id = shader_id++;
 	shader->vs_lib  = [mtl_backend addResource:vs_lib];
 	shader->fs_lib  = [mtl_backend addResource:fs_lib];
 	shader->vs_func = [mtl_backend addResource:vs_func];
@@ -445,12 +447,8 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
 
 void mtl_destroy_shader(_mtl_shader* shader) {
 	printf("metal_destroy_shader\n");
-	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_lib];
-	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_lib];
-	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_func];
-	[mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_func];
-
-    // TODO: destroy all Pipelines that use this shader
+	// this also destroys any PipelineStateObjects that use the shader
+	[mtl_backend removeShader:shader frameIndex:frame_index];
     free(shader);
 }
 
@@ -467,71 +465,75 @@ void mtl_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
 void mtl_apply_bindings(MtlBufferBindings_t bindings) {
     cur_bindings = bindings;
 
-    if (pipeline == nil) {
-        // TODO: this needs a proper home and proper caching
-        // Graphics Pipeline
-        MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-        pipelineStateDescriptor.label = @"Sprite Pipeline";
-        pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[cur_shader->vs_func];
-        pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[cur_shader->fs_func];
-        pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
-		pipelineStateDescriptor.colorAttachments[0].writeMask = _mtl_color_write_mask(cur_render_state.blend.color_write_mask);
-        
-        if (cur_render_state.blend.enabled) {
-            pipelineStateDescriptor.colorAttachments[0].blendingEnabled = cur_render_state.blend.enabled;
-            pipelineStateDescriptor.colorAttachments[0].alphaBlendOperation = _mtl_blend_op(cur_render_state.blend.op_alpha);
-            pipelineStateDescriptor.colorAttachments[0].rgbBlendOperation = _mtl_blend_op(cur_render_state.blend.op_rgb);
-            pipelineStateDescriptor.colorAttachments[0].destinationAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_alpha);
-            pipelineStateDescriptor.colorAttachments[0].destinationRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_rgb);
-            pipelineStateDescriptor.colorAttachments[0].sourceAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_alpha);
-            pipelineStateDescriptor.colorAttachments[0].sourceRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_rgb);
-        }
+//    if (pipeline == nil) {
+//        // TODO: this needs a proper home and proper caching
+//        // Graphics Pipeline
+//        MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+//        pipelineStateDescriptor.label = @"Sprite Pipeline";
+//        pipelineStateDescriptor.vertexFunction = mtl_backend.objectPool[cur_shader->vs_func];
+//        pipelineStateDescriptor.fragmentFunction = mtl_backend.objectPool[cur_shader->fs_func];
+//        pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
+//		pipelineStateDescriptor.colorAttachments[0].writeMask = _mtl_color_write_mask(cur_render_state.blend.color_write_mask);
+//
+//        if (cur_render_state.blend.enabled) {
+//            pipelineStateDescriptor.colorAttachments[0].blendingEnabled = cur_render_state.blend.enabled;
+//            pipelineStateDescriptor.colorAttachments[0].alphaBlendOperation = _mtl_blend_op(cur_render_state.blend.op_alpha);
+//            pipelineStateDescriptor.colorAttachments[0].rgbBlendOperation = _mtl_blend_op(cur_render_state.blend.op_rgb);
+//            pipelineStateDescriptor.colorAttachments[0].destinationAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_alpha);
+//            pipelineStateDescriptor.colorAttachments[0].destinationRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.dst_factor_rgb);
+//            pipelineStateDescriptor.colorAttachments[0].sourceAlphaBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_alpha);
+//            pipelineStateDescriptor.colorAttachments[0].sourceRGBBlendFactor = _mtl_blend_factor(cur_render_state.blend.src_factor_rgb);
+//        }
+//
+//        // preprare the MTLVertexDescriptor
+//        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
+//
+//        int attr_index = 0;
+//        for (int i = 0; i < 4; i++) {
+//            if (bindings.vertex_buffers[i] == NULL) break;
+//            _mtl_buffer* buff = bindings.vertex_buffers[i];
+//
+//            // attributes
+//            for (int j = 0; j < 8; j++) {
+//                mtl_vertex_attribute_t attr = buff->vertex_attrs[j];
+//                // an offset of 0 for an attribute other than the first indicates we are done
+//                if (j > 0 && attr.offset == 0) break;
+//
+//                vertexDesc.attributes[attr_index].format = attr.format;
+//                vertexDesc.attributes[attr_index].offset = attr.offset;
+//                vertexDesc.attributes[attr_index].bufferIndex = i;
+//
+//                attr_index++;
+//            }
+//
+//            // layout
+//            for (int j = 0; j < 4; j++) {
+//                mtl_vertex_layout_t layout = buff->vertex_layout[j];
+//                if (layout.stride == 0) break;
+//
+//                vertexDesc.layouts[j].stepFunction = layout.step_func;
+//                vertexDesc.layouts[j].stride = layout.stride;
+//            }
+//        }
+//
+//        pipelineStateDescriptor.vertexDescriptor = vertexDesc;
+//
+//        // Create Pipeline State Object
+//        NSError* error = nil;
+//        id<MTLRenderPipelineState> pipelineState = [layer.device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+//
+//        if (error) {
+//            NSLog(@"Failed to created pipeline state, error %@", error);
+//            return;
+//        }
+//
+//        pipeline = pipelineState;
+//    }
 
-        // preprare the MTLVertexDescriptor
-        MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
-
-        int attr_index = 0;
-        for (int i = 0; i < 4; i++) {
-            if (bindings.vertex_buffers[i] == NULL) break;
-            _mtl_buffer* buff = bindings.vertex_buffers[i];
-
-            // attributes
-            for (int j = 0; j < 8; j++) {
-                mtl_vertex_attribute_t attr = buff->vertex_attrs[j];
-                // an offset of 0 for an attribute other than the first indicates we are done
-                if (j > 0 && attr.offset == 0) break;
-
-                vertexDesc.attributes[attr_index].format = attr.format;
-                vertexDesc.attributes[attr_index].offset = attr.offset;
-                vertexDesc.attributes[attr_index].bufferIndex = i;
-
-                attr_index++;
-            }
-
-            // layout
-            for (int j = 0; j < 4; j++) {
-                mtl_vertex_layout_t layout = buff->vertex_layout[j];
-                if (layout.stride == 0) break;
-
-                vertexDesc.layouts[j].stepFunction = layout.step_func;
-                vertexDesc.layouts[j].stride = layout.stride;
-            }
-        }
-
-        pipelineStateDescriptor.vertexDescriptor = vertexDesc;
-
-        // Create Pipeline State Object
-        NSError* error = nil;
-        id<MTLRenderPipelineState> pipelineState = [layer.device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
-
-        if (error) {
-            NSLog(@"Failed to created pipeline state, error %@", error);
-            return;
-        }
-
-        pipeline = pipelineState;
-    }
-
+	id<MTLRenderPipelineState> pipeline = [mtl_backend getOrCreatePipelineStateItem:cur_shader
+																		 blendState:&cur_render_state.blend
+																		   bindings:&bindings
+																		 metalLayer:layer];
     [cmd_encoder setRenderPipelineState:pipeline];
     [cmd_encoder setCullMode:MTLCullModeNone];
 

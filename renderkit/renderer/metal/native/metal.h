@@ -282,6 +282,23 @@ typedef struct Blend_t {
    float color[4];
 } Blend_t;
 
+BOOL _mtl_blend_states_eq(const Blend_t* lhs, const Blend_t* rhs) {
+	if (lhs->enabled == rhs->enabled &&
+		lhs->src_factor_rgb == rhs->src_factor_rgb &&
+		lhs->dst_factor_rgb == rhs->dst_factor_rgb &&
+		lhs->op_rgb == rhs->op_rgb &&
+		lhs->src_factor_alpha == rhs->src_factor_alpha
+		&& lhs->dst_factor_alpha == rhs->dst_factor_alpha &&
+		lhs->op_alpha == rhs->op_alpha &&
+		lhs->color_write_mask == rhs->color_write_mask &&
+		lhs->color[0] == rhs->color[0] && lhs->color[1] == rhs->color[1] &&
+		lhs->color[2] == rhs->color[2] && lhs->color[3] == rhs->color[3])
+	{
+		return YES;
+	}
+	return NO;
+}
+
 typedef struct RenderState_t {
    Depth_t depth;
    Stencil_t stencil;
@@ -423,6 +440,7 @@ typedef struct mtl_vertex_attribute_t {
 } mtl_vertex_attribute_t;
 
 typedef struct _mtl_buffer {
+	uint8_t type_id;                // unique identifier for they type of the buffer
     int size;                       // size of the buffer in bytes
     uint32_t update_frame_index;    // frame index of last mtl_update_buffer()
     uint32_t append_frame_index;    // frame index of last mtl_append_buffer()
@@ -434,10 +452,10 @@ typedef struct _mtl_buffer {
     mtl_vertex_layout_t vertex_layout[4];
     mtl_vertex_attribute_t vertex_attrs[8];
 	MTLIndexType index_type;
-    uint8_t type_id;                // unique identifier for they type of the buffer
 } _mtl_buffer;
 
 typedef struct _mtl_shader {
+	uint32_t shader_id;
 	uint32_t vs_lib;
 	uint32_t vs_func;
 	uint32_t fs_lib;
