@@ -148,7 +148,6 @@ _mtl_image* mtl_create_image(ImageDesc_t desc) {
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
 		RK_ASSERT(tex != nil);
         img->depth_tex = [mtl_backend addResource:tex];
-		RK_UNREACHABLE;
     } else {
         id<MTLTexture> tex = [layer.device newTextureWithDescriptor:mtl_desc];
 		if (desc.usage == usage_immutable && !desc.render_target) {
@@ -157,10 +156,11 @@ _mtl_image* mtl_create_image(ImageDesc_t desc) {
                   mipmapLevel:0
                     withBytes:desc.content
                   bytesPerRow:desc.width * 4];
+			RK_ASSERT(tex != nil);
 		}
 
         // create (possibly shared) sampler state
-        img->sampler_state = [mtl_backend createSampler:layer.device withImageDesc:&desc];
+        img->sampler_state = [mtl_backend getOrCreateSampler:layer.device withImageDesc:&desc];
         img->tex = [mtl_backend addResource:tex];
     }
     
@@ -226,7 +226,7 @@ void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
 		pass_desc.colorAttachments[0].storeAction = MTLStoreActionStore;
 
 		if (pass->stencil_tex) {
-			pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->stencil_tex->tex];
+			pass_desc.stencilAttachment.texture = mtl_backend.objectPool[pass->stencil_tex->tex];
 		}
     } else {
 		// only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.

@@ -351,7 +351,7 @@ static mtl_idpool_t idpool;
     item->sampler_handle = sampler_handle;
 }
 
-- (uint32_t)createSampler:(id<MTLDevice>)mtl_device withImageDesc:(ImageDesc_t*)img_desc {
+- (uint32_t)getOrCreateSampler:(id<MTLDevice>)mtl_device withImageDesc:(ImageDesc_t*)img_desc {
     int index = [self findSamplerState:img_desc];
     if (index >= 0) {
         // reuse existing sampler
