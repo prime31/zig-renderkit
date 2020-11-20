@@ -454,7 +454,7 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
         .dynamic => GL_DYNAMIC_DRAW,
     };
 
-    glBufferData(buffer_kind, buffer.size, if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
+    glBufferData(buffer_kind, @intCast(c_long, buffer.size), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
     return buffer_cache.append(buffer);
 }
 
@@ -491,7 +491,7 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 
     const start_pos = buff.append_pos;
     if (!buff.append_overflow and num_bytes > 0) {
-        glBufferSubData(GL_ARRAY_BUFFER, buff.append_pos, num_bytes, verts.ptr);
+        glBufferSubData(GL_ARRAY_BUFFER, @intCast(c_long, buff.append_pos), num_bytes, verts.ptr);
         buff.append_pos += @intCast(u32, num_bytes);
         buff.append_frame_index = frame_index;
     }
