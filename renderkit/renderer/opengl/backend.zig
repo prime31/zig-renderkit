@@ -505,7 +505,7 @@ pub fn applyBindings(bindings: BufferBindings) void {
     cur_bindings = bindings;
 
     var ibuffer = buffer_cache.get(bindings.index_buffer);
-    cache.forceBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
+    cache.bindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
 
     var vert_attr_index: GLuint = 0;
     for (bindings.vert_buffers) |buff, i| {
@@ -513,7 +513,7 @@ pub fn applyBindings(bindings: BufferBindings) void {
 
         var vbuffer = buffer_cache.get(buff);
         if (vbuffer.setVertexAttributes) |setter| {
-            cache.forceBindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
+            cache.bindBuffer(GL_ARRAY_BUFFER, vbuffer.vbo);
             setter(&vert_attr_index, vbuffer.vert_buffer_step_func, bindings.vertex_buffer_offsets[i]);
         }
     }
