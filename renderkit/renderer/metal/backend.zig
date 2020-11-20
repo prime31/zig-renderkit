@@ -113,7 +113,7 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 
 // shaders
 pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
-    const shader = mtl_create_shader(MtlShaderDesc.init(desc));
+    const shader = mtl_create_shader(MtlShaderDesc.init(FragUniformT, desc));
     return shader_cache.append(shader);
 }
 
@@ -127,8 +127,10 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
     mtl_use_shader(shdr.*);
 }
 
-pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {
+pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
     var shdr = shader_cache.get(shader);
+    var data = std.mem.asBytes(value);
+    mtl_set_shader_uniform_block(stage, data, @intCast(c_int, @sizeOf(UniformT)));
 }
 
 pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
@@ -290,11 +292,15 @@ const MtlPassDesc = extern struct {
 const MtlShaderDesc = extern struct {
     vs: [*c]const u8,
     fs: [*c]const u8,
+    vs_uniform_size: u32,
+    fs_uniform_size: u32,
 
-    pub fn init(desc: ShaderDesc) MtlShaderDesc {
+    pub fn init(comptime FragUniformT: type, desc: ShaderDesc) MtlShaderDesc {
         return .{
             .vs = desc.vs,
             .fs = desc.fs,
+            .vs_uniform_size = @sizeOf(f32) * 6, // our Mat32
+            .fs_uniform_size = @sizeOf(FragUniformT),
         };
     }
 };
@@ -357,6 +363,7 @@ extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size:
 extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;
 extern fn mtl_use_shader(shader: *MtlShader) void;
+extern fn mtl_set_shader_uniform_block(stage: ShaderStage, data: ?*const c_void, num_bytes: c_int) void;
 extern fn mtl_set_shader_uniform(shader: *MtlShader, arg1: [*c]u8, arg2: ?*const c_void) void;
 
 extern fn mtl_apply_bindings(bindings: MtlBufferBindings) void;

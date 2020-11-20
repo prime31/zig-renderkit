@@ -349,7 +349,7 @@ typedef struct ImageDesc_t {
 } ImageDesc_t;
 
 
-// MtlBufferDesc_T sub-types
+// MtlBufferDesc_t sub-types
 typedef enum VertexFormat_t {
     vertex_format_float,
     vertex_format_float2,
@@ -392,7 +392,7 @@ typedef struct VertexLayout_t {
     VertexStep_t step_func;
 } VertexLayout_t;
 
-typedef struct MtlBufferDesc_T {
+typedef struct MtlBufferDesc_t {
     long size; // either size (for stream buffers) or content (for static/dynamic) must be set
     BufferType_t type;
     uint8_t type_id;
@@ -401,7 +401,7 @@ typedef struct MtlBufferDesc_T {
     IndexType_t index_type;
     VertexLayout_t vertex_layout[4];
     VertexAttribute_t vertex_attrs[8];
-} MtlBufferDesc_T;
+} MtlBufferDesc_t;
 
 
 typedef struct PassDesc_t {
@@ -409,9 +409,16 @@ typedef struct PassDesc_t {
 	_mtl_image* depth_stencil_img;
 } PassDesc_t;
 
+typedef enum ShaderStage_t {
+    shader_stage_fs,
+    shader_stage_vs
+} ShaderState_t;
+
 typedef struct ShaderDesc_t {
 	const char* vs;
 	const char* fs;
+    uint32_t vs_uniform_size;
+    uint32_t fs_uniform_size;
 } ShaderDesc_t;
 
 // internal storage that gets passed back to zig and cached there
@@ -460,6 +467,10 @@ typedef struct _mtl_shader {
 	uint32_t vs_func;
 	uint32_t fs_lib;
 	uint32_t fs_func;
+    void* vs_uniform_data;
+    uint32_t vs_uniform_size;
+    void* fs_uniform_data;
+    uint32_t fs_uniform_size;
 } _mtl_shader;
 
 typedef struct MtlBufferBindings_t {
@@ -476,8 +487,8 @@ void mtl_setup(RendererDesc_t desc);
 void mtl_shutdown(void);
 
 void mtl_set_render_state(RenderState_t arg0);
-void mtl_viewport(int arg0, int arg1, int arg2, int arg3);
-void mtl_scissor(int arg0, int arg1, int arg2, int arg3);
+void mtl_viewport(int x, int y, int w, int h);
+void mtl_scissor(int x, int y, int w, int h);
 
 _mtl_image* mtl_create_image(ImageDesc_t desc);
 void mtl_destroy_image(_mtl_image* arg0);
@@ -490,7 +501,7 @@ void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h);
 void mtl_end_pass(void);
 void mtl_commit_frame(void);
 
-_mtl_buffer* mtl_create_buffer(MtlBufferDesc_T desc);
+_mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc);
 void mtl_destroy_buffer(_mtl_buffer* buffer);
 void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
 uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_size);
@@ -498,6 +509,7 @@ uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_
 _mtl_shader* mtl_create_shader(ShaderDesc_t desc);
 void mtl_destroy_shader(_mtl_shader* shader);
 void mtl_use_shader(_mtl_shader* shader);
+void mtl_set_shader_uniform_block(enum ShaderStage_t stage, const void* data, int num_bytes);
 void mtl_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2);
 
 void mtl_apply_bindings(MtlBufferBindings_t bindings);

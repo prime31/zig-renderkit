@@ -618,7 +618,7 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
     cache.useShaderProgram(shdr.program);
 }
 
-pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {
+pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
     const shdr = shader_cache.get(shader);
 
     // in debug builds ensure the shader we are setting the uniform on is bound
@@ -628,7 +628,7 @@ pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderP
         std.debug.assert(cur_prog == shdr.program);
     }
 
-    inline for (@typeInfo(FragUniformT).Struct.fields) |field, i| {
+    inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
         const location = shdr.fs_uniform_cache[i];
         if (location > -1) {
             switch (@typeInfo(field.field_type)) {
