@@ -127,7 +127,3 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
 pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
     backend.setShaderProgramUniformBlock(UniformT, shader, stage, value);
 }
-
-pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
-    backend.setShaderProgramUniform(T, shader, name, value);
-}

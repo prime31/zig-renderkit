@@ -545,7 +545,7 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 // shader
 const GLShaderProgram = struct {
     program: GLuint,
-    uniform_cache: [16]GLint,
+    uniform_cache: [16]GLint = [_]GLint{-1} ** 16,
 };
 
 fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
@@ -646,17 +646,19 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
         if (@hasField(@TypeOf(UniformT.metadata), "uniforms")) {
             const uniforms = @field(UniformT.metadata, "uniforms");
             inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
-                const location = shdr.uniform_cache[i];
-                const uni = @field(UniformT.metadata.uniforms, field.name);
+                if (std.mem.eql(u8, field.name, @typeName(UniformT))) {
+                    const location = shdr.uniform_cache[i];
+                    const uni = @field(UniformT.metadata.uniforms, field.name);
 
-                // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
-                var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
-                switch (@field(uni, "type")) {
-                    .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    else => unreachable,
+                    // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
+                    var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
+                    switch (@field(uni, "type")) {
+                        .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                        .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                        .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                        .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                        else => unreachable,
+                    }
                 }
             }
             return;
@@ -713,124 +715,5 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
                 else => @compileError("Need support for uniform type: " ++ @typeName(field.field_type)),
             }
         }
-    }
-}
-
-pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
-    const shdr = shader_cache.get(shader);
-    const location = glGetUniformLocation(shdr.program, name);
-    if (location == -1) {
-        std.debug.print("could not locate uniform: [{}]\n", .{name});
-        return;
-    }
-
-    // in debug builds ensure the shader we are setting the uniform on is bound
-    if (std.builtin.mode == .Debug) {
-        var cur_prog: GLint = 0;
-        glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
-        std.debug.assert(cur_prog == shdr.program);
-    }
-
-    const ti = @typeInfo(T);
-    const type_name = @typeName(T);
-
-    // cover common cases before we go down the rabbit hole
-    if (ti == .Struct and std.mem.eql(u8, type_name, "Mat32") and ti.Struct.fields.len == 1 and std.mem.eql(u8, ti.Struct.fields[0].name, "data")) {
-        var data = @field(value, ti.Struct.fields[0].name);
-        glUniformMatrix3x2fv(location, 1, GL_FALSE, &data);
-    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec2")) {
-        var val = &@field(value, ti.Struct.fields[0].name);
-        glUniform2fv(location, 1, val);
-    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec3")) {
-        var val = &@field(value, ti.Struct.fields[0].name);
-        glUniform3fv(location, 1, val);
-    } else if (ti == .Struct and std.mem.eql(u8, type_name, "Vec4")) {
-        var val = &@field(value, ti.Struct.fields[0].name);
-        glUniform4fv(location, 1, val);
-    } else if (ti == .Int) {
-        glUniform1i(location, value);
-    } else if (ti == .Float) {
-        glUniform1f(location, value);
-    } else if (ti == .Array) {
-        @panic("is it even possible to get to the branch?");
-        switch (@typeInfo(ti.Array.child)) {
-            .Int => |type_info| {
-                std.debug.assert(type_info.bits == 32);
-                glUniform1iv(location, @intCast(c_int, ti.Array.len), &value);
-            },
-            .Float => |type_info| {
-                std.debug.assert(type_info.bits == 32);
-                glUniform1fv(location, @intCast(c_int, ti.Array.len), &value);
-            },
-            .Struct => |type_info| {
-                std.debug.print("type_info: {}, type_info: {}\n", .{ ti, type_info });
-                @panic("add support for array of struct");
-            },
-            else => unreachable,
-        }
-    } else if (ti == .Struct) {
-        // the rabbit hole
-        inline for (ti.Struct.fields) |field, i| {
-            switch (@typeInfo(field.field_type)) {
-                .Float => |type_info| {
-                    std.debug.print("----- float: {}, field: {}\n", .{ type_info, field.name });
-                },
-                .Struct => |type_info| {
-                    const field_type = type_info.fields[0].field_type;
-                    std.debug.print("struct: {}, field: {}, len: {}\n", .{ type_info, field.name, type_info.fields.len });
-
-                    switch (@typeInfo(field_type)) {
-                        .Float => {
-                            switch (type_info.fields.len) {
-                                2 => {
-                                    std.debug.print("float2: {}\n", .{type_info});
-                                },
-                                else => unreachable,
-                            }
-                        },
-                        else => unreachable,
-                    }
-                },
-                else => unreachable,
-            }
-        }
-    } else if (ti == .Pointer) {
-        switch (ti.Pointer.size) {
-            .Slice => {
-                switch (@typeInfo(ti.Pointer.child)) {
-                    .Int => |type_info| {
-                        std.debug.assert(type_info.bits == 32);
-                        glUniform1iv(location, @intCast(c_int, value.len), value.ptr);
-                    },
-                    .Float => |type_info| {
-                        std.debug.assert(type_info.bits == 32);
-                        glUniform1fv(location, @intCast(c_int, value.len), value.ptr);
-                    },
-                    .Struct => |type_info| {
-                        // assume all fields are the same type
-                        switch (@typeInfo(type_info.fields[0].field_type)) {
-                            .Float => |field_info| {
-                                // grab the first element, since we will need a pointer to its first field
-                                const first_element = value[0];
-                                var struct_field_value = &@field(first_element, type_info.fields[0].name);
-
-                                switch (type_info.fields.len) {
-                                    1 => glUniform1fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
-                                    2 => glUniform2fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
-                                    3 => glUniform3fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
-                                    4 => glUniform4fv(location, @intCast(c_int, std.mem.len(value)), struct_field_value),
-                                    else => unreachable,
-                                }
-                            },
-                            else => @panic("only arrays of floats supported"),
-                        }
-                    },
-                    else => unreachable,
-                }
-            },
-            else => @panic("only slices implemented"),
-        }
-    } else {
-        unreachable;
     }
 }

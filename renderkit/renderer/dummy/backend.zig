@@ -40,4 +40,3 @@ pub fn createShaderProgram(desc: ShaderDesc) ShaderProgram { return 0; }
 pub fn destroyShaderProgram(shader: ShaderProgram) void {}
 pub fn useShaderProgram(shader: ShaderProgram) void {}
 pub fn setShaderProgramUniformBlock(comptime FragUniformT: type, shader: ShaderProgram, stage: ShaderStage, value: FragUniformT) void {}
-pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {}

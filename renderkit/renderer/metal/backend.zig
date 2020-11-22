@@ -133,10 +133,6 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
     mtl_set_shader_uniform_block(stage, data, @intCast(c_int, @sizeOf(UniformT)));
 }
 
-pub fn setShaderProgramUniform(comptime T: type, shader: ShaderProgram, name: [:0]const u8, value: T) void {
-    var shdr = shader_cache.get(shader);
-}
-
 // bindings and drawing
 pub fn applyBindings(bindings: BufferBindings) void {
     mtl_apply_bindings(MtlBufferBindings.init(bindings));
@@ -364,7 +360,6 @@ extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;
 extern fn mtl_use_shader(shader: *MtlShader) void;
 extern fn mtl_set_shader_uniform_block(stage: ShaderStage, data: ?*const c_void, num_bytes: c_int) void;
-extern fn mtl_set_shader_uniform(shader: *MtlShader, arg1: [*c]u8, arg2: ?*const c_void) void;
 
 extern fn mtl_apply_bindings(bindings: MtlBufferBindings) void;
 extern fn mtl_draw(base_element: c_int, element_count: c_int, instance_count: c_int) void;
