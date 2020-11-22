@@ -420,8 +420,8 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
         return NULL;
 	}
 
-	id<MTLFunction> vs_func = [vs_lib newFunctionWithName:@"_main"];
-	id<MTLFunction> fs_func = [fs_lib newFunctionWithName:@"_main"];
+	id<MTLFunction> vs_func = [vs_lib newFunctionWithName:@"main0"];
+	id<MTLFunction> fs_func = [fs_lib newFunctionWithName:@"main0"];
 
 	if (vs_func == nil) {
 		NSLog(@"failed to location vs function");
@@ -445,12 +445,17 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
         shader->vs_uniform_size = desc.vs_uniform_size;
         shader->vs_uniform_data = malloc(desc.vs_uniform_size);
         memset(shader->vs_uniform_data, 0, desc.vs_uniform_size);
-    }
+	} else {
+		printf("shader created with now vs_uniform_size!\n");
+	}
+	
     if (desc.fs_uniform_size > 0) {
         shader->fs_uniform_size = desc.fs_uniform_size;
         shader->fs_uniform_data = malloc(desc.fs_uniform_size);
         memset(shader->fs_uniform_data, 0, desc.fs_uniform_size);
-    }
+	} else {
+		printf("shader created with now fs_uniform_size!\n");
+	}
     
     return shader;
 }
@@ -469,6 +474,7 @@ void mtl_use_shader(_mtl_shader* shader) {
     cur_shader = shader;
 }
 
+// TODO: should this take in the shader or use cur_shader?
 void mtl_set_shader_uniform_block(enum ShaderStage_t stage, const void* data, int num_bytes) {
     RK_ASSERT(in_pass);
     if (!pass_valid) return;
@@ -504,13 +510,15 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
         _mtl_buffer* buffer = bindings.vertex_buffers[i];
         if (buffer == NULL) break;
         // TODO: cache the bound buffer and if it doesnt change (common for batcher) use setVertexBufferOffset: instead
+		// we reserve the first MAX_SHADERSTAGE_UBS slots for uniforms for compatibility with sokol shader compiler which sticks
+		// uniforms starting at index 0.
         [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]]
 							  offset:bindings.vertex_buffer_offsets[i]
-							 atIndex:0];
+							 atIndex:MAX_SHADERSTAGE_UBS + 0];
     }
     
     // set shader uniforms
-    [cmd_encoder setVertexBytes:cur_shader->vs_uniform_data length:cur_shader->vs_uniform_size atIndex:1];
+    [cmd_encoder setVertexBytes:cur_shader->vs_uniform_data length:cur_shader->vs_uniform_size atIndex:0];
     if (cur_shader->fs_uniform_size > 0)
         [cmd_encoder setFragmentBytes:cur_shader->fs_uniform_data length:cur_shader->fs_uniform_size atIndex:0];
 

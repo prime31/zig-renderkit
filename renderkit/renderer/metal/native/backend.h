@@ -272,7 +272,7 @@ static mtl_idpool_t idpool;
 
 			vertexDesc.attributes[attr_index].format = attr.format;
 			vertexDesc.attributes[attr_index].offset = attr.offset;
-			vertexDesc.attributes[attr_index].bufferIndex = i;
+			vertexDesc.attributes[attr_index].bufferIndex = i + MAX_SHADERSTAGE_UBS;
 
 			attr_index++;
 		}
@@ -282,8 +282,8 @@ static mtl_idpool_t idpool;
 			mtl_vertex_layout_t layout = buff->vertex_layout[j];
 			if (layout.stride == 0) break;
 
-			vertexDesc.layouts[j].stepFunction = layout.step_func;
-			vertexDesc.layouts[j].stride = layout.stride;
+			vertexDesc.layouts[j + MAX_SHADERSTAGE_UBS].stepFunction = layout.step_func;
+			vertexDesc.layouts[j + MAX_SHADERSTAGE_UBS].stride = layout.stride;
 		}
 	}
 

@@ -299,7 +299,7 @@ const MtlShaderDesc = extern struct {
         return .{
             .vs = desc.vs,
             .fs = desc.fs,
-            .vs_uniform_size = @sizeOf(f32) * 6, // our Mat32
+            .vs_uniform_size = @sizeOf(f32) * 8, // our Mat32 which is a [2]Vec4
             .fs_uniform_size = @sizeOf(FragUniformT),
         };
     }

@@ -545,7 +545,7 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 // shader
 const GLShaderProgram = struct {
     program: GLuint,
-    fs_uniform_cache: [16]GLint,
+    uniform_cache: [16]GLint,
 };
 
 fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
@@ -587,22 +587,32 @@ pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) Shader
     glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
     glUseProgram(id);
 
-    // resolve images
-    var image_slot: GLint = 0;
-    for (desc.images) |image, i| {
-        const loc = glGetUniformLocation(id, image);
-        if (loc != -1) {
-            glUniform1i(loc, image_slot);
-            image_slot += 1;
-        }
-    }
-
+    // TODO: dont allow void anymore
     // uniforms, allow void to indicate no cached uniforms
     const frag_ti = @typeInfo(FragUniformT);
     if (frag_ti == .Struct) {
+        // TODO: remove this code path and require all uniforms to be structs with metadata
         inline for (frag_ti.Struct.fields) |field, i| {
-            shader.fs_uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
-            if (std.builtin.mode == .Debug and shader.fs_uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
+            shader.uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
+            if (std.builtin.mode == .Debug and shader.uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
+        }
+
+        if (@hasDecl(FragUniformT, "metadata")) {
+            // resolve all images to their bound locations
+            if (@hasField(@TypeOf(FragUniformT.metadata), "images")) {
+                inline for (@field(FragUniformT.metadata, "images")) |img, i| {
+                    const loc = glGetUniformLocation(id, img);
+                    glUniform1i(loc, i);
+                }
+            }
+
+            // fetch and cache all uniforms
+            if (@hasField(@TypeOf(FragUniformT.metadata), "uniforms")) {
+                const uniforms = @field(FragUniformT.metadata, "uniforms");
+                inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+                    shader.uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
+                }
+            }
         }
     }
 
@@ -632,8 +642,30 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
         std.debug.assert(cur_prog == shdr.program);
     }
 
+    if (@hasDecl(UniformT, "metadata")) {
+        if (@hasField(@TypeOf(UniformT.metadata), "uniforms")) {
+            const uniforms = @field(UniformT.metadata, "uniforms");
+            inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+                const location = shdr.uniform_cache[i];
+                const uni = @field(UniformT.metadata.uniforms, field.name);
+
+                // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
+                var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
+                switch (@field(uni, "type")) {
+                    .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    else => unreachable,
+                }
+            }
+            return;
+        }
+    }
+
+    // TODO: remove this code path and require all uniforms to be structs with metadata
     inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
-        const location = shdr.fs_uniform_cache[i];
+        const location = shdr.uniform_cache[i];
         if (location > -1) {
             switch (@typeInfo(field.field_type)) {
                 .Float => glUniform1f(location, @field(value, field.name)),
