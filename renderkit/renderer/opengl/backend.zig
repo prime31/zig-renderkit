@@ -468,8 +468,12 @@ pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
     const buff = buffer_cache.get(buffer);
     cache.bindBuffer(GL_ARRAY_BUFFER, buff.vbo);
 
-    // orphan the buffer for streamed
-    if (buff.stream) glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
+    // orphan the buffer for streamed so we can reset our append_pos and overflow state
+    if (buff.stream) {
+        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
+        buff.append_pos = 0;
+        buff.append_overflow = false;
+    }
     glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
 }
 
