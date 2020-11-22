@@ -64,5 +64,4 @@ pub fn BufferDesc(comptime T: type) type {
 pub const ShaderDesc = struct {
     vs: [:0]const u8,
     fs: [:0]const u8,
-    images: []const [:0]const u8 = &[_][:0]const u8{},
 };

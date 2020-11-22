@@ -8,6 +8,13 @@ pub const ShaderProgram = u16;
 pub const Pass = u16;
 pub const Buffer = u16;
 
+pub const UniformType = extern enum {
+    float,
+    float2,
+    float3,
+    float4,
+};
+
 pub const TextureFilter = extern enum {
     nearest,
     linear,
