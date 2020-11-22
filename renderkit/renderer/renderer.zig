@@ -112,8 +112,8 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 }
 
 // shaders
-pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
-    return backend.createShaderProgram(FragUniformT, desc);
+pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+    return backend.createShaderProgram(VertUniformT, FragUniformT, desc);
 }
 
 pub fn destroyShaderProgram(shader: ShaderProgram) void {

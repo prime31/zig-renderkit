@@ -77,7 +77,7 @@ fn checkShaderError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("shader compilation errror:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("shader compilation error:\n{}", .{buf[0..@intCast(usize, total_len)]});
         return false;
     }
     return true;
@@ -95,7 +95,7 @@ fn checkProgramError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("program link errror:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("program link error:\n{}", .{buf[0..@intCast(usize, total_len)]});
         return false;
     }
     return true;
@@ -545,7 +545,8 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 // shader
 const GLShaderProgram = struct {
     program: GLuint,
-    uniform_cache: [16]GLint = [_]GLint{-1} ** 16,
+    vs_uniform_cache: [16]GLint = [_]GLint{-1} ** 16,
+    fs_uniform_cache: [16]GLint = [_]GLint{-1} ** 16,
 };
 
 fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
@@ -560,7 +561,10 @@ fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
     return shader;
 }
 
-pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+    std.debug.assert(@typeInfo(VertUniformT) == .Struct);
+    std.debug.assert(@typeInfo(FragUniformT) == .Struct);
+
     var shader = std.mem.zeroes(GLShaderProgram);
 
     const vertex_shader = compileShader(GL_VERTEX_SHADER, desc.vs);
@@ -587,31 +591,36 @@ pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) Shader
     glGetIntegerv(GL_CURRENT_PROGRAM, &cur_prog);
     glUseProgram(id);
 
-    // TODO: dont allow void anymore
-    // uniforms, allow void to indicate no cached uniforms
-    const frag_ti = @typeInfo(FragUniformT);
-    if (frag_ti == .Struct) {
-        // TODO: remove this code path and require all uniforms to be structs with metadata
-        inline for (frag_ti.Struct.fields) |field, i| {
-            shader.uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
-            if (std.builtin.mode == .Debug and shader.uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
-        }
-
-        if (@hasDecl(FragUniformT, "metadata")) {
-            // resolve all images to their bound locations
-            if (@hasField(@TypeOf(FragUniformT.metadata), "images")) {
-                inline for (@field(FragUniformT.metadata, "images")) |img, i| {
-                    const loc = glGetUniformLocation(id, img);
-                    glUniform1i(loc, i);
+    // resolve all images to their bound locations
+    inline for (.{ VertUniformT, FragUniformT }) |UniformT| {
+        if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "images")) {
+            var image_slot: GLint = 0;
+            inline for (@field(UniformT.metadata, "images")) |img, i| {
+                const loc = glGetUniformLocation(id, img);
+                if (loc != 1) {
+                    glUniform1i(loc, image_slot);
+                    image_slot += 1;
+                } else {
+                    std.debug.print("Could not find uniform for image [{}]!\n", .{img});
                 }
             }
+        }
+    }
 
-            // fetch and cache all uniforms
-            if (@hasField(@TypeOf(FragUniformT.metadata), "uniforms")) {
-                const uniforms = @field(FragUniformT.metadata, "uniforms");
-                inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
-                    shader.uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
-                }
+    // fetch and cache all uniforms from our metadata.uniforms fields for both the vert and frag types
+    inline for (.{ VertUniformT, FragUniformT }) |UniformT, j| {
+        var uniform_cache = if (j == 0) &shader.vs_uniform_cache else &shader.fs_uniform_cache;
+        if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "uniforms")) {
+            const uniforms = @field(UniformT.metadata, "uniforms");
+            inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+                uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
+                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
+            }
+        } else {
+            // cache a uniform for each struct fields. It is prefered to use the `metadata` approach above but this path is supported as well.
+            inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
+                uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
+                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
             }
         }
     }
@@ -633,6 +642,7 @@ pub fn useShaderProgram(shader: ShaderProgram) void {
 }
 
 pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
+    std.debug.assert(@typeInfo(UniformT) == .Struct);
     const shdr = shader_cache.get(shader);
 
     // in debug builds ensure the shader we are setting the uniform on is bound
@@ -642,77 +652,77 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
         std.debug.assert(cur_prog == shdr.program);
     }
 
-    if (@hasDecl(UniformT, "metadata")) {
-        if (@hasField(@TypeOf(UniformT.metadata), "uniforms")) {
-            const uniforms = @field(UniformT.metadata, "uniforms");
-            inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
-                if (std.mem.eql(u8, field.name, @typeName(UniformT))) {
-                    const location = shdr.uniform_cache[i];
-                    const uni = @field(UniformT.metadata.uniforms, field.name);
+    // choose the right uniform cache
+    const uniform_cache = if (stage == .vs) shdr.vs_uniform_cache else shdr.fs_uniform_cache;
 
-                    // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
-                    var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
-                    switch (@field(uni, "type")) {
-                        .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                        .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                        .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                        .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                        else => unreachable,
-                    }
+    if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "uniforms")) {
+        const uniforms = @field(UniformT.metadata, "uniforms");
+        inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+            // if (std.mem.eql(u8, field.name, @typeName(UniformT))) {
+                const location = uniform_cache[i];
+                const uni = @field(UniformT.metadata.uniforms, field.name);
+
+                // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
+                var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
+                switch (@field(uni, "type")) {
+                    .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                    else => unreachable,
                 }
-            }
-            return;
+            // }
         }
-    }
-
-    // TODO: remove this code path and require all uniforms to be structs with metadata
-    inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
-        const location = shdr.uniform_cache[i];
-        if (location > -1) {
-            switch (@typeInfo(field.field_type)) {
-                .Float => glUniform1f(location, @field(value, field.name)),
-                .Int => glUniform1i(location, @field(value, field.name)),
-                .Struct => |type_info| {
-                    // special case for matrix, which is often "struct { data[n] }". We also support vec2/3/4
-                    switch (@typeInfo(type_info.fields[0].field_type)) {
-                        .Array => |array_ti| {
-                            const struct_value = @field(value, field.name);
-                            var array_value = &@field(struct_value, type_info.fields[0].name);
-                            switch (array_ti.len) {
-                                6 => glUniformMatrix3x2fv(location, 1, GL_FALSE, array_value),
-                                9 => glUniformMatrix3fv(location, 1, GL_FALSE, array_value),
-                                else => @compileError("Structs with array fields must be 6/9 elements: " ++ @typeName(field.field_type)),
-                            }
-                        },
-                        .Float => {
-                            const struct_value = @field(value, field.name);
-                            var struct_field_value = &@field(struct_value, type_info.fields[0].name);
-                            switch (type_info.fields.len) {
-                                2 => glUniform2fv(location, 1, struct_field_value),
-                                3 => glUniform3fv(location, 1, struct_field_value),
-                                4 => glUniform4fv(location, 1, struct_field_value),
-                                else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
-                            }
-                        },
-                        else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
-                    }
-                },
-                .Array => |array_type_info| {
-                    var array_value = @field(value, field.name);
-                    switch (@typeInfo(array_type_info.child)) {
-                        .Int => |type_info| {
-                            std.debug.assert(type_info.bits == 32);
-                            glUniform1iv(location, @intCast(c_int, array_type_info.len), &array_value);
-                        },
-                        .Float => |type_info| {
-                            std.debug.assert(type_info.bits == 32);
-                            glUniform1fv(location, @intCast(c_int, array_type_info.len), &array_value);
-                        },
-                        .Struct => @panic("array of structs not supported"),
-                        else => unreachable,
-                    }
-                },
-                else => @compileError("Need support for uniform type: " ++ @typeName(field.field_type)),
+    } else {
+        // set all the fields of the struct as uniforms. It is prefered to use the `metadata` approach above.
+        inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
+            const location = uniform_cache[i];
+            if (location > -1) {
+                switch (@typeInfo(field.field_type)) {
+                    .Float => glUniform1f(location, @field(value, field.name)),
+                    .Int => glUniform1i(location, @field(value, field.name)),
+                    .Struct => |type_info| {
+                        // special case for matrix, which is often "struct { data[n] }". We also support vec2/3/4
+                        switch (@typeInfo(type_info.fields[0].field_type)) {
+                            .Array => |array_ti| {
+                                const struct_value = @field(value, field.name);
+                                var array_value = &@field(struct_value, type_info.fields[0].name);
+                                switch (array_ti.len) {
+                                    6 => glUniformMatrix3x2fv(location, 1, GL_FALSE, array_value),
+                                    9 => glUniformMatrix3fv(location, 1, GL_FALSE, array_value),
+                                    else => @compileError("Structs with array fields must be 6/9 elements: " ++ @typeName(field.field_type)),
+                                }
+                            },
+                            .Float => {
+                                const struct_value = @field(value, field.name);
+                                var struct_field_value = &@field(struct_value, type_info.fields[0].name);
+                                switch (type_info.fields.len) {
+                                    2 => glUniform2fv(location, 1, struct_field_value),
+                                    3 => glUniform3fv(location, 1, struct_field_value),
+                                    4 => glUniform4fv(location, 1, struct_field_value),
+                                    else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
+                                }
+                            },
+                            else => @compileError("Structs of f32 must be 2/3/4 elements: " ++ @typeName(field.field_type)),
+                        }
+                    },
+                    .Array => |array_type_info| {
+                        var array_value = @field(value, field.name);
+                        switch (@typeInfo(array_type_info.child)) {
+                            .Int => |type_info| {
+                                std.debug.assert(type_info.bits == 32);
+                                glUniform1iv(location, @intCast(c_int, array_type_info.len), &array_value);
+                            },
+                            .Float => |type_info| {
+                                std.debug.assert(type_info.bits == 32);
+                                glUniform1fv(location, @intCast(c_int, array_type_info.len), &array_value);
+                            },
+                            .Struct => @panic("array of structs not supported"),
+                            else => unreachable,
+                        }
+                    },
+                    else => @compileError("Need support for uniform type: " ++ @typeName(field.field_type)),
+                }
             }
         }
     }

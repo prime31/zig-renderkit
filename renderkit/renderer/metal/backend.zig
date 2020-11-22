@@ -112,8 +112,8 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 }
 
 // shaders
-pub fn createShaderProgram(comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
-    const shader = mtl_create_shader(MtlShaderDesc.init(FragUniformT, desc));
+pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+    const shader = mtl_create_shader(MtlShaderDesc.init(VertUniformT, FragUniformT, desc));
     return shader_cache.append(shader);
 }
 
@@ -291,11 +291,11 @@ const MtlShaderDesc = extern struct {
     vs_uniform_size: u32,
     fs_uniform_size: u32,
 
-    pub fn init(comptime FragUniformT: type, desc: ShaderDesc) MtlShaderDesc {
+    pub fn init(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) MtlShaderDesc {
         return .{
             .vs = desc.vs,
             .fs = desc.fs,
-            .vs_uniform_size = @sizeOf(f32) * 8, // our Mat32 which is a [2]Vec4
+            .vs_uniform_size = @sizeOf(VertUniformT),
             .fs_uniform_size = @sizeOf(FragUniformT),
         };
     }
