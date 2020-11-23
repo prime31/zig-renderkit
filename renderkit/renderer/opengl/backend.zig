@@ -232,7 +232,7 @@ pub fn createImage(desc: ImageDesc) Image {
         img.stencil = true;
     } else {
         glGenTextures(1, &img.tid);
-        glBindTexture(GL_TEXTURE_2D, img.tid);
+        cache.bindImage(img.tid, 0);
 
         const wrap_u: GLint = if (desc.wrap_u == .clamp) GL_CLAMP_TO_EDGE else GL_REPEAT;
         const wrap_v: GLint = if (desc.wrap_v == .clamp) GL_CLAMP_TO_EDGE else GL_REPEAT;
@@ -250,7 +250,7 @@ pub fn createImage(desc: ImageDesc) Image {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, desc.width, desc.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
         }
 
-        glBindTexture(GL_TEXTURE_2D, 0);
+        cache.bindImage(0, 0);
     }
 
     return image_cache.append(img);
@@ -265,9 +265,9 @@ pub fn destroyImage(image: Image) void {
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     var img = image_cache.get(image);
 
-    glBindTexture(GL_TEXTURE_2D, img.tid);
+    cache.bindImage(img.tid, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.width, img.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content.ptr);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    cache.bindImage(0, 0);
 }
 
 pub fn getImageNativeId(image: Image) u32 {
