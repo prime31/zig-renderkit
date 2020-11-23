@@ -19,7 +19,7 @@ if (res.package) |package| exe.addPackage(package);
 ## Writing Shaders
 Lets take a look at what a commented example shader looks like. This is a simple sepia shader and illustrates a trick to make writing shaders without having to write any boilerplate. This trick is used in the GameKit repo for its shaders.
 
-```glsl
+```bash
 # we will leverage some reusable "@blocks" and the vertex shader from the default GameKit shader source file
 @include relative/path/to/gamekit-defualt-shaders.glsl
 
