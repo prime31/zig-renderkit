@@ -27,6 +27,7 @@ pub const ShaderCompileStep = struct {
     float3_type: []const u8 = "[3]f32",
 
     snippet_map: std.StringHashMap([]const u8),
+    shader_programs: std.ArrayList(ShaderProgram),
 
     pub const Options = struct {
         /// the source glsl shader file
@@ -49,7 +50,7 @@ pub const ShaderCompileStep = struct {
 
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
     /// system, `sokol-shdc` is invoked for each shader.
-    pub fn init(builder: *Builder, comptime options: Options) *ShaderCompileStep {
+    pub fn init(builder: *Builder, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
         const full_out_path = if (options.shader_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
             builder.cache_root,
@@ -77,15 +78,16 @@ pub const ShaderCompileStep = struct {
 
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
-            .step = Step.init(.Custom, "shader-compile", builder.allocator, make),
+            .step = Step.init(.TopLevel, "shader-compile", builder.allocator, make),
             .builder = builder,
-            .shdc_cmd = &[_][]const u8{ "./sokol-shdc", "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
+            .shdc_cmd = &[_][]const u8{ "./" ++ prefix_path ++ "sokol-shdc", "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
             .shader = options.shader,
             .package = package,
             .package_filename = package_filename,
             .full_out_path = full_out_path,
             .additional_imports = options.additional_imports,
             .snippet_map = std.StringHashMap([]const u8).init(self.builder.allocator),
+            .shader_programs = std.ArrayList(ShaderProgram).init(self.builder.allocator),
         };
         return self;
     }
@@ -120,6 +122,7 @@ pub const ShaderCompileStep = struct {
                 // warn("{}", .{res.stderr});
 
                 const shader_map = try self.parseShaderCompilerOutput(res.stderr);
+                try self.cleanUnusedVertPrograms();
                 try self.generateShaderPackage(shader_map);
                 self.builder.allocator.free(res.stderr);
             },
@@ -138,6 +141,12 @@ pub const ShaderCompileStep = struct {
         uniform,
         image,
         stage_complete,
+    };
+
+    const ShaderProgram = struct {
+        name: []const u8,
+        vs: []const u8 = undefined,
+        fs: []const u8 = undefined,
     };
 
     const ShaderStage = enum {
@@ -350,6 +359,7 @@ pub const ShaderCompileStep = struct {
 
             if (parse_state == .maps) {
                 var inner_state: enum { snippet_map, programs } = .snippet_map;
+                var program: ShaderProgram = undefined;
 
                 // inner loop until we get to `spirv_t`
                 var inner_line_buffer: [512]u8 = undefined;
@@ -368,9 +378,18 @@ pub const ShaderCompileStep = struct {
                             // warn("-- snip: {} => {}", .{ key, val });
                         }
                     } else if (inner_state == .programs) {
-                        if (std.mem.indexOf(u8, line2, "program ") != null) {
-                            // TODO: parse out programs into "name, vs and fs"
-                            // warn("---p {}", .{line2});
+                        // start a new program
+                        if (std.mem.indexOf(u8, line2, "program ")) |prog_index| {
+                            const name = line2[prog_index + 8 .. std.mem.indexOf(u8, line2, ":").?];
+                            program = .{ .name = try std.mem.dupe(self.builder.allocator, u8, name) };
+                        } else if (std.mem.indexOf(u8, line2, "line_index") != null) { // end the program
+                            try self.shader_programs.append(program);
+                        } else if (std.mem.indexOf(u8, line2, "vs:")) |vs_index| {
+                            const name = line2[vs_index + 4 ..];
+                            program.vs = try std.mem.dupe(self.builder.allocator, u8, name);
+                        } else if (std.mem.indexOf(u8, line2, "fs:")) |vs_index| {
+                            const name = line2[vs_index + 4 ..];
+                            program.fs = try std.mem.dupe(self.builder.allocator, u8, name);
                         }
                     }
                 }
@@ -433,6 +452,23 @@ pub const ShaderCompileStep = struct {
         }
 
         try std.fs.cwd().writeFile(out_path, array_list.items);
+    }
+
+    fn cleanUnusedVertPrograms(self: *ShaderCompileStep) !void {
+        //for (self.shader_programs.items) |p| warn("{}", .{p});
+        var walker = try std.fs.walkPath(self.builder.allocator, self.full_out_path[0 .. self.full_out_path.len - 1]);
+        defer walker.deinit();
+
+        while (try walker.next()) |entry| {
+            if (entry.kind != .File) continue;
+            if (std.mem.indexOf(u8, entry.basename, "_vs")) |vs_index| {
+                warn("-- {}, {}", .{ entry.basename, entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?] });
+
+                // if this shader isnt a unique vert program delete it
+                const shader_name =  entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
+                if (!std.mem.eql(u8, "sprite_vs", shader_name)) try std.fs.deleteFileAbsolute(entry.path);
+            }
+        }
     }
 
     fn nextHighestAlign16(val: u32) u32 {
