@@ -22,6 +22,7 @@ const backend = @import(@tagName(@import("../renderkit.zig").current_renderer) +
 
 // setup and state
 pub fn setup(desc: RendererDesc) void {
+    if (@import("../renderkit.zig").current_renderer == .metal and std.builtin.os.tag != .macos) @panic("Metal only exists on macOS!");
     backend.setup(desc);
 }
 

@@ -658,20 +658,18 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgr
     if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "uniforms")) {
         const uniforms = @field(UniformT.metadata, "uniforms");
         inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
-            // if (std.mem.eql(u8, field.name, @typeName(UniformT))) {
-                const location = uniform_cache[i];
-                const uni = @field(UniformT.metadata.uniforms, field.name);
+            const location = uniform_cache[i];
+            const uni = @field(UniformT.metadata.uniforms, field.name);
 
-                // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
-                var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
-                switch (@field(uni, "type")) {
-                    .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
-                    else => unreachable,
-                }
-            // }
+            // we only support f32s so just get a pointer to the struct reinterpreted as an []f32
+            var f32_slice = std.mem.bytesAsSlice(f32, std.mem.asBytes(value));
+            switch (@field(uni, "type")) {
+                .float => glUniform1fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                .float2 => glUniform2fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                .float3 => glUniform3fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                .float4 => glUniform4fv(location, @field(uni, "array_count"), f32_slice.ptr),
+                else => unreachable,
+            }
         }
     } else {
         // set all the fields of the struct as uniforms. It is prefered to use the `metadata` approach above.
