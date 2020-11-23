@@ -12,11 +12,11 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 
 ### Usage
 - clone the repository: `git clone https://github.com/prime31/zig-renderkit`
-- in your projects build.zig, pass your `LibExeObjStep` to `addRenderKitToArtifact` in `RenderKit`s build.zig
+- in your projects build.zig, pass your `LibExeObjStep` to `addRenderKitToArtifact` in `RenderKit`'s build.zig
 
 
 ## RenderKit API
-Currently, RenderKit supports OpenGL and Metal. You can set the renderer used by either passing in `-Drenderer=[enum]` (dummy, opengl and metal currently). Alternatively, you can declare your renderer in your root file: `pub const renderer: renderkit.Renderer = .metal;`. The RenderKit API uses descriptor structs for creating backend objects much like the Metal API or Sokol. Backend objects are passed by as handles to avoid any pointer management being exposed to game code.
+Currently, RenderKit supports OpenGL and Metal. You can set the renderer used by passing to `zig build` the flag `-Drenderer=[enum]` (dummy, opengl and metal currently). Alternatively, you can declare your renderer in your root file: `pub const renderer: renderkit.Renderer = .metal;`. The RenderKit API uses descriptor structs for creating backend objects much like the Metal API or Sokol. Backend objects are passed by as handles to avoid any pointer management being exposed to game code.
 
 ### Setup and State
 General backend setup and management of graphics state.
