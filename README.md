@@ -21,60 +21,60 @@ Currently, RenderKit supports OpenGL and Metal. You can set the renderer used by
 ### Setup and State
 General backend setup and management of graphics state.
 
-`pub fn setup(desc: RendererDesc) void`
-`pub fn shutdown() void`
-`pub fn setRenderState(state: RenderState) void`
-`pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void`
+`pub fn setup(desc: RendererDesc) void`<br>
+`pub fn shutdown() void`<br>
+`pub fn setRenderState(state: RenderState) void`<br>
+`pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void`<br>
 `pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void`
 
 
 ### Images
 Loading and updating of GPU textures.
 
-`pub fn createImage(desc: ImageDesc) Image`
-`pub fn destroyImage(image: Image) void`
-`pub fn updateImage(comptime T: type, image: Image, content: []const T) void`
+`pub fn createImage(desc: ImageDesc) Image`<br>
+`pub fn destroyImage(image: Image) void`<br>
+`pub fn updateImage(comptime T: type, image: Image, content: []const T) void`<br>
 `pub fn getImageNativeId(image: Image) u32`
 
 
 ### Passes
 Offscreen passes (commonly refered to as render targets or framebuffers).
 
-`pub fn createPass(desc: PassDesc) Pass`
+`pub fn createPass(desc: PassDesc) Pass`<br>
 `pub fn destroyPass(pass: Pass) void`
 
 
 ### Render Loop
 These are the methods you will use in your main render loop. `beginPass` renderes to an offscreen pass and all offscreen rendering should be done first. Once all offscreen rendering is done drawing to the backbuffer is handled via `beginDefaultPass`. Each call to `beginPass/beginDefaultPass` should be followed by a matching call to `endPass`. Finally, when all rendering for the frame is done calling `commitFrame` flushes all the graphcis commands.
 
-`pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void`
-`pub fn beginPass(pass: Pass, action: ClearCommand) void`
-`pub fn endPass() void`
+`pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void`<br>
+`pub fn beginPass(pass: Pass, action: ClearCommand) void`<br>
+`pub fn endPass() void`<br>
 `pub fn commitFrame() void`
 
 
 ### Buffers
 Creating and management of buffers (vertex and index).
 
-`pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer`
-`pub fn destroyBuffer(buffer: Buffer) void`
-`pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void`
+`pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer`<br>
+`pub fn destroyBuffer(buffer: Buffer) void`<br>
+`pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void`<br>
 `pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32`
 
 
 ### Bindings
 The only short lived player in the API. BufferBindings envelop what you want to render including an index buffer, 1 - 4 vertex buffers and the textures to bind.
 
-`pub fn applyBindings(bindings: BufferBindings) void`
+`pub fn applyBindings(bindings: BufferBindings) void`<br>
 `pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void`
 
 
 ### Shaders
 An important aspect to understand about RenderKit shaders is how the manage uniforms for compatibility with the various backends. When you create a shader you have to tell RenderKit what your vertex and fragment uniforms are.
 
-`pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram`
-`pub fn destroyShaderProgram(shader: ShaderProgram) void`
-`pub fn useShaderProgram(shader: ShaderProgram) void`
+`pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram`<br>
+`pub fn destroyShaderProgram(shader: ShaderProgram) void`<br>
+`pub fn useShaderProgram(shader: ShaderProgram) void`<br>
 `pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void`
 
 
