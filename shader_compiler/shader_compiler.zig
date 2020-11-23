@@ -137,6 +137,7 @@ pub const ShaderCompileStep = struct {
         types,
         reflection,
         uniform,
+        inputs,
         image,
         stage_complete,
     };
@@ -155,11 +156,13 @@ pub const ShaderCompileStep = struct {
         vs_block: ?UniformBlock = null,
         fs_block: ?UniformBlock = null,
         images: std.ArrayList(Image),
+        attributes: std.ArrayList(ShaderAttribute),
         allocator: *std.mem.Allocator,
 
         pub fn init(allocator: *std.mem.Allocator) Shader {
             return .{
                 .images = std.ArrayList(Image).init(allocator),
+                .attributes = std.ArrayList(ShaderAttribute).init(allocator),
                 .allocator = allocator,
             };
         }
@@ -184,6 +187,35 @@ pub const ShaderCompileStep = struct {
                 .slot = slot,
             });
         }
+
+        pub fn addAttribute(self: *@This(), line: []const u8) !void {
+            // uv_in: slot=1, sem_name=TEXCOORD, sem_index=1
+            const name = line[0..std.mem.indexOfScalar(u8, line, ':').?];
+
+            var iter = std.mem.split(line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..], "=");
+            _ = iter.next();
+            const slot_str = iter.next().?;
+            const slot = try std.fmt.parseUnsigned(u32, slot_str[0..std.mem.indexOf(u8, slot_str, ",").?], 10);
+
+            const sem_str  = iter.next().?;
+            const sem_name  = sem_str[0 .. std.mem.indexOf(u8, sem_str, ",").?];
+
+            const sem_index = try std.fmt.parseUnsigned(u32, iter.next().?, 10);
+
+            try self.attributes.append(.{
+                .name = try std.mem.dupe(self.allocator, u8, name),
+                .slot = slot,
+                .sem_name = try std.mem.dupe(self.allocator, u8, sem_name),
+                .sem_index = sem_index,
+            });
+        }
+    };
+
+    const ShaderAttribute = struct {
+        name: []const u8,
+        slot: u32,
+        sem_name: []const u8,
+        sem_index: u32,
     };
 
     const UniformType = enum {
@@ -318,6 +350,8 @@ pub const ShaderCompileStep = struct {
         var shader: ?*Shader = null;
         var uni_block: ?UniformBlock = null;
 
+        // TODO: when DirectX is added we'll need to add inputs to Shader to get at the `sem_name`. See D3D11_INPUT_ELEMENT_DESC.
+        // TODO: WebGL needs to know the vertex attribute names
         var line_buffer: [512]u8 = undefined;
         while (try reader.readUntilDelimiterOrEof(&line_buffer, '\n')) |line| {
             if (parse_state == .none) {
@@ -339,11 +373,13 @@ pub const ShaderCompileStep = struct {
                 if (std.mem.indexOf(u8, line, "stage:") != null) {
                     const stage = line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..];
                     shader_stage = if (std.mem.eql(u8, stage, "FS")) .fs else .vs;
-                } else if (std.mem.indexOf(u8, line, "uniform block") != null) {
+                } else if (std.mem.indexOf(u8, line, "uniform block:") != null) {
                     parse_state = .uniform;
                     uni_block = try UniformBlock.init(self.builder.allocator, line);
                 } else if (std.mem.indexOf(u8, line, "image:") != null) {
                     parse_state = .image;
+                } else if (std.mem.indexOf(u8, line, "inputs:") != null) {
+                    parse_state = .inputs;
                 }
             } else if (parse_state == .uniform) {
                 if (std.mem.indexOf(u8, line, "image:") != null) {
@@ -352,6 +388,15 @@ pub const ShaderCompileStep = struct {
                     parse_state = .stage_complete;
                 } else {
                     try uni_block.?.addUniform(line);
+                }
+            } else if (parse_state == .inputs) {
+                // if we find outputs or image bounce out of the input state
+                if (std.mem.indexOf(u8, line, "outputs:") != null) {
+                    parse_state = .reflection;
+                } else if (std.mem.indexOf(u8, line, "image:") != null) {
+                    parse_state = .image;
+                } else {
+                    try shader.?.addAttribute(std.mem.trim(u8, line, " "));
                 }
             }
 
@@ -453,9 +498,15 @@ pub const ShaderCompileStep = struct {
     }
 
     fn cleanUnusedVertPrograms(self: *ShaderCompileStep) !void {
-        //for (self.shader_programs.items) |p| warn("{}", .{p});
         var walker = try std.fs.walkPath(self.builder.allocator, self.full_out_path[0 .. self.full_out_path.len - 1]);
         defer walker.deinit();
+
+        var iter = self.snippet_map.iterator();
+        while (iter.next()) |entry| warn("{} -> {}", .{ entry.key, entry.value });
+        warn("", .{});
+
+        for (self.shader_programs.items) |p| warn("{}", .{p});
+        warn("", .{});
 
         while (try walker.next()) |entry| {
             if (entry.kind != .File) continue;
@@ -463,7 +514,7 @@ pub const ShaderCompileStep = struct {
                 warn("-- {}, {}", .{ entry.basename, entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?] });
 
                 // if this shader isnt a unique vert program delete it
-                const shader_name =  entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
+                const shader_name = entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
                 if (!std.mem.eql(u8, "sprite_vs", shader_name)) try std.fs.deleteFileAbsolute(entry.path);
             }
         }
