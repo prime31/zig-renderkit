@@ -19,7 +19,9 @@ pub const ShaderCompileStep = struct {
     shader: []const u8,
     package: ?std.build.Pkg = null,
     package_filename: []const u8,
-    full_out_path: []const u8,
+    shader_out_path: []const u8,
+    package_out_path: []const u8,
+    default_program_name: []const u8,
     additional_imports: ?[]const []const u8 = null,
 
     /// map of types that can be added to manually or via Sokol's `@ctype vec2 [2]f32` or set here
@@ -37,21 +39,37 @@ pub const ShaderCompileStep = struct {
         /// for standard math types, for GameKit: `usingnamespace @import("gamekit").math;`
         additional_imports: ?[]const []const u8 = null,
 
-        /// output path relative to build_root. If null, it will be `zig-cache/shaders`
+        /// output path relative to build_root for compiled shaders. If null, it will be `zig-cache/shaders`
         shader_output_path: ?[]const u8 = null,
 
+        /// output path relative to build_root for the generated zig file. If null, it will be `zig-cache/shaders`
+        package_output_path: ?[]const u8 = null,
+
+        /// if set and multiple shaders are generated with the exact same vert shader (common for 2D) all the duplicated
+        /// vert shaders will be removed. The default value will keep the vert shader for the "sprite" program and delete
+        /// all the vert programs from any other shader that uses the "sprite" program's vert shader.
+        default_program_name: []const u8 = "sprite",
+
         /// name of the package that will include the generated shader uniform file. If null, `package` will be null.
-        /// Defaults to "shaders". Will also be used as the filename of the generated file.
-        package_name: ?[]const u8 = "shaders",
+        /// Defaults to "shaders". Will also be used as the filename of the generated file, which will always be generated
+        /// whether `package_name` is null or not.
+        package_name: ?[]const u8 = null,
 
         /// dependencies to add to the package. For GameKit the `gamekit` package would be needed for the math imports.
         package_deps: ?[]std.build.Pkg = null,
     };
 
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
-    /// system, `sokol-shdc` is invoked for each shader.
+    /// system, `sokol-shdc` is invoked to compile the shader.
     pub fn init(builder: *Builder, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
-        const full_out_path = if (options.shader_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
+        const shader_out_path = if (options.shader_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
+            builder.build_root,
+            builder.cache_root,
+            "shaders",
+            "/",
+        }) catch unreachable;
+
+        const package_out_path = if (options.package_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
             builder.cache_root,
             "shaders",
@@ -62,7 +80,7 @@ pub const ShaderCompileStep = struct {
         var package: ?std.build.Pkg = null;
         if (options.package_name) |package_name| {
             const pkg_path = path.join(builder.allocator, &[_][]const u8{
-                full_out_path,
+                package_out_path,
                 package_filename,
             }) catch unreachable;
 
@@ -75,13 +93,15 @@ pub const ShaderCompileStep = struct {
 
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
-            .step = Step.init(.TopLevel, "shader-compile", builder.allocator, make),
+            .step = Step.init(.Custom, "shader-compile", builder.allocator, make),
             .builder = builder,
             .shdc_cmd = &[_][]const u8{ "./" ++ prefix_path ++ "sokol-shdc", "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
             .shader = options.shader,
             .package = package,
             .package_filename = package_filename,
-            .full_out_path = full_out_path,
+            .shader_out_path = shader_out_path,
+            .package_out_path = package_out_path,
+            .default_program_name = options.default_program_name,
             .additional_imports = options.additional_imports,
             .snippet_map = std.StringHashMap([]const u8).init(self.builder.allocator),
             .shader_programs = std.ArrayList(ShaderProgram).init(self.builder.allocator),
@@ -93,14 +113,15 @@ pub const ShaderCompileStep = struct {
     fn make(step: *Step) !void {
         const self = @fieldParentPtr(ShaderCompileStep, "step", step);
         const cwd = std.fs.cwd();
-        cwd.makePath(self.full_out_path) catch unreachable;
+        cwd.makePath(self.shader_out_path) catch unreachable;
+        cwd.makePath(self.package_out_path) catch unreachable;
 
         const cmd = try self.builder.allocator.alloc([]const u8, self.shdc_cmd.len + 3);
         for (self.shdc_cmd) |part, i| cmd[i] = part;
 
         cmd[cmd.len - 2] = "-o";
         cmd[cmd.len - 3] = self.shader;
-        cmd[cmd.len - 1] = self.full_out_path;
+        cmd[cmd.len - 1] = self.shader_out_path;
 
         const res = try exec(.{
             .allocator = self.builder.allocator,
@@ -197,8 +218,8 @@ pub const ShaderCompileStep = struct {
             const slot_str = iter.next().?;
             const slot = try std.fmt.parseUnsigned(u32, slot_str[0..std.mem.indexOf(u8, slot_str, ",").?], 10);
 
-            const sem_str  = iter.next().?;
-            const sem_name  = sem_str[0 .. std.mem.indexOf(u8, sem_str, ",").?];
+            const sem_str = iter.next().?;
+            const sem_name = sem_str[0..std.mem.indexOf(u8, sem_str, ",").?];
 
             const sem_index = try std.fmt.parseUnsigned(u32, iter.next().?, 10);
 
@@ -476,7 +497,7 @@ pub const ShaderCompileStep = struct {
     }
 
     fn generateShaderPackage(self: *ShaderCompileStep, shader_map: std.StringHashMap(Shader)) !void {
-        const out_path = try path.join(self.builder.allocator, &[_][]const u8{ self.full_out_path, self.package_filename });
+        const out_path = try path.join(self.builder.allocator, &[_][]const u8{ self.package_out_path, self.package_filename });
 
         var array_list = std.ArrayList(u8).init(self.builder.allocator);
         var writer = array_list.writer();
@@ -497,25 +518,38 @@ pub const ShaderCompileStep = struct {
         try std.fs.cwd().writeFile(out_path, array_list.items);
     }
 
+    /// searches for `default_program_name` in the generated shaders. If it is found, it's vert shader is considered the
+    /// default vertex shader. Any other program that uses that vert shader will have it's vert shader deleted because it
+    /// is just a duplicate.
     fn cleanUnusedVertPrograms(self: *ShaderCompileStep) !void {
-        var walker = try std.fs.walkPath(self.builder.allocator, self.full_out_path[0 .. self.full_out_path.len - 1]);
+        // find the name of the vert progam in the default shader program
+        const vs_name = for (self.shader_programs.items) |p| {
+            if (std.mem.eql(u8, p.name, self.default_program_name)) break p.vs;
+        } else {
+            return;
+        };
+
+        var walker = try std.fs.walkPath(self.builder.allocator, self.shader_out_path[0 .. self.shader_out_path.len - 1]);
         defer walker.deinit();
-
-        var iter = self.snippet_map.iterator();
-        while (iter.next()) |entry| warn("{} -> {}", .{ entry.key, entry.value });
-        warn("", .{});
-
-        for (self.shader_programs.items) |p| warn("{}", .{p});
-        warn("", .{});
 
         while (try walker.next()) |entry| {
             if (entry.kind != .File) continue;
             if (std.mem.indexOf(u8, entry.basename, "_vs")) |vs_index| {
-                warn("-- {}, {}", .{ entry.basename, entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?] });
-
                 // if this shader isnt a unique vert program delete it
-                const shader_name = entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
-                if (!std.mem.eql(u8, "sprite_vs", shader_name)) try std.fs.deleteFileAbsolute(entry.path);
+                const shader_stage_name = entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
+                const shader_name = shader_stage_name[0 .. shader_stage_name.len - 3];
+
+                // check the actual shader to see if it is using "vs_name". Do NOT return our default shader, we need to keep that one ;)
+                const uses_default_vs = for (self.shader_programs.items) |p| {
+                    if (!std.mem.eql(u8, p.name, self.default_program_name) and
+                        std.mem.eql(u8, p.name, shader_name) and
+                        std.mem.eql(u8, p.vs, vs_name))
+                    {
+                        break true;
+                    }
+                } else false;
+
+                if (uses_default_vs) try std.fs.deleteFileAbsolute(entry.path);
             }
         }
     }
