@@ -1,4 +1,5 @@
 # RenderKit Shader Compiler
+The shader compiler leverages the fantastic Sokol Shader Compiler (thanks @floooh!) to compile glsl into all the other shader formats. For details on the GLSL input file see [these docs](https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md).
 
 ```zig
 const res = ShaderCompileStep.init(b, .{
