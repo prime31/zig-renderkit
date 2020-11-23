@@ -73,9 +73,6 @@ pub const ShaderCompileStep = struct {
             };
         }
 
-        const cwd = std.fs.cwd();
-        cwd.makePath(full_out_path) catch unreachable;
-
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
             .step = Step.init(.TopLevel, "shader-compile", builder.allocator, make),
@@ -96,6 +93,7 @@ pub const ShaderCompileStep = struct {
     fn make(step: *Step) !void {
         const self = @fieldParentPtr(ShaderCompileStep, "step", step);
         const cwd = std.fs.cwd();
+        cwd.makePath(self.full_out_path) catch unreachable;
 
         const cmd = try self.builder.allocator.alloc([]const u8, self.shdc_cmd.len + 3);
         for (self.shdc_cmd) |part, i| cmd[i] = part;
