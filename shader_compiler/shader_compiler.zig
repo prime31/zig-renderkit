@@ -4,6 +4,11 @@ const Builder = std.build.Builder;
 const Step = std.build.Step;
 const BufMap = std.BufMap;
 
+const ShdcParser = @import("shdc_parser.zig").ShdcParser;
+const ShaderProgram = @import("shdc_parser.zig").ShaderProgram;
+const ReflectionData = @import("shdc_parser.zig").ReflectionData;
+const UniformBlock = @import("shdc_parser.zig").UniformBlock;
+
 fn warn(comptime format: []const u8, args: anytype) void {
     std.debug.warn(format ++ "\n", args);
 }
@@ -14,7 +19,7 @@ pub const ShaderCompileStep = struct {
     builder: *Builder,
 
     /// The command and optional arguments used to invoke the shader compiler.
-    /// // sokol-shdc -i shd.glsl -o ./out/ -l glsl330:metal_macos -f bare -d
+    /// sokol-shdc -i shd.glsl -o ./out/ -l glsl330:metal_macos -f bare -d
     shdc_cmd: []const []const u8,
     shader: []const u8,
     package: ?std.build.Pkg = null,
@@ -23,13 +28,11 @@ pub const ShaderCompileStep = struct {
     package_out_path: []const u8,
     default_program_name: []const u8,
     additional_imports: ?[]const []const u8 = null,
+    relative_path_from_package_to_shaders: []const u8,
 
-    /// map of types that can be added to manually or via Sokol's `@ctype vec2 [2]f32` or set here
+    /// map of types that can be added to manually here or via Sokol's `@ctype vec2 [2]f32`
     float2_type: []const u8 = "[2]f32",
     float3_type: []const u8 = "[3]f32",
-
-    snippet_map: std.StringHashMap([]const u8),
-    shader_programs: std.ArrayList(ShaderProgram),
 
     pub const Options = struct {
         /// the source glsl shader file
@@ -57,6 +60,10 @@ pub const ShaderCompileStep = struct {
 
         /// dependencies to add to the package. For GameKit the `gamekit` package would be needed for the math imports.
         package_deps: ?[]std.build.Pkg = null,
+
+        /// relative path from the location of the generated package file (package_output_path) to the shader_output_path.
+        /// This is used to generate methods for loading embedded shaders. The path should end with `/`.
+        relative_path_from_package_to_shaders: []const u8 = "",
     };
 
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
@@ -103,8 +110,7 @@ pub const ShaderCompileStep = struct {
             .package_out_path = package_out_path,
             .default_program_name = options.default_program_name,
             .additional_imports = options.additional_imports,
-            .snippet_map = std.StringHashMap([]const u8).init(self.builder.allocator),
-            .shader_programs = std.ArrayList(ShaderProgram).init(self.builder.allocator),
+            .relative_path_from_package_to_shaders = options.relative_path_from_package_to_shaders,
         };
         return self;
     }
@@ -140,9 +146,11 @@ pub const ShaderCompileStep = struct {
                 // dump sokol output
                 // warn("{}", .{res.stderr});
 
-                const shader_map = try self.parseShaderCompilerOutput(res.stderr);
-                try self.cleanUnusedVertPrograms();
-                try self.generateShaderPackage(shader_map);
+                var parsed = ShdcParser.init(self.builder.allocator, self.float2_type, self.float3_type);
+                try parsed.parse(res.stderr);
+
+                try self.cleanUnusedVertPrograms(parsed.shader_programs.items);
+                try self.generateShaderPackage(&parsed);
                 self.builder.allocator.free(res.stderr);
             },
             else => {
@@ -152,367 +160,48 @@ pub const ShaderCompileStep = struct {
         }
     }
 
-    const ParseState = enum {
-        none,
-        maps,
-        types,
-        reflection,
-        uniform,
-        inputs,
-        image,
-        stage_complete,
-    };
-
-    const ShaderProgram = struct {
-        name: []const u8,
-        vs: []const u8 = undefined,
-        fs: []const u8 = undefined,
-    };
-
-    const ShaderStage = enum {
-        vs, fs
-    };
-
-    const Shader = struct {
-        vs_block: ?UniformBlock = null,
-        fs_block: ?UniformBlock = null,
-        images: std.ArrayList(Image),
-        attributes: std.ArrayList(ShaderAttribute),
-        allocator: *std.mem.Allocator,
-
-        pub fn init(allocator: *std.mem.Allocator) Shader {
-            return .{
-                .images = std.ArrayList(Image).init(allocator),
-                .attributes = std.ArrayList(ShaderAttribute).init(allocator),
-                .allocator = allocator,
-            };
-        }
-
-        pub fn addImage(self: *@This(), line: []const u8) !void {
-            var colon_index = std.mem.indexOfScalar(u8, line, ':').? + 2;
-            var comma_index = std.mem.indexOfScalarPos(u8, line, colon_index, ',').?;
-            const name = line[colon_index..comma_index];
-
-            var str = line[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            comma_index = std.mem.indexOfScalarPos(u8, str, colon_index, ',').?;
-            const slot = try std.fmt.parseUnsigned(u32, str[colon_index..comma_index], 10);
-
-            for (self.images.items) |img| {
-                if (img.slot == slot) return;
-                if (std.mem.eql(u8, img.name, name)) return;
-            }
-
-            try self.images.append(.{
-                .name = try std.mem.dupe(self.allocator, u8, name),
-                .slot = slot,
-            });
-        }
-
-        pub fn addAttribute(self: *@This(), line: []const u8) !void {
-            // uv_in: slot=1, sem_name=TEXCOORD, sem_index=1
-            const name = line[0..std.mem.indexOfScalar(u8, line, ':').?];
-
-            var iter = std.mem.split(line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..], "=");
-            _ = iter.next();
-            const slot_str = iter.next().?;
-            const slot = try std.fmt.parseUnsigned(u32, slot_str[0..std.mem.indexOf(u8, slot_str, ",").?], 10);
-
-            const sem_str = iter.next().?;
-            const sem_name = sem_str[0..std.mem.indexOf(u8, sem_str, ",").?];
-
-            const sem_index = try std.fmt.parseUnsigned(u32, iter.next().?, 10);
-
-            try self.attributes.append(.{
-                .name = try std.mem.dupe(self.allocator, u8, name),
-                .slot = slot,
-                .sem_name = try std.mem.dupe(self.allocator, u8, sem_name),
-                .sem_index = sem_index,
-            });
-        }
-    };
-
-    const ShaderAttribute = struct {
-        name: []const u8,
-        slot: u32,
-        sem_name: []const u8,
-        sem_index: u32,
-    };
-
-    const UniformType = enum {
-        float,
-        float2,
-        float3,
-        float4,
-
-        pub fn fromStr(kind: []const u8) UniformType {
-            if (std.mem.eql(u8, kind, "FLOAT")) return .float;
-            if (std.mem.eql(u8, kind, "FLOAT2")) return .float2;
-            if (std.mem.eql(u8, kind, "FLOAT3")) return .float3;
-            if (std.mem.eql(u8, kind, "FLOAT4")) return .float4;
-            @panic("unidentified uniform type");
-        }
-
-        pub fn size(self: @This(), array_count: u32) usize {
-            return switch (self) {
-                .float => 4 * array_count,
-                .float2 => 8 * array_count,
-                .float3 => 12 * array_count,
-                .float4 => 16 * array_count,
-            };
-        }
-
-        pub fn zigType(self: @This(), array_count: u32, aligned: bool, shdr_compiler: *ShaderCompileStep) []const u8 {
-            // helper closure just to make the below code more readable
-            const print = struct {
-                fn print(comptime fmt: []const u8, params: anytype) []const u8 {
-                    return std.fmt.allocPrint(std.testing.allocator, fmt, params) catch unreachable;
-                }
-            }.print;
-
-            const align_str = if (aligned) " align(16)" else "";
-            return switch (self) {
-                .float => {
-                    if (array_count == 1) return print("f32{} = 0", .{align_str});
-                    return print("[{}]f32{}", .{ array_count, align_str });
-                },
-                .float2 => {
-                    if (array_count == 1) return print("{}{} = .{{}}", .{ shdr_compiler.float2_type, align_str });
-                    return print("[{}]{}{}", .{ array_count, shdr_compiler.float2_type, align_str });
-                },
-                .float3 => {
-                    if (array_count == 1) return print("{}{} = .{{}}", .{ shdr_compiler.float3_type, align_str });
-                    return print("[{}]{}{}", .{ array_count, shdr_compiler.float3_type, align_str });
-                },
-                .float4 => {
-                    // TODO: should we detect transform matrix and make a special case for it?
-                    if (array_count == 1) return print("[4]f32{} = [_]f32{{0}} ** 4", .{align_str});
-                    return print("[{}]f32{} = [_]f32{{0}} ** {}", .{ array_count * 4, align_str, array_count * 4 });
-                },
-            };
-        }
-    };
-
-    const Uniform = struct {
-        name: []const u8,
-        type: UniformType,
-        array_count: u32,
-        offset: u32,
-    };
-
-    const Image = struct {
-        name: []const u8,
-        slot: u32,
-    };
-
-    const UniformBlock = struct {
-        name: []const u8,
-        slot: u32,
-        size: u32,
-        uniforms: std.ArrayList(Uniform),
-
-        pub fn init(allocator: *std.mem.Allocator, line: []const u8) !UniformBlock {
-            var colon_index = std.mem.indexOfScalar(u8, line, ':').? + 2;
-            var comma_index = std.mem.indexOfScalarPos(u8, line, colon_index, ',').?;
-            var name = line[colon_index..comma_index];
-
-            var str = line[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            comma_index = std.mem.indexOfScalarPos(u8, str, colon_index, ',').?;
-            const slot = try std.fmt.parseUnsigned(u32, str[colon_index..comma_index], 10);
-
-            str = str[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            const size = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
-
-            return UniformBlock{
-                .name = try std.mem.dupe(allocator, u8, name),
-                .slot = slot,
-                .size = size,
-                .uniforms = std.ArrayList(Uniform).init(allocator),
-            };
-        }
-
-        pub fn addUniform(self: *@This(), line: []const u8) !void {
-            var colon_index = std.mem.indexOfScalar(u8, line, ':').? + 2;
-            var comma_index = std.mem.indexOfScalarPos(u8, line, colon_index, ',').?;
-            const name = line[colon_index..comma_index];
-
-            var str = line[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            comma_index = std.mem.indexOfScalarPos(u8, str, colon_index, ',').?;
-            const kind = str[colon_index..comma_index];
-
-            str = str[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            comma_index = std.mem.indexOfScalarPos(u8, str, colon_index, ',').?;
-            const array_count = try std.fmt.parseUnsigned(u32, str[colon_index..comma_index], 10);
-
-            str = str[comma_index..];
-            colon_index = std.mem.indexOfScalar(u8, str, ':').? + 2;
-            const offset = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
-
-            try self.uniforms.append(.{
-                .name = try std.mem.dupe(std.testing.allocator, u8, name),
-                .type = UniformType.fromStr(kind),
-                .array_count = array_count,
-                .offset = offset,
-            });
-        }
-    };
-
-    fn parseShaderCompilerOutput(self: *ShaderCompileStep, data: []const u8) !std.StringHashMap(Shader) {
-        var in_stream = std.io.fixedBufferStream(data);
-        var reader = in_stream.reader();
-
-        var shader_hash = std.StringHashMap(Shader).init(self.builder.allocator);
-        var parse_state: ParseState = .none;
-        var shader_stage: ShaderStage = undefined;
-        var shader: ?*Shader = null;
-        var uni_block: ?UniformBlock = null;
-
-        // TODO: when DirectX is added we'll need to add inputs to Shader to get at the `sem_name`. See D3D11_INPUT_ELEMENT_DESC.
-        // TODO: WebGL needs to know the vertex attribute names
-        var line_buffer: [512]u8 = undefined;
-        while (try reader.readUntilDelimiterOrEof(&line_buffer, '\n')) |line| {
-            if (parse_state == .none) {
-                if (std.mem.indexOf(u8, line, "snippet_map:") != null) {
-                    parse_state = .maps;
-                } else if (std.mem.indexOf(u8, line, "types:") != null) {
-                    parse_state = .types;
-                } else if (std.mem.indexOf(u8, line, "reflection for snippet") != null) {
-                    parse_state = .reflection;
-                    const shader_id = try std.mem.dupe(self.builder.allocator, u8, line[std.mem.indexOf(u8, line, "snippet").? + 8 .. std.mem.indexOfScalar(u8, line, ':').?]);
-                    try shader_hash.ensureCapacity(shader_hash.count() + 1);
-                    const get_or_put = shader_hash.getOrPutAssumeCapacity(shader_id);
-                    if (!get_or_put.found_existing) get_or_put.entry.value = Shader.init(self.builder.allocator);
-                    shader = &get_or_put.entry.value;
-                } else if (std.mem.indexOf(u8, line, "image:") != null) {
-                    parse_state = .image;
-                }
-            } else if (parse_state == .reflection) {
-                if (std.mem.indexOf(u8, line, "stage:") != null) {
-                    const stage = line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..];
-                    shader_stage = if (std.mem.eql(u8, stage, "FS")) .fs else .vs;
-                } else if (std.mem.indexOf(u8, line, "uniform block:") != null) {
-                    parse_state = .uniform;
-                    uni_block = try UniformBlock.init(self.builder.allocator, line);
-                } else if (std.mem.indexOf(u8, line, "image:") != null) {
-                    parse_state = .image;
-                } else if (std.mem.indexOf(u8, line, "inputs:") != null) {
-                    parse_state = .inputs;
-                }
-            } else if (parse_state == .uniform) {
-                if (std.mem.indexOf(u8, line, "image:") != null) {
-                    parse_state = .image;
-                } else if (std.mem.indexOf(u8, line, "member:") == null) {
-                    parse_state = .stage_complete;
-                } else {
-                    try uni_block.?.addUniform(line);
-                }
-            } else if (parse_state == .inputs) {
-                // if we find outputs or image bounce out of the input state
-                if (std.mem.indexOf(u8, line, "outputs:") != null) {
-                    parse_state = .reflection;
-                } else if (std.mem.indexOf(u8, line, "image:") != null) {
-                    parse_state = .image;
-                } else {
-                    try shader.?.addAttribute(std.mem.trim(u8, line, " "));
-                }
-            }
-
-            if (parse_state == .maps) {
-                var inner_state: enum { snippet_map, programs } = .snippet_map;
-                var program: ShaderProgram = undefined;
-
-                // inner loop until we get to `spirv_t`
-                var inner_line_buffer: [512]u8 = undefined;
-                while (try reader.readUntilDelimiterOrEof(&inner_line_buffer, '\n')) |line2| {
-                    if (std.mem.indexOf(u8, line2, "spirv_t:") != null) {
-                        parse_state = .none;
-                        break;
-                    } else if (inner_state == .snippet_map) {
-                        if (std.mem.indexOf(u8, line2, "programs:") != null) {
-                            inner_state = .programs;
-                        } else if (std.mem.indexOf(u8, line2, " => ") != null) {
-                            var iter = std.mem.split(line2, "=>");
-                            const key = try std.mem.dupe(self.builder.allocator, u8, std.mem.trim(u8, iter.next().?, " "));
-                            const val = try std.mem.dupe(self.builder.allocator, u8, std.mem.trim(u8, iter.next().?, " "));
-                            try self.snippet_map.put(key, val);
-                            // warn("-- snip: {} => {}", .{ key, val });
-                        }
-                    } else if (inner_state == .programs) {
-                        // start a new program
-                        if (std.mem.indexOf(u8, line2, "program ")) |prog_index| {
-                            const name = line2[prog_index + 8 .. std.mem.indexOf(u8, line2, ":").?];
-                            program = .{ .name = try std.mem.dupe(self.builder.allocator, u8, name) };
-                        } else if (std.mem.indexOf(u8, line2, "line_index") != null) { // end the program
-                            try self.shader_programs.append(program);
-                        } else if (std.mem.indexOf(u8, line2, "vs:")) |vs_index| {
-                            const name = line2[vs_index + 4 ..];
-                            program.vs = try std.mem.dupe(self.builder.allocator, u8, name);
-                        } else if (std.mem.indexOf(u8, line2, "fs:")) |vs_index| {
-                            const name = line2[vs_index + 4 ..];
-                            program.fs = try std.mem.dupe(self.builder.allocator, u8, name);
-                        }
-                    }
-                }
-            }
-
-            if (parse_state == .types) {
-                if (std.mem.indexOf(u8, line, "snippet") != null) {
-                    parse_state = .none;
-                } else if (!std.mem.endsWith(u8, line, "types:")) { // skip the first one, which doesnt have a type map
-                    var colon_index = std.mem.indexOfScalar(u8, line, ':').?;
-                    const name = std.mem.trim(u8, line[0..colon_index], " \n\t");
-                    var replacement = line[colon_index + 2 ..];
-
-                    if (std.mem.eql(u8, name, "vec2")) {
-                        self.float2_type = try std.mem.dupe(self.builder.allocator, u8, replacement);
-                    } else if (std.mem.eql(u8, name, "vec3")) {
-                        self.float3_type = try std.mem.dupe(self.builder.allocator, u8, replacement);
-                    } else {
-                        warn("unsupported type map found! {}", .{name});
-                    }
-                }
-            }
-
-            if (parse_state == .image) {
-                if (std.mem.indexOf(u8, line, "image:") == null) {
-                    parse_state = .stage_complete;
-                } else {
-                    try shader.?.addImage(line);
-                }
-            }
-
-            if (parse_state == .stage_complete) {
-                parse_state = .none;
-                if (shader_stage == .vs and uni_block != null) shader.?.vs_block = uni_block.?;
-                if (shader_stage == .fs and uni_block != null) shader.?.fs_block = uni_block.?;
-                uni_block = null;
-            }
-        }
-
-        return shader_hash;
-    }
-
-    fn generateShaderPackage(self: *ShaderCompileStep, shader_map: std.StringHashMap(Shader)) !void {
+    fn generateShaderPackage(self: *ShaderCompileStep, parsed: *ShdcParser) !void {
         const out_path = try path.join(self.builder.allocator, &[_][]const u8{ self.package_out_path, self.package_filename });
 
         var array_list = std.ArrayList(u8).init(self.builder.allocator);
         var writer = array_list.writer();
         try writer.writeAll("const std = @import(\"std\");\n");
 
+        // second writer used to write the creation functions so they can be after the declarations
+        var fn_array_list = std.ArrayList(u8).init(self.builder.allocator);
+        var fn_writer = fn_array_list.writer();
+
         if (self.additional_imports) |imports| {
             for (imports) |import| try writer.print("{}\n", .{import});
         }
         try writer.writeAll("\n");
 
-        var iter = shader_map.iterator();
+        // if we have some shaders that use the default vert shader, setup a ShaderState and Shader creation method for them
+        for (parsed.shader_programs.items) |program| {
+            if (!program.hasDefaultVertShader) continue;
+            var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
+            name[0] = std.ascii.toUpper(name[0]);
+
+            const reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
+            try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, reflection.uniform_block.?.name });
+
+            // write out creation helper functions
+            try fn_writer.print("pub fn create{}Shader() {}Shader {{\n", .{ name, name });
+            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ self.relative_path_from_package_to_shaders, program.fs });
+            try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{ name });
+            try fn_writer.writeAll("}\n\n");
+        }
+
+        try writer.writeAll("\n");
+        try writer.writeAll(fn_array_list.items);
+        try writer.writeAll("\n");
+
+        var iter = parsed.snippet_reflection_map.iterator();
         while (iter.next()) |entry| {
-            const shader = entry.value;
-            if (shader.vs_block) |block| try self.generateUniformBlockStruct(shader, .vs, block, writer);
-            if (shader.fs_block) |block| try self.generateUniformBlockStruct(shader, .fs, block, writer);
+            const reflection: ReflectionData = entry.value;
+            if (reflection.uniform_block) |uniform| {
+                try self.generateUniformBlockStruct(reflection, uniform, parsed, writer);
+            }
         }
 
         try std.fs.cwd().writeFile(out_path, array_list.items);
@@ -521,9 +210,9 @@ pub const ShaderCompileStep = struct {
     /// searches for `default_program_name` in the generated shaders. If it is found, it's vert shader is considered the
     /// default vertex shader. Any other program that uses that vert shader will have it's vert shader deleted because it
     /// is just a duplicate.
-    fn cleanUnusedVertPrograms(self: *ShaderCompileStep) !void {
+    fn cleanUnusedVertPrograms(self: *ShaderCompileStep, shader_programs: []ShaderProgram) !void {
         // find the name of the vert progam in the default shader program
-        const vs_name = for (self.shader_programs.items) |p| {
+        const vs_name = for (shader_programs) |p| {
             if (std.mem.eql(u8, p.name, self.default_program_name)) break p.vs;
         } else {
             return;
@@ -540,11 +229,12 @@ pub const ShaderCompileStep = struct {
                 const shader_name = shader_stage_name[0 .. shader_stage_name.len - 3];
 
                 // check the actual shader to see if it is using "vs_name". Do NOT return our default shader, we need to keep that one ;)
-                const uses_default_vs = for (self.shader_programs.items) |p| {
+                const uses_default_vs = for (shader_programs) |*p| {
                     if (!std.mem.eql(u8, p.name, self.default_program_name) and
                         std.mem.eql(u8, p.name, shader_name) and
                         std.mem.eql(u8, p.vs, vs_name))
                     {
+                        p.hasDefaultVertShader = true;
                         break true;
                     }
                 } else false;
@@ -562,7 +252,7 @@ pub const ShaderCompileStep = struct {
 
     /// generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
     /// specs and also pad them out correctly. Only floats are suported for struct members because of this.
-    fn generateUniformBlockStruct(self: *ShaderCompileStep, shader: Shader, stage: ShaderStage, block: UniformBlock, writer: std.ArrayList(u8).Writer) !void {
+    fn generateUniformBlockStruct(self: *ShaderCompileStep, reflection: ReflectionData, block: UniformBlock, parsed: *ShdcParser, writer: std.ArrayList(u8).Writer) !void {
         const next_align16 = nextHighestAlign16(block.size);
         // warn("{}, size: {}, aligned size: {}", .{ block.name, block.size, next_align16 });
 
@@ -572,9 +262,9 @@ pub const ShaderCompileStep = struct {
         try writer.writeAll("    pub const metadata = .{\n");
 
         // images (currently only for frag shader)
-        if (stage == .fs) {
+        if (reflection.stage == .fs) {
             try writer.writeAll("        .images = .{ ");
-            for (shader.images.items) |img, i| {
+            for (reflection.images.items) |img, i| {
                 if (i > 0) try writer.writeAll(", ");
                 try writer.print("\"{}\"", .{img.name});
             }
@@ -592,7 +282,7 @@ pub const ShaderCompileStep = struct {
             const potential_pad = uni.offset - running_size;
 
             running_size += uni.type.size(uni.array_count);
-            try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, potential_pad != 0, self) });
+            try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, potential_pad != 0, parsed) });
 
             // generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
             // specs and also pad them out correctly. Only floats are suported for struct members because of this.
