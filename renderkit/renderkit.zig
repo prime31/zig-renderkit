@@ -18,3 +18,13 @@ pub const Renderer = renderer.Renderer;
 pub const setRenderState = renderer.setRenderState;
 pub const viewport = renderer.viewport;
 pub const scissor = renderer.scissor;
+
+/// returns the file extension for shaders as provided by the shader compiler for the current renderer.
+/// The extension includes the "."
+pub fn shaderFileExtension() []const u8 {
+    return switch(current_renderer) {
+        .opengl => ".glsl",
+        .metal => ".metal",
+        else => @panic("Not implemented yet"),
+    };
+}

@@ -28,7 +28,6 @@ pub const ShaderCompileStep = struct {
     package_out_path: []const u8,
     default_program_name: []const u8,
     additional_imports: ?[]const []const u8 = null,
-    relative_path_from_package_to_shaders: []const u8,
 
     /// map of types that can be added to manually here or via Sokol's `@ctype vec2 [2]f32`
     float2_type: []const u8 = "[2]f32",
@@ -60,10 +59,6 @@ pub const ShaderCompileStep = struct {
 
         /// dependencies to add to the package. For GameKit the `gamekit` package would be needed for the math imports.
         package_deps: ?[]std.build.Pkg = null,
-
-        /// relative path from the location of the generated package file (package_output_path) to the shader_output_path.
-        /// This is used to generate methods for loading embedded shaders. The path should end with `/`.
-        relative_path_from_package_to_shaders: []const u8 = "",
     };
 
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
@@ -110,7 +105,6 @@ pub const ShaderCompileStep = struct {
             .package_out_path = package_out_path,
             .default_program_name = options.default_program_name,
             .additional_imports = options.additional_imports,
-            .relative_path_from_package_to_shaders = options.relative_path_from_package_to_shaders,
         };
         return self;
     }
@@ -177,6 +171,7 @@ pub const ShaderCompileStep = struct {
         try writer.writeAll("\n");
 
         // if we have some shaders that use the default vert shader, setup a ShaderState and Shader creation method for them
+        const relative_path_from_package_to_shaders = try std.fs.path.relative(self.builder.allocator, self.package_out_path, self.shader_out_path);
         for (parsed.shader_programs.items) |program| {
             if (!program.hasDefaultVertShader) continue;
             var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
@@ -187,7 +182,8 @@ pub const ShaderCompileStep = struct {
 
             // write out creation helper functions
             try fn_writer.print("pub fn create{}Shader() {}Shader {{\n", .{ name, name });
-            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ self.relative_path_from_package_to_shaders, program.fs });
+            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}/{1}.glsl\") else @embedFile(\"{0}/{1}.metal\");\n",
+                .{ relative_path_from_package_to_shaders, program.fs });
             try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{ name });
             try fn_writer.writeAll("}\n\n");
         }
@@ -239,7 +235,10 @@ pub const ShaderCompileStep = struct {
                     }
                 } else false;
 
-                if (uses_default_vs) try std.fs.deleteFileAbsolute(entry.path);
+                if (uses_default_vs) {
+                    // we may have a relative path if the Options were given a relative output path for the shader or package
+                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try std.fs.cwd().deleteFile(entry.path);
+                }
             }
         }
     }

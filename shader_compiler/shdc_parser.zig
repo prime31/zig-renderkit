@@ -1,9 +1,5 @@
 const std = @import("std");
 
-fn warn(comptime format: []const u8, args: anytype) void {
-    std.debug.warn(format ++ "\n", args);
-}
-
 const ParseState = enum {
     none,
     maps,
@@ -340,7 +336,7 @@ pub const ShdcParser = struct {
                             var val = try std.mem.dupe(self.allocator, u8, std.mem.trim(u8, iter.next().?, " "));
                             val = val[std.mem.indexOf(u8, val, " ").? + 1 ..];
                             try self.snippet_map.put(key, try std.fmt.parseUnsigned(u8, val, 10));
-                            // warn("-- snip: {} => {}", .{ key, val });
+                            // std.debug.warn("-- snip: {} => {}\n", .{ key, val });
                         }
                     } else if (inner_state == .programs) {
                         // start a new program
@@ -375,7 +371,7 @@ pub const ShdcParser = struct {
                     } else if (std.mem.eql(u8, name, "vec3")) {
                         self.float3_type = try std.mem.dupe(self.allocator, u8, replacement);
                     } else {
-                        warn("unsupported type map found! {}", .{name});
+                        std.debug.warn("unsupported type map found! {}\n", .{name});
                     }
                 }
             }
@@ -392,10 +388,14 @@ pub const ShdcParser = struct {
                 parse_state = .none;
 
                 if (!self.snippet_reflection_map.contains(snippet_id)) {
-                    warn("id: {}, stage: {}, has_uni: {}, in: {}, out: {}, imgs: {}", .{ snippet_id, reflection.stage, uni_block != null, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
+                    const stage_name = if (uni_block) |uni| uni.name else null;
+                    std.debug.warn("snippet id: {}, stage: {}, uniform name: {}, inputs: {}, outputs: {}, images: {}\n",
+                        .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
                 }
+
                 reflection.uniform_block = uni_block;
                 try self.snippet_reflection_map.put(snippet_id, reflection);
+
                 uni_block = null;
             }
         }
