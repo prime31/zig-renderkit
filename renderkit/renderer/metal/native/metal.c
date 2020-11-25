@@ -112,7 +112,7 @@ void mtl_scissor(int x, int y, int w, int h) {
 _mtl_image* mtl_create_image(ImageDesc_t desc) {
     _mtl_image* img = malloc(sizeof(_mtl_image));
     memset(img, 0, sizeof(_mtl_image));
-    
+
     MTLTextureDescriptor* mtl_desc = [[MTLTextureDescriptor alloc] init];
     mtl_desc.textureType = MTLTextureType2D;
     mtl_desc.pixelFormat = MTLPixelFormatRGBA8Unorm;
@@ -163,7 +163,7 @@ _mtl_image* mtl_create_image(ImageDesc_t desc) {
         img->sampler_state = [mtl_backend getOrCreateSampler:layer.device withImageDesc:&desc];
         img->tex = [mtl_backend addResource:tex];
     }
-    
+
     return img;
 }
 
@@ -188,7 +188,7 @@ void mtl_update_image(_mtl_image* img, void* data) {
 _mtl_pass* mtl_create_pass(PassDesc_t desc) {
     _mtl_pass* pass = malloc(sizeof(_mtl_pass));
     memset(pass, 0, sizeof(_mtl_pass));
-    
+
 	pass->color_tex = desc.color_img;
 	pass->stencil_tex = desc.depth_stencil_img;
     return pass;
@@ -296,7 +296,7 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc) {
     printf("metal_create_buffer\n");
     _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
     memset(buffer, 0, sizeof(_mtl_buffer));
-    
+
     buffer->size = (int)desc.size;
     buffer->num_slots = (desc.usage == usage_immutable) ? 1 : NUM_INFLIGHT_FRAMES;
     buffer->type_id = desc.type_id;
@@ -318,7 +318,7 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc) {
 
     // TODO: support multiple in-flight buffers when they are mutable
     MTLResourceOptions mtl_options = _mtl_buffer_resource_options(desc.usage);
-    
+
     for (int slot = 0; slot < buffer->num_slots; slot++) {
         id<MTLBuffer> mtl_buf;
         if (desc.usage == usage_immutable)
@@ -327,7 +327,7 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc) {
             mtl_buf = [layer.device newBufferWithLength:desc.size options:mtl_options];
         buffer->buffers[slot] = [mtl_backend addResource:mtl_buf];
     }
-    
+
     return buffer;
 }
 
@@ -346,15 +346,15 @@ void mtl_update_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes
     RK_ASSERT(buffer->update_frame_index != frame_index);
     // update and append on same buffer in same frame not allowed
     RK_ASSERT(buffer->append_frame_index != frame_index);
-    
+
     if (++buffer->active_slot >= buffer->num_slots)
         buffer->active_slot = 0;
-    
+
     __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffers[buffer->active_slot]];
     void* dst_ptr = [mtl_buf contents];
     memcpy(dst_ptr, data, num_bytes);
     [mtl_buf didModifyRange:NSMakeRange(0, num_bytes)];
-    
+
     buffer->update_frame_index = frame_index;
 }
 
@@ -365,7 +365,7 @@ void _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_byte
         if (++buffer->active_slot >= buffer->num_slots)
             buffer->active_slot = 0;
     }
-    
+
     __unsafe_unretained id<MTLBuffer> mtl_buf = mtl_backend.objectPool[buffer->buffers[buffer->active_slot]];
     uint8_t* dst_ptr = (uint8_t*) [mtl_buf contents];
     dst_ptr += buffer->append_pos;
@@ -375,17 +375,17 @@ void _mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_byte
 
 uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_bytes) {
     RK_ASSERT(num_bytes <= buffer->size);
-    
+
     // rewind append cursor in a new frame
     if (buffer->append_frame_index != frame_index) {
         buffer->append_pos = 0;
         buffer->append_overflow = false;
     }
-    
+
 	// check for overflow
     if ((buffer->append_pos + num_bytes) > buffer->size)
         buffer->append_overflow = true;
-    
+
     const uint32_t start_pos = buffer->append_pos;
     if (!buffer->append_overflow && (num_bytes > 0)) {
         // update and append on same buffer in same frame not allowed
@@ -394,7 +394,7 @@ uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t num_b
         buffer->append_pos += num_bytes;
         buffer->append_frame_index = frame_index;
     }
-    
+
     return start_pos;
 }
 
@@ -435,7 +435,7 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
 
 	_mtl_shader* shader = malloc(sizeof(_mtl_shader));
 	memset(shader, 0, sizeof(_mtl_shader));
-	
+
 	shader->shader_id = shader_id++;
 	shader->vs_lib  = [mtl_backend addResource:vs_lib];
 	shader->fs_lib  = [mtl_backend addResource:fs_lib];
@@ -446,17 +446,17 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
         shader->vs_uniform_data = malloc(desc.vs_uniform_size);
         memset(shader->vs_uniform_data, 0, desc.vs_uniform_size);
 	} else {
-		printf("shader created with now vs_uniform_size!\n");
+		printf("shader created with no vs_uniform_size!\n");
 	}
-	
+
     if (desc.fs_uniform_size > 0) {
         shader->fs_uniform_size = desc.fs_uniform_size;
         shader->fs_uniform_data = malloc(desc.fs_uniform_size);
         memset(shader->fs_uniform_data, 0, desc.fs_uniform_size);
 	} else {
-		printf("shader created with now fs_uniform_size!\n");
+		printf("shader created with no fs_uniform_size!\n");
 	}
-    
+
     return shader;
 }
 
@@ -464,7 +464,7 @@ void mtl_destroy_shader(_mtl_shader* shader) {
 	printf("metal_destroy_shader\n");
 	// this also destroys any PipelineStateObjects that use the shader
 	[mtl_backend removeShader:shader frameIndex:frame_index];
-    
+
     if (shader->vs_uniform_data != NULL) free(shader->vs_uniform_data);
     if (shader->fs_uniform_data != NULL) free(shader->fs_uniform_data);
     free(shader);
@@ -481,7 +481,7 @@ void mtl_set_shader_uniform_block(enum ShaderStage_t stage, const void* data, in
     RK_ASSERT(cmd_encoder != nil);
     RK_ASSERT(cur_shader != nil);
     RK_ASSERT(num_bytes == (stage == shader_stage_vs ? cur_shader->vs_uniform_size : cur_shader->fs_uniform_size));
-    
+
     void* data_block = stage == shader_stage_vs ? cur_shader->vs_uniform_data : cur_shader->fs_uniform_data;
     memcpy(data_block, data, num_bytes);
 }
@@ -516,7 +516,7 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
 							  offset:bindings.vertex_buffer_offsets[i]
 							 atIndex:MAX_SHADERSTAGE_UBS + 0];
     }
-    
+
     // set shader uniforms
     [cmd_encoder setVertexBytes:cur_shader->vs_uniform_data length:cur_shader->vs_uniform_size atIndex:0];
     if (cur_shader->fs_uniform_size > 0)
