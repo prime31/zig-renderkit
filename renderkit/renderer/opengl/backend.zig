@@ -464,24 +464,24 @@ pub fn destroyBuffer(buffer: Buffer) void {
     glDeleteBuffers(1, &buff.vbo);
 }
 
-pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
+pub fn updateBuffer(comptime T: type, buffer: Buffer, data: []const T) void {
     const buff = buffer_cache.get(buffer);
     cache.bindBuffer(GL_ARRAY_BUFFER, buff.vbo);
 
     // orphan the buffer for streamed so we can reset our append_pos and overflow state
     if (buff.stream) {
-        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, verts.len * @sizeOf(T)), null, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, @intCast(c_long, data.len * @sizeOf(T)), null, GL_STREAM_DRAW);
         buff.append_pos = 0;
         buff.append_overflow = false;
     }
-    glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, verts.len * @sizeOf(T)), verts.ptr);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, @intCast(c_long, data.len * @sizeOf(T)), data.ptr);
 }
 
-pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
+pub fn appendBuffer(comptime T: type, buffer: Buffer, data: []const T) u32 {
     const buff = buffer_cache.get(buffer);
     cache.bindBuffer(GL_ARRAY_BUFFER, buff.vbo);
 
-    const num_bytes = @intCast(c_long, verts.len * @sizeOf(T));
+    const num_bytes = @intCast(c_long, data.len * @sizeOf(T));
 
     // rewind append cursor in a new frame
     if (buff.append_frame_index != frame_index) {
@@ -495,7 +495,7 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 
     const start_pos = buff.append_pos;
     if (!buff.append_overflow and num_bytes > 0) {
-        glBufferSubData(GL_ARRAY_BUFFER, @intCast(c_long, buff.append_pos), num_bytes, verts.ptr);
+        glBufferSubData(GL_ARRAY_BUFFER, @intCast(c_long, buff.append_pos), num_bytes, data.ptr);
         buff.append_pos += @intCast(u32, num_bytes);
         buff.append_frame_index = frame_index;
     }
@@ -504,12 +504,16 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
 }
 
 // bindings and drawing
+// TODO: this feels a little bit janky
+var cur_ib_offset: c_int = 0;
+
 pub fn applyBindings(bindings: BufferBindings) void {
     if (cur_bindings.eq(bindings)) return;
     cur_bindings = bindings;
 
     var ibuffer = buffer_cache.get(bindings.index_buffer);
     cache.bindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
+    cur_ib_offset = @intCast(c_int, bindings.index_buffer_offset);
 
     var vert_attr_index: GLuint = 0;
     for (bindings.vert_buffers) |buff, i| {
@@ -533,7 +537,7 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
     const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
 
     const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
-    var ib_offset = @intCast(usize, base_element * i_size);
+    var ib_offset = @intCast(usize, base_element * i_size + cur_ib_offset);
 
     if (instance_count <= 1) {
         glDrawElements(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset));

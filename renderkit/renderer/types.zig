@@ -169,6 +169,7 @@ pub const ClearCommand = extern struct {
 pub const BufferBindings = struct {
     index_buffer: Buffer,
     vert_buffers: [4]Buffer,
+    index_buffer_offset: u32 = 0,
     vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
     images: [8]Image = [_]Image{0} ** 8,
 

@@ -62,7 +62,6 @@ void mtl_shutdown() {
 // render state
 void mtl_set_render_state(RenderState_t state) {
     printf("metal_set_render_state\n");
-    assert(!in_pass);
 	cur_render_state = state;
 }
 
@@ -533,7 +532,7 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
 
 void mtl_draw(int base_element, int element_count, int instance_count) {
     const NSUInteger index_size = cur_bindings.index_buffer->index_type == MTLIndexTypeUInt16 ? 2 : 4;
-    const NSUInteger index_buffer_offset = base_element * index_size; // + cur_bindings.index_buffer_offset; // TODO: dynamic index buffers
+    const NSUInteger index_buffer_offset = base_element * index_size + cur_bindings.index_buffer_offset;
 
 	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
 							indexCount:element_count
