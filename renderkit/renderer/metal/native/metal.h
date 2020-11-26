@@ -477,6 +477,7 @@ typedef struct _mtl_shader {
 typedef struct MtlBufferBindings_t {
     _mtl_buffer* index_buffer;
     _mtl_buffer* vertex_buffers[4];
+    uint32_t index_buffer_offset;
 	uint32_t vertex_buffer_offsets[4];
     _mtl_image* images[8];
 } MtlBufferBindings_t;

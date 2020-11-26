@@ -304,12 +304,14 @@ const MtlShaderDesc = extern struct {
 const MtlBufferBindings = extern struct {
     index_buffer: ?*MtlBuffer,
     vert_buffers: [4]?*MtlBuffer = [_]?*MtlBuffer{null} ** 4,
+    index_buffer_offset: u32,
     vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
     images: [8]?*MtlImage = [_]?*MtlImage{null} ** 8,
 
     pub fn init(bindings: BufferBindings) MtlBufferBindings {
         var mtl_bindings = MtlBufferBindings{
             .index_buffer = buffer_cache.get(bindings.index_buffer).*,
+            .index_buffer_offset = bindings.index_buffer_offset,
         };
 
         for (bindings.vert_buffers) |vb, i| {
