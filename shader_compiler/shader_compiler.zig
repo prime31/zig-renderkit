@@ -171,20 +171,37 @@ pub const ShaderCompileStep = struct {
         try writer.writeAll("\n");
 
         // if we have some shaders that use the default vert shader, setup a ShaderState and Shader creation method for them
-        const relative_path_from_package_to_shaders = try std.fs.path.relative(self.builder.allocator, self.package_out_path, self.shader_out_path);
+        var relative_path_from_package_to_shaders = try std.fs.path.relative(self.builder.allocator, self.package_out_path, self.shader_out_path);
+
+        // ensure if we have a non-empty path that it ends in a '/'
+        if (relative_path_from_package_to_shaders.len > 0) {
+            relative_path_from_package_to_shaders = try self.builder.allocator.alloc(u8, relative_path_from_package_to_shaders.len + 1);
+            relative_path_from_package_to_shaders[relative_path_from_package_to_shaders.len - 1] = '/';
+        }
         for (parsed.shader_programs.items) |program| {
             if (!program.hasDefaultVertShader) continue;
             var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
             name[0] = std.ascii.toUpper(name[0]);
+
+            // cleanup underscores in names by removing them and capitilizing the next letter
+            if (std.mem.indexOfScalar(u8, name, '_')) |underscore_index| {
+                const to_replace = name[underscore_index .. underscore_index + 2];
+                var replace_with = try self.builder.allocator.dupe(u8, to_replace);
+                replace_with[replace_with.len - 1] = std.ascii.toUpper(replace_with[replace_with.len - 1]);
+                replace_with = replace_with[1..];
+
+                var buffer = try self.builder.allocator.alloc(u8, std.mem.replacementSize(u8, name, to_replace, replace_with));
+                _ = std.mem.replace(u8, name, to_replace, replace_with, buffer);
+                name = buffer;
+            }
 
             const reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
             try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, reflection.uniform_block.?.name });
 
             // write out creation helper functions
             try fn_writer.print("pub fn create{}Shader() {}Shader {{\n", .{ name, name });
-            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}/{1}.glsl\") else @embedFile(\"{0}/{1}.metal\");\n",
-                .{ relative_path_from_package_to_shaders, program.fs });
-            try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{ name });
+            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
+            try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{name});
             try fn_writer.writeAll("}\n\n");
         }
 
@@ -281,7 +298,9 @@ pub const ShaderCompileStep = struct {
             const potential_pad = uni.offset - running_size;
 
             running_size += uni.type.size(uni.array_count);
-            try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, potential_pad != 0, parsed) });
+            if (potential_pad > 0)
+                try writer.print("    _pad{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(potential_pad, next_align16), potential_pad, potential_pad });
+            try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, parsed) });
 
             // generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
             // specs and also pad them out correctly. Only floats are suported for struct members because of this.

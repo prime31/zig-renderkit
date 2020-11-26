@@ -118,7 +118,7 @@ const UniformType = enum {
         };
     }
 
-    pub fn zigType(self: @This(), array_count: u32, aligned: bool, shdr_compiler: *ShdcParser) []const u8 {
+    pub fn zigType(self: @This(), array_count: u32, shdr_compiler: *ShdcParser) []const u8 {
         // helper closure just to make the below code more readable
         const print = struct {
             fn print(comptime fmt: []const u8, params: anytype) []const u8 {
@@ -126,24 +126,23 @@ const UniformType = enum {
             }
         }.print;
 
-        const align_str = if (aligned) " align(16)" else "";
         return switch (self) {
             .float => {
-                if (array_count == 1) return print("f32{} = 0", .{align_str});
-                return print("[{}]f32{}", .{ array_count, align_str });
+                if (array_count == 1) return print("f32 = 0", .{});
+                return print("[{}]f32", .{ array_count });
             },
             .float2 => {
-                if (array_count == 1) return print("{}{} = .{{}}", .{ shdr_compiler.float2_type, align_str });
-                return print("[{}]{}{}", .{ array_count, shdr_compiler.float2_type, align_str });
+                if (array_count == 1) return print("{} = .{{}}", .{ shdr_compiler.float2_type });
+                return print("[{}]{}", .{ array_count, shdr_compiler.float2_type });
             },
             .float3 => {
-                if (array_count == 1) return print("{}{} = .{{}}", .{ shdr_compiler.float3_type, align_str });
-                return print("[{}]{}{}", .{ array_count, shdr_compiler.float3_type, align_str });
+                if (array_count == 1) return print("{} = .{{}}", .{ shdr_compiler.float3_type });
+                return print("[{}]{}", .{ array_count, shdr_compiler.float3_type });
             },
             .float4 => {
                 // TODO: should we detect transform matrix and make a special case for it?
-                if (array_count == 1) return print("[4]f32{} = [_]f32{{0}} ** 4", .{align_str});
-                return print("[{}]f32{} = [_]f32{{0}} ** {}", .{ array_count * 4, align_str, array_count * 4 });
+                if (array_count == 1) return print("[4]f32 = [_]f32{{0}} ** 4", .{});
+                return print("[{}]f32 = [_]f32{{0}} ** {}", .{ array_count * 4, array_count * 4 });
             },
         };
     }
