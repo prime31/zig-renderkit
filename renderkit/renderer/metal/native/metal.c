@@ -24,10 +24,18 @@ int cur_width;
 int cur_height;
 uint32_t frame_index = 1;
 
-// pipeline state
+// caches
+typedef struct {
+    const _mtl_buffer* cur_indexbuffer;
+    int cur_indexbuffer_offset;
+    const _mtl_buffer* cur_vertexbuffers[MAX_VERTEX_BUFFERS];
+    int cur_vertexbuffer_offsets[MAX_VERTEX_BUFFERS];
+} _mtl_state_cache_t;
+
+_mtl_state_cache_t state_cache;
 _mtl_shader* cur_shader;
 RenderState_t cur_render_state;
-MtlBufferBindings_t cur_bindings;
+id<MTLRenderPipelineState> cur_pipeline;
 
 // setup
 void mtl_setup(RendererDesc_t desc) {
@@ -41,6 +49,7 @@ void mtl_setup(RendererDesc_t desc) {
     layer.displaySyncEnabled = !desc.disable_vsync;
 
 	cmd_queue = [layer.device newCommandQueue];
+    memset(&state_cache, 0, sizeof(_mtl_state_cache_t));
 }
 
 void mtl_shutdown() {
@@ -63,6 +72,14 @@ void mtl_shutdown() {
 // render state
 void mtl_set_render_state(RenderState_t state) {
 	cur_render_state = state;
+    
+    // TODO: if blend state changes and we are in a pass the PipelineState will need to be recreated
+    
+    // TODO: can we just modify the state of the command encoder? The draw calls should already be flushed zig-side.
+    //    if (cmd_encoder != nil) {
+    //        [cmd_encoder setBlendColorRed:cur_render_state.blend.color[0] green: cur_render_state.blend.color[1] blue: cur_render_state.blend.color[2] alpha: cur_render_state.blend.color[3]];
+    //        [cmd_encoder setStencilReferenceValue:cur_render_state.stencil.ref];
+    //    }
 }
 
 void mtl_viewport(int x, int y, int w, int h) {
@@ -199,6 +216,7 @@ void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
     in_pass = true;
 	cur_width = pass ? pass->color_tex->width : w;
 	cur_height = pass ? pass->color_tex->height : h;
+    memset(&state_cache, 0, sizeof(_mtl_state_cache_t));
 
     // if this is the first pass in the frame, create a command buffer
     if (cmd_buffer == nil) {
@@ -239,6 +257,9 @@ void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
 	pass_desc.stencilAttachment.loadAction = _mtl_load_action(clear.stencil_action);
 	pass_desc.stencilAttachment.clearStencil = clear.stencil;
 
+    // wipe out our cached PipelineState since it is attached tot he cmd_encoder
+    cur_pipeline = nil;
+    
     // create a render command encoder, this might return nil if window is minimized
     cmd_encoder = [cmd_buffer renderCommandEncoderWithDescriptor:pass_desc];
     if (cmd_encoder == nil) {
@@ -289,7 +310,6 @@ void mtl_commit_frame() {
 
 // buffers
 _mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc) {
-    printf("metal_create_buffer\n");
     _mtl_buffer* buffer = malloc(sizeof(_mtl_buffer));
     memset(buffer, 0, sizeof(_mtl_buffer));
 
@@ -328,7 +348,6 @@ _mtl_buffer* mtl_create_buffer(MtlBufferDesc_t desc) {
 }
 
 void mtl_destroy_buffer(_mtl_buffer* buffer) {
-    printf("metal_destroy_buffer\n");
     for (int slot = 0; slot < buffer->num_slots; slot++) {
         // it's valid to call release resource with
         [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:buffer->buffers[slot]];
@@ -457,7 +476,6 @@ _mtl_shader* mtl_create_shader(ShaderDesc_t desc) {
 }
 
 void mtl_destroy_shader(_mtl_shader* shader) {
-	printf("metal_destroy_shader\n");
 	// this also destroys any PipelineStateObjects that use the shader
 	[mtl_backend removeShader:shader frameIndex:frame_index];
 
@@ -483,25 +501,39 @@ void mtl_set_shader_uniform_block(_mtl_shader* shader, enum ShaderStage_t stage,
 
 // bindings and draw
 void mtl_apply_bindings(MtlBufferBindings_t bindings) {
-    cur_bindings = bindings;
+    RK_ASSERT(in_pass);
+    if (!pass_valid) return;
 
 	id<MTLRenderPipelineState> pipeline = [mtl_backend getOrCreatePipelineStateItem:cur_shader
 																		 blendState:&cur_render_state.blend
 																		   bindings:&bindings
 																		 metalLayer:layer];
-    [cmd_encoder setRenderPipelineState:pipeline];
-    [cmd_encoder setCullMode:MTLCullModeNone];
+    // only change the PipelineState if it actually changes
+    if (pipeline != cur_pipeline) {
+        [cmd_encoder setRenderPipelineState:pipeline];
+        cur_pipeline = pipeline;
+    }
+
+    // store index buffer
+    state_cache.cur_indexbuffer = bindings.index_buffer;
+    state_cache.cur_indexbuffer_offset = bindings.index_buffer_offset;
 
     // bind vertex buffers
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < MAX_VERTEX_BUFFERS; i++) {
         _mtl_buffer* buffer = bindings.vertex_buffers[i];
         if (buffer == NULL) break;
-        // TODO: cache the bound buffer and if it doesnt change (common for batcher) use setVertexBufferOffset: instead
-		// we reserve the first MAX_SHADERSTAGE_UBS slots for uniforms for compatibility with sokol shader compiler which sticks
-		// uniforms starting at index 0.
-        [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]]
-							  offset:bindings.vertex_buffer_offsets[i]
-							 atIndex:MAX_SHADERSTAGE_UBS + 0];
+
+        if (state_cache.cur_vertexbuffers[i] != buffer ||
+            state_cache.cur_vertexbuffer_offsets[i] != bindings.vertex_buffer_offsets[i])
+        {
+            state_cache.cur_vertexbuffers[i] = buffer;
+            state_cache.cur_vertexbuffer_offsets[i] = bindings.vertex_buffer_offsets[i];
+            // we reserve the first MAX_SHADERSTAGE_UBS slots for uniforms for compatibility with sokol shader compiler which sticks
+            // uniforms starting at index 0.
+            [cmd_encoder setVertexBuffer:mtl_backend.objectPool[buffer->buffers[buffer->active_slot]]
+                                  offset:bindings.vertex_buffer_offsets[i]
+                                 atIndex:MAX_SHADERSTAGE_UBS + i];
+        }
     }
 
     // set shader uniforms
@@ -519,13 +551,13 @@ void mtl_apply_bindings(MtlBufferBindings_t bindings) {
 }
 
 void mtl_draw(int base_element, int element_count, int instance_count) {
-    const NSUInteger index_size = cur_bindings.index_buffer->index_type == MTLIndexTypeUInt16 ? 2 : 4;
-    const NSUInteger index_buffer_offset = base_element * index_size + cur_bindings.index_buffer_offset;
+    const NSUInteger index_size = state_cache.cur_indexbuffer->index_type == MTLIndexTypeUInt16 ? 2 : 4;
+    const NSUInteger index_buffer_offset = base_element * index_size + state_cache.cur_indexbuffer_offset;
 
 	[cmd_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
 							indexCount:element_count
-							 indexType:cur_bindings.index_buffer->index_type
-						   indexBuffer:mtl_backend.objectPool[cur_bindings.index_buffer->buffers[cur_bindings.index_buffer->active_slot]]
+							 indexType:state_cache.cur_indexbuffer->index_type
+						   indexBuffer:mtl_backend.objectPool[state_cache.cur_indexbuffer->buffers[state_cache.cur_indexbuffer->active_slot]]
 					 indexBufferOffset:index_buffer_offset
 						 instanceCount:instance_count];
 }

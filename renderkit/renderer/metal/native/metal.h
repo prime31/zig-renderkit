@@ -19,6 +19,7 @@
 enum {
     NUM_INFLIGHT_FRAMES = 1,
 	MAX_SHADERSTAGE_UBS = 1,
+    MAX_VERTEX_BUFFERS = 4,
 };
 
 // forward declarations
