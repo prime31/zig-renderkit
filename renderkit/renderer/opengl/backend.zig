@@ -18,6 +18,7 @@ var buffer_cache: HandledCache(GLBuffer) = undefined;
 var shader_cache: HandledCache(GLShaderProgram) = undefined;
 
 var frame_index: u32 = 1;
+var cur_pass_h: c_int = 0; // used to flip scissor rects to be top-left origin to match Metal
 
 // setup
 pub fn setup(desc: RendererDesc) void {
@@ -200,7 +201,8 @@ pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {
 }
 
 pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
-    glScissor(x, y, width, height);
+    var y_tl = cur_pass_h - (y + height);
+    glScissor(x, y_tl, width, height);
 }
 
 // images
@@ -335,14 +337,16 @@ pub fn beginPass(offscreen_pass: Pass, action: ClearCommand) void {
 }
 
 fn beginDefaultOrOffscreenPass(offscreen_pass: Pass, action: ClearCommand, width: c_int, height: c_int) void {
-    // negative width/height means offscreen pass
-    if (width < 0) {
+    // pass 0 is invalid so if its greater than 0 this is an offscreen pass
+    if (offscreen_pass > 0) {
         const pass = pass_cache.get(offscreen_pass);
         const img = image_cache.get(pass.color_img);
         glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer_tid);
         glViewport(0, 0, img.width, img.height);
+        cur_pass_h = img.height;
     } else {
         glViewport(0, 0, width, height);
+        cur_pass_h = height;
     }
 
     var clear_mask: GLbitfield = 0;

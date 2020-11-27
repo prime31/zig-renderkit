@@ -37,7 +37,7 @@ void mtl_setup(RendererDesc_t desc) {
 	layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
 	layer.device = MTLCreateSystemDefaultDevice();
 	layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-	// layer.displaySyncEnabled = NO; // disables vsunc
+	// layer.displaySyncEnabled = NO; // disables vsync
 
 	cmd_queue = [layer.device newCommandQueue];
 }
@@ -61,7 +61,6 @@ void mtl_shutdown() {
 
 // render state
 void mtl_set_render_state(RenderState_t state) {
-    printf("metal_set_render_state\n");
 	cur_render_state = state;
 }
 
@@ -81,7 +80,6 @@ void mtl_viewport(int x, int y, int w, int h) {
 }
 
 void mtl_scissor(int x, int y, int w, int h) {
-    printf("metal_scissor\n");
     assert(in_pass);
     if (!pass_valid) return;
     assert(cmd_encoder != nil);
@@ -224,9 +222,8 @@ void mtl_begin_pass(_mtl_pass* pass, ClearCommand_t clear, int w, int h) {
 		pass_desc.colorAttachments[0].texture = mtl_backend.objectPool[pass->color_tex->tex];
 		pass_desc.colorAttachments[0].storeAction = MTLStoreActionStore;
 
-		if (pass->stencil_tex) {
+		if (pass->stencil_tex)
 			pass_desc.stencilAttachment.texture = mtl_backend.objectPool[pass->stencil_tex->tex];
-		}
     } else {
 		// only do this once per frame. a pass to the framebuffer can be done multiple times in a frame.
 		if (cur_drawable == nil)
@@ -483,13 +480,6 @@ void mtl_set_shader_uniform_block(enum ShaderStage_t stage, const void* data, in
 
     void* data_block = stage == shader_stage_vs ? cur_shader->vs_uniform_data : cur_shader->fs_uniform_data;
     memcpy(data_block, data, num_bytes);
-}
-
-void mtl_set_shader_uniform(_mtl_shader* shader, uint8_t* arg1, void* arg2) {
-    RK_ASSERT(in_pass);
-    if (!pass_valid) return;
-    RK_ASSERT(cmd_encoder != nil);
-    printf("------ set shader uniform\n");
 }
 
 
