@@ -35,9 +35,10 @@ void mtl_setup(RendererDesc_t desc) {
 
 	render_semaphore = dispatch_semaphore_create(NUM_INFLIGHT_FRAMES);
 	layer = (__bridge CAMetalLayer*)desc.metal.ca_layer;
+    layer.magnificationFilter = kCAFilterNearest;
 	layer.device = MTLCreateSystemDefaultDevice();
 	layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-	// layer.displaySyncEnabled = NO; // disables vsync
+    layer.displaySyncEnabled = !desc.disable_vsync;
 
 	cmd_queue = [layer.device newCommandQueue];
 }
@@ -165,7 +166,6 @@ _mtl_image* mtl_create_image(ImageDesc_t desc) {
 }
 
 void mtl_destroy_image(_mtl_image* img) {
-	printf("metal_destroy_image\n");
     // it's valid to call release resource with a 'null resource'
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->tex];
     [mtl_backend releaseResourceWithFrameIndex:frame_index slotIndex:img->depth_tex];
@@ -470,15 +470,13 @@ void mtl_use_shader(_mtl_shader* shader) {
     cur_shader = shader;
 }
 
-// TODO: should this take in the shader or use cur_shader?
-void mtl_set_shader_uniform_block(enum ShaderStage_t stage, const void* data, int num_bytes) {
+void mtl_set_shader_uniform_block(_mtl_shader* shader, enum ShaderStage_t stage, const void* data, int num_bytes) {
     RK_ASSERT(in_pass);
     if (!pass_valid) return;
     RK_ASSERT(cmd_encoder != nil);
-    RK_ASSERT(cur_shader != nil);
-    RK_ASSERT(num_bytes == (stage == shader_stage_vs ? cur_shader->vs_uniform_size : cur_shader->fs_uniform_size));
+    RK_ASSERT(num_bytes == (stage == shader_stage_vs ? shader->vs_uniform_size : shader->fs_uniform_size));
 
-    void* data_block = stage == shader_stage_vs ? cur_shader->vs_uniform_data : cur_shader->fs_uniform_data;
+    void* data_block = stage == shader_stage_vs ? shader->vs_uniform_data : shader->fs_uniform_data;
     memcpy(data_block, data, num_bytes);
 }
 

@@ -332,6 +332,7 @@ typedef struct MetalSetup_t {
 typedef struct RendererDesc_t {
    void* allocator;
    const void* (*getProcAddress)(uint8_t*);
+   bool disable_vsync;
    PoolSizes_t pool_sizes;
    MetalSetup_t metal;
 } RendererDesc_t;
@@ -511,6 +512,7 @@ uint32_t mtl_append_buffer(_mtl_buffer* buffer, const void* data, uint32_t data_
 _mtl_shader* mtl_create_shader(ShaderDesc_t desc);
 void mtl_destroy_shader(_mtl_shader* shader);
 void mtl_use_shader(_mtl_shader* shader);
+void mtl_set_shader_uniform_block(_mtl_shader* shader, enum ShaderStage_t stage, const void* data, int num_bytes);
 
 void mtl_apply_bindings(MtlBufferBindings_t bindings);
 void mtl_draw(int base_element, int element_count, int instance_count);

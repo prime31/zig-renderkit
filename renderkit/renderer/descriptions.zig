@@ -15,6 +15,7 @@ pub const RendererDesc = extern struct {
 
     allocator: *std.mem.Allocator,
     gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
+    disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},
     metal: MetalSetup = .{},
 };
