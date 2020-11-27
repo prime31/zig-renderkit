@@ -13,7 +13,6 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {}
 pub fn createImage(desc: ImageDesc) Image { return 0; }
 pub fn destroyImage(image: Image) void {}
 pub fn updateImage(comptime T: type, image: Image, content: []const T) void {}
-pub fn getImageNativeId(image: Image) u32 { return 0; }
 
 // passes
 pub fn createPass(desc: PassDesc) Pass { return 0; }

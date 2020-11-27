@@ -57,10 +57,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     mtl_update_image(img.*, content.ptr);
 }
 
-pub fn getImageNativeId(image: Image) u32 {
-    @panic("not implemented");
-    return 0;
-}
 
 // passes
 pub fn createPass(desc: PassDesc) Pass {

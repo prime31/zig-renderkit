@@ -85,9 +85,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     backend.updateImage(T, image, content);
 }
 
-pub fn getImageNativeId(image: Image) u32 {
-    return backend.getImageNativeId(image);
-}
 
 // passes
 pub fn createPass(desc: PassDesc) Pass {

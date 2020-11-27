@@ -272,9 +272,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     cache.bindImage(0, 0);
 }
 
-pub fn getImageNativeId(image: Image) u32 {
-    return image_cache.get(image).tid;
-}
 
 // offscreen pass
 const GLPass = struct {

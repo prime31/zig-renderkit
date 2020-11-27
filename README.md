@@ -33,8 +33,7 @@ Loading and updating of GPU textures.
 
 `pub fn createImage(desc: ImageDesc) Image`<br>
 `pub fn destroyImage(image: Image) void`<br>
-`pub fn updateImage(comptime T: type, image: Image, content: []const T) void`<br>
-`pub fn getImageNativeId(image: Image) u32`
+`pub fn updateImage(comptime T: type, image: Image, content: []const T) void`
 
 
 ### Passes
