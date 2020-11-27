@@ -64,6 +64,7 @@ pub const ShaderCompileStep = struct {
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
     /// system, `sokol-shdc` is invoked to compile the shader.
     pub fn init(builder: *Builder, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
+        if (prefix_path.len > 0 and !std.mem.endsWith(u8, prefix_path, "/")) @panic("prefix-path must end with '/' if it is not empty");
         const shader_out_path = if (options.shader_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
             builder.cache_root,
@@ -92,12 +93,18 @@ pub const ShaderCompileStep = struct {
                 .dependencies = options.package_deps,
             };
         }
+        const shdc_binary = switch (std.builtin.os.tag) {
+            .macos => "sokol-shdc",
+            .linux => "sokol-shdc-linux",
+            .windows => "sokol-shdc.exe",
+            else => @panic("unsupported platform"),
+        };
 
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
             .step = Step.init(.Custom, "shader-compile", builder.allocator, make),
             .builder = builder,
-            .shdc_cmd = &[_][]const u8{ "./" ++ prefix_path ++ "sokol-shdc", "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
+            .shdc_cmd = &[_][]const u8{ "./" ++ prefix_path ++ "bin/" ++ shdc_binary, "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
             .shader = options.shader,
             .package = package,
             .package_filename = package_filename,

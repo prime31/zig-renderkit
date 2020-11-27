@@ -16,8 +16,10 @@ pub fn getRenderKitPackage(comptime prefix_path: []const u8) Pkg {
 }
 
 /// prefix_path is the path to the gfx build.zig file relative to your build.zig.
-/// prefix_path is used to add package paths. It should be the the same path used to include this build file and end with a slash.
+/// prefix_path is used to add package paths. It should be the the same path used to include this build file.
 pub fn addRenderKitToArtifact(b: *Builder, exe: *std.build.LibExeObjStep, target: std.build.Target, comptime prefix_path: []const u8) void {
+    if (prefix_path.len > 0 and !std.mem.endsWith(u8, prefix_path, "/")) @panic("prefix-path must end with '/' if it is not empty");
+
     // build options. For now they can be overridden in root directly as well
     if (renderer == null)
         renderer = b.option(Renderer, "renderer", "dummy, opengl, webgl, metal, directx or vulkan") orelse Renderer.opengl;
