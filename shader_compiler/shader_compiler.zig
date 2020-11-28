@@ -205,7 +205,7 @@ pub const ShaderCompileStep = struct {
             const reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
             try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, reflection.uniform_block.?.name });
 
-            // write out creation helper functions
+            // write out creation helper functions. Beware that name can actually be null if there is no uniform.
             try fn_writer.print("pub fn create{}Shader() {}Shader {{\n", .{ name, name });
             try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
             try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{name});

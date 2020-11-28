@@ -254,7 +254,7 @@ pub const ShdcParser = struct {
 
         // TODO: when DirectX is added we'll need to add inputs/outputs in the metadata. See D3D11_INPUT_ELEMENT_DESC for details.
         // TODO: WebGL needs to know the vertex attribute names
-        var line_buffer: [512]u8 = undefined;
+        var line_buffer: [2048]u8 = undefined;
         while (try reader.readUntilDelimiterOrEof(&line_buffer, '\n')) |line| {
             if (parse_state == .none) {
                 if (std.mem.indexOf(u8, line, "snippet_map:") != null) {
