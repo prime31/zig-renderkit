@@ -75,7 +75,7 @@ static mtl_idpool_t idpool;
                 desc.pool_sizes.offscreen_pass
             );
         self.objectPool = [NSMutableArray arrayWithCapacity:idpool.num_slots];
-        
+
         NSNull* null = [NSNull null];
         for (uint32_t i = 0; i < idpool.num_slots; i++)
             [self.objectPool addObject:null];
@@ -83,11 +83,11 @@ static mtl_idpool_t idpool;
         // a queue of currently free slot indices
         idpool.free_queue_top = 0;
         idpool.free_queue = (uint32_t*)malloc(idpool.num_slots * sizeof(uint32_t));
-        
+
         // pool slot 0 is reserved!
         for (int i = idpool.num_slots - 1; i >= 1; i--)
             idpool.free_queue[idpool.free_queue_top++] = (uint32_t)i;
-        
+
         // a circular queue which holds release items (frame index when a resource is to be released, and the resource's pool index
         idpool.release_queue_front = 0;
         idpool.release_queue_back = 0;
@@ -96,20 +96,20 @@ static mtl_idpool_t idpool;
             idpool.release_queue[i].frame_index = 0;
             idpool.release_queue[i].slot_index = 0;
         }
-		
+
 		memset(&pipeline_cache, 0, sizeof(mtl_pipeline_cache_t));
 		pipeline_cache.capacity = 32;
 		const int pip_cache_size = pipeline_cache.capacity * sizeof(mtl_pipeline_cache_item_t);
 		pipeline_cache.items = (mtl_pipeline_cache_item_t*) malloc(pip_cache_size);
 		memset(pipeline_cache.items, 0, pip_cache_size);
-        
+
         memset(&sampler_cache, 0, sizeof(mtl_sampler_cache_t));
         sampler_cache.capacity = 20;
         const int sampler_cache_size = sampler_cache.capacity * sizeof(mtl_sampler_cache_item_t);
         sampler_cache.items = (mtl_sampler_cache_item_t*) malloc(sampler_cache_size);
         memset(sampler_cache.items, 0, sampler_cache_size);
     }
-    
+
     return self;
 }
 
@@ -121,14 +121,14 @@ static mtl_idpool_t idpool;
 - (uint32_t)addResource:(id)res {
     if (nil == res)
         return 0;
-    
+
     // get a new free resource pool slot
     RK_ASSERT(idpool.free_queue_top > 0);
     const uint32_t slot_index = idpool.free_queue[--idpool.free_queue_top];
     RK_ASSERT((slot_index > 0) && (slot_index < idpool.num_slots));
-    
+
     self.objectPool[slot_index] = res;
-    
+
     return slot_index;
 }
 
@@ -141,7 +141,7 @@ static mtl_idpool_t idpool;
         // wrap-around
         idpool.release_queue_front = 0;
     }
-    
+
     // release queue full?
     RK_ASSERT(idpool.release_queue_front != idpool.release_queue_back);
     RK_ASSERT(0 == idpool.release_queue[release_index].frame_index);
@@ -157,18 +157,18 @@ static mtl_idpool_t idpool;
             // don't need to check further, release-items past this are too young
             break;
         }
-        
+
         // safe to release this resource
         const uint32_t slot_index = idpool.release_queue[idpool.release_queue_back].slot_index;
         RK_ASSERT((slot_index > 0) && (slot_index < idpool.num_slots));
         RK_ASSERT(self.objectPool[slot_index] != [NSNull null]);
         self.objectPool[slot_index] = [NSNull null];
-        
+
         // put the now free pool index back on the free queue
         RK_ASSERT(idpool.free_queue_top < idpool.num_slots);
         RK_ASSERT((slot_index > 0) && (slot_index < idpool.num_slots));
         idpool.free_queue[idpool.free_queue_top++] = slot_index;
-        
+
         // reset the release queue slot and advance the back index
         idpool.release_queue[idpool.release_queue_back].frame_index = 0;
         idpool.release_queue[idpool.release_queue_back].slot_index = 0;
@@ -195,7 +195,7 @@ static mtl_idpool_t idpool;
 			return i;
 		}
 	}
-	
+
 	return -1;
 }
 
@@ -205,7 +205,7 @@ static mtl_idpool_t idpool;
 					  handle:(uint32_t)pipeline_handle {
 	const int item_index = pipeline_cache.num_items++;
 	mtl_pipeline_cache_item_t* item = &pipeline_cache.items[item_index];
-	
+
 	item->pipeline_handle = pipeline_handle;
 	item->shader_id = shader_id;
 	item->blend_state.enabled = blend_state->enabled;
@@ -220,7 +220,7 @@ static mtl_idpool_t idpool;
 	item->blend_state.color[1] = blend_state->color[1];
 	item->blend_state.color[2] = blend_state->color[2];
 	item->blend_state.color[3] = blend_state->color[3];
-	
+
 	item->index_buffer_type_id = bindings->index_buffer->type_id;
 	for (int i = 0; i < 4; i++)
 		item->vertex_buffer_type_ids[i] = bindings->vertex_buffers[i] != nil ? bindings->vertex_buffers[i]->type_id : 0;
@@ -235,17 +235,20 @@ static mtl_idpool_t idpool;
 		// reuse existing pipeline
 		return self.objectPool[pipeline_cache.items[index].pipeline_handle];
 	}
-	
+
 	printf("--- no existing pipeline. creating now\n");
-	
+
 	// create a new PipelineState object and add to pipeline cache
 	MTLRenderPipelineDescriptor* pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-	pipelineStateDescriptor.label = @"Sprite Pipeline";
 	pipelineStateDescriptor.vertexFunction = self.objectPool[shader->vs_func];
 	pipelineStateDescriptor.fragmentFunction = self.objectPool[shader->fs_func];
 	pipelineStateDescriptor.colorAttachments[0].pixelFormat = layer.pixelFormat;
 	pipelineStateDescriptor.colorAttachments[0].writeMask = _mtl_color_write_mask(blend_state->color_write_mask);
-	
+
+	// optionals for depth stencil
+	// pipelineStateDescriptor.depthAttachmentPixelFormat = ???;
+	// pipelineStateDescriptor.stencilAttachmentPixelFormat = ???;
+
 	if (blend_state->enabled) {
 		pipelineStateDescriptor.colorAttachments[0].blendingEnabled = blend_state->enabled;
 		pipelineStateDescriptor.colorAttachments[0].alphaBlendOperation = _mtl_blend_op(blend_state->op_alpha);
@@ -257,15 +260,16 @@ static mtl_idpool_t idpool;
 	}
 
 	// preprare the MTLVertexDescriptor
-	MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor vertexDescriptor];
+	MTLVertexDescriptor* vertexDesc = [MTLVertexDescriptor new];
 
 	int attr_index = 0;
-	for (int i = 0; i < 4; i++) {
+	int layout_index = 0;
+	for (int i = 0; i < MAX_VERTEX_BUFFERS; i++) {
 		if (bindings->vertex_buffers[i] == NULL) break;
 		_mtl_buffer* buff = bindings->vertex_buffers[i];
 
 		// attributes
-		for (int j = 0; j < 8; j++) {
+		for (int j = 0; j < MAX_VERTEX_ATTRIBUTES; j++) {
 			mtl_vertex_attribute_t attr = buff->vertex_attrs[j];
 			// an offset of 0 for an attribute other than the first indicates we are done
 			if (j > 0 && attr.offset == 0) break;
@@ -278,12 +282,13 @@ static mtl_idpool_t idpool;
 		}
 
 		// layout
-		for (int j = 0; j < 4; j++) {
+		for (int j = 0; j < MAX_VERTEX_BUFFERS; j++) {
 			mtl_vertex_layout_t layout = buff->vertex_layout[j];
 			if (layout.stride == 0) break;
 
-			vertexDesc.layouts[j + MAX_SHADERSTAGE_UBS].stepFunction = layout.step_func;
-			vertexDesc.layouts[j + MAX_SHADERSTAGE_UBS].stride = layout.stride;
+			vertexDesc.layouts[layout_index + MAX_SHADERSTAGE_UBS].stepFunction = layout.step_func;
+			vertexDesc.layouts[layout_index + MAX_SHADERSTAGE_UBS].stride = layout.stride;
+			layout_index++;
 		}
 	}
 
@@ -297,7 +302,7 @@ static mtl_idpool_t idpool;
 		NSLog(@"Failed to created pipeline state, error %@", error);
 		return 0;
 	}
-	
+
 	uint32_t pipeline_handle = [self addResource:pipelineState];
 	[self addPipelineStateItem:shader->shader_id blendState:blend_state bindings:bindings handle:pipeline_handle];
 	return pipelineState;
@@ -318,7 +323,7 @@ static mtl_idpool_t idpool;
 			i++;
 		}
 	}
-	
+
 	[self releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_lib];
 	[self releaseResourceWithFrameIndex:frame_index slotIndex:shader->fs_lib];
 	[self releaseResourceWithFrameIndex:frame_index slotIndex:shader->vs_func];
@@ -337,7 +342,7 @@ static mtl_idpool_t idpool;
             return i;
         }
     }
-    
+
     return -1;
 }
 
@@ -357,7 +362,7 @@ static mtl_idpool_t idpool;
         // reuse existing sampler
         return (uint32_t)sampler_cache.items[index].sampler_handle;
     }
-	
+
 	// create a new Metal sampler state object and add to sampler cache
 	MTLSamplerDescriptor *mtl_desc = [[MTLSamplerDescriptor alloc] init];
 	mtl_desc.sAddressMode = _mtl_address_mode(img_desc->wrap_u);
@@ -365,7 +370,7 @@ static mtl_idpool_t idpool;
 	mtl_desc.minFilter = _mtl_minmag_filter(img_desc->min_filter);
 	mtl_desc.magFilter = _mtl_minmag_filter(img_desc->mag_filter);
 	mtl_desc.normalizedCoordinates = YES;
-	
+
 	id<MTLSamplerState> mtl_sampler = [mtl_device newSamplerStateWithDescriptor:mtl_desc];
 	uint32_t sampler_handle = [self addResource:mtl_sampler];
 	[self addSamplerCacheItem:img_desc handle:sampler_handle];
