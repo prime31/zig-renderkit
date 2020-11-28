@@ -65,18 +65,18 @@ pub const ShaderCompileStep = struct {
     /// system, `sokol-shdc` is invoked to compile the shader.
     pub fn init(builder: *Builder, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
         if (prefix_path.len > 0 and !std.mem.endsWith(u8, prefix_path, "/")) @panic("prefix-path must end with '/' if it is not empty");
-        const shader_out_path = if (options.shader_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
+        const shader_out_path = if (options.shader_output_path) |out_path| out_path ++ path.sep_str else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
             builder.cache_root,
             "shaders",
-            "/",
+            path.sep_str,
         }) catch unreachable;
 
-        const package_out_path = if (options.package_output_path) |out_path| out_path ++ "/" else path.join(builder.allocator, &[_][]const u8{
+        const package_out_path = if (options.package_output_path) |out_path| out_path ++ path.sep_str else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
             builder.cache_root,
             "shaders",
-            "/",
+            path.sep_str,
         }) catch unreachable;
 
         const package_filename = if (options.package_name) |p_name| p_name ++ ".zig" else "shaders.zig";
@@ -104,7 +104,7 @@ pub const ShaderCompileStep = struct {
         self.* = .{
             .step = Step.init(.Custom, "shader-compile", builder.allocator, make),
             .builder = builder,
-            .shdc_cmd = &[_][]const u8{ "./" ++ prefix_path ++ "bin/" ++ shdc_binary, "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
+            .shdc_cmd = &[_][]const u8{ "." ++ path.sep_str ++ prefix_path ++ "bin" ++ path.sep_str ++ shdc_binary, "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
             .shader = options.shader,
             .package = package,
             .package_filename = package_filename,
@@ -181,9 +181,12 @@ pub const ShaderCompileStep = struct {
         var relative_path_from_package_to_shaders = try std.fs.path.relative(self.builder.allocator, self.package_out_path, self.shader_out_path);
 
         // ensure if we have a non-empty path that it ends in a '/'
-        if (relative_path_from_package_to_shaders.len > 0) {
-            relative_path_from_package_to_shaders = try self.builder.allocator.alloc(u8, relative_path_from_package_to_shaders.len + 1);
-            relative_path_from_package_to_shaders[relative_path_from_package_to_shaders.len - 1] = '/';
+        const rel_path_len = relative_path_from_package_to_shaders.len;
+        if (rel_path_len > 0 and relative_path_from_package_to_shaders[rel_path_len - 1] != path.sep) {
+            const with_sep = try self.builder.allocator.alloc(u8, rel_path_len + 1);
+            std.mem.copy(u8, with_sep, relative_path_from_package_to_shaders);
+            with_sep[rel_path_len] = '/';
+            relative_path_from_package_to_shaders = with_sep;
         }
         for (parsed.shader_programs.items) |program| {
             if (!program.hasDefaultVertShader) continue;
