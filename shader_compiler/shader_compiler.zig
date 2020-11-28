@@ -189,7 +189,7 @@ pub const ShaderCompileStep = struct {
             relative_path_from_package_to_shaders = with_sep;
         }
         for (parsed.shader_programs.items) |program| {
-            if (!program.hasDefaultVertShader) continue;
+            if (std.mem.eql(u8, self.default_program_name, program.name)) continue;
             var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
             name[0] = std.ascii.toUpper(name[0]);
 
@@ -205,14 +205,31 @@ pub const ShaderCompileStep = struct {
                 name = buffer;
             }
 
-            const reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
-            try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, reflection.uniform_block.?.name });
+            const fs_reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
 
-            // write out creation helper functions. Beware that name can actually be null if there is no uniform.
-            try fn_writer.print("pub fn create{}Shader() {}Shader {{\n", .{ name, name });
-            try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
-            try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{name});
-            try fn_writer.writeAll("}\n\n");
+            // only make a ShaderState for shaders with a frag uniform and no vert uniform
+            if (program.has_default_vert_shader and fs_reflection.uniform_block != null) {
+                const uni_block = fs_reflection.uniform_block.?;
+                try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, uni_block.name });
+
+                // write out creation helper functions
+                try fn_writer.print("pub fn create{0}Shader() {0}Shader {{\n", .{ name });
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
+                try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{name});
+                try fn_writer.writeAll("}\n\n");
+            } else {
+                // we have a non-default vert shader is all we know here, frag could have a uniform or not
+                const vs_reflection: ReflectionData = parsed.snippet_reflection_map.get(program.vs_snippet).?;
+
+                const vs_uni_type = vs_reflection.uniform_block.?.name;
+                const fs_uni_type = if (fs_reflection.uniform_block) |uni_block| uni_block.name else "struct {}";
+
+                try fn_writer.print("pub fn create{}Shader() !gfx.Shader {{\n", .{ name });
+                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
+                try fn_writer.print("    return try gfx.Shader.initWithVertFrag({}, {}, .{{ .frag = frag, .vert = vert }});\n", .{vs_uni_type, fs_uni_type});
+                try fn_writer.writeAll("}\n\n");
+            }
         }
 
         try writer.writeAll("\n");
@@ -257,7 +274,7 @@ pub const ShaderCompileStep = struct {
                         std.mem.eql(u8, p.name, shader_name) and
                         std.mem.eql(u8, p.vs, vs_name))
                     {
-                        p.hasDefaultVertShader = true;
+                        p.has_default_vert_shader = true;
                         break true;
                     }
                 } else false;

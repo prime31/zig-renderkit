@@ -19,7 +19,7 @@ pub const ShaderProgram = struct {
     vs_snippet: u8 = undefined,
     fs_snippet: u8 = undefined,
     /// flag that indicates if this program uses the default vert shader
-    hasDefaultVertShader: bool = false,
+    has_default_vert_shader: bool = false,
 };
 
 const ShaderStage = enum {
