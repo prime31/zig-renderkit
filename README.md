@@ -10,6 +10,10 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 `RenderKit` is just a pure backend render API abstraction layer. In order to get something on screen, it requires an OS window and a graphics context. The companion [GameKit repository](https://github.com/prime31/zig-gamekit) provides all of that and more. It has all the high-level abstractions needed to make fast, efficient 2D games. `GameKit` can be used to help with building new backends, as a standalone 2D framework or as inspiration for using `RenderKit` in your own projects.
 
 
+## Dependencies
+RenderKit has just one external dependency: SDL. You can install SDL with the package manager of your choice. On macOS if you intend to use the Metal renderer you will need to build from source until the next SDL release drops.
+
+
 ### Usage
 - clone the repository: `git clone https://github.com/prime31/zig-renderkit`
 - in your projects build.zig, pass your `LibExeObjStep` to `addRenderKitToArtifact` in `RenderKit`'s build.zig
