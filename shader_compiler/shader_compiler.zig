@@ -320,20 +320,23 @@ pub const ShaderCompileStep = struct {
         // end metadata
         try writer.writeAll("    };\n\n");
 
+        var pad_cnt: u8 = 0;
         var running_size: usize = 0;
         for (block.uniforms.items) |uni, i| {
             const potential_pad = uni.offset - running_size;
 
             running_size += uni.type.size(uni.array_count);
-            if (potential_pad > 0)
-                try writer.print("    _pad{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(potential_pad, next_align16), potential_pad, potential_pad });
+            if (potential_pad > 0) {
+                try writer.print("    _pad{}_{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(potential_pad, next_align16), pad_cnt, potential_pad, potential_pad });
+                pad_cnt += 1;
+            }
             try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, parsed) });
 
             // generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
             // specs and also pad them out correctly. Only floats are suported for struct members because of this.
             if (block.uniforms.items.len - 1 == i and running_size == block.size and @mod(running_size, 16) != 0) {
                 const pad_amt = next_align16 - @mod(running_size, next_align16);
-                try writer.print("    _pad{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(running_size, next_align16), pad_amt, pad_amt });
+                try writer.print("    _pad{}_{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(running_size, next_align16), pad_cnt, pad_amt, pad_amt });
             }
         }
         try writer.writeAll("};\n\n");

@@ -129,7 +129,7 @@ const UniformType = enum {
         return switch (self) {
             .float => {
                 if (array_count == 1) return print("f32 = 0", .{});
-                return print("[{}]f32", .{array_count});
+                return print("[{0}]f32 = [_]f32{{0}} ** {0}", .{array_count});
             },
             .float2 => {
                 if (array_count == 1) return print("{} = .{{}}", .{shdr_compiler.float2_type});
@@ -140,7 +140,6 @@ const UniformType = enum {
                 return print("[{}]{}", .{ array_count, shdr_compiler.float3_type });
             },
             .float4 => {
-                // TODO: should we detect transform matrix and make a special case for it?
                 if (array_count == 1) return print("[4]f32 = [_]f32{{0}} ** 4", .{});
                 return print("[{}]f32 = [_]f32{{0}} ** {}", .{ array_count * 4, array_count * 4 });
             },
