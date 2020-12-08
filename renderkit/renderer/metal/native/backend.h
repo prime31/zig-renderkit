@@ -186,7 +186,7 @@ static mtl_idpool_t idpool;
 		const mtl_pipeline_cache_item_t* item = &pipeline_cache.items[i];
 		if (item->shader_id == shader_id &&
 			_mtl_blend_states_eq(&item->blend_state, blend_state) &&
-			item->index_buffer_type_id == bindings->index_buffer->type_id &&
+			(bindings->index_buffer == nil || item->index_buffer_type_id == bindings->index_buffer->type_id) &&
 			(item->vertex_buffer_type_ids[0] == bindings->vertex_buffers[0]->type_id) &&
 			(bindings->vertex_buffers[1] == nil || item->vertex_buffer_type_ids[1] == bindings->vertex_buffers[1]->type_id) &&
 			(bindings->vertex_buffers[2] == nil || item->vertex_buffer_type_ids[2] == bindings->vertex_buffers[2]->type_id) &&
@@ -221,7 +221,7 @@ static mtl_idpool_t idpool;
 	item->blend_state.color[2] = blend_state->color[2];
 	item->blend_state.color[3] = blend_state->color[3];
 
-	item->index_buffer_type_id = bindings->index_buffer->type_id;
+	item->index_buffer_type_id = bindings->index_buffer != nil ? bindings->index_buffer->type_id : 0;
 	for (int i = 0; i < 4; i++)
 		item->vertex_buffer_type_ids[i] = bindings->vertex_buffers[i] != nil ? bindings->vertex_buffers[i]->type_id : 0;
 }

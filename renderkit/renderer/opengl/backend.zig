@@ -272,7 +272,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     cache.bindImage(0, 0);
 }
 
-
 // offscreen pass
 const GLPass = struct {
     framebuffer_tid: GLuint,
@@ -505,16 +504,18 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, data: []const T) u32 {
 }
 
 // bindings and drawing
-// TODO: this feels a little bit janky
+// TODO: this feels a little bit janky, storing just the index buffer offset here
 var cur_ib_offset: c_int = 0;
 
 pub fn applyBindings(bindings: BufferBindings) void {
     if (cur_bindings.eq(bindings)) return;
     cur_bindings = bindings;
 
-    var ibuffer = buffer_cache.get(bindings.index_buffer);
-    cache.bindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
-    cur_ib_offset = @intCast(c_int, bindings.index_buffer_offset);
+    if (bindings.index_buffer != 0) {
+        var ibuffer = buffer_cache.get(bindings.index_buffer);
+        cache.bindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
+        cur_ib_offset = @intCast(c_int, bindings.index_buffer_offset);
+    }
 
     var vert_attr_index: GLuint = 0;
     for (bindings.vert_buffers) |buff, i| {
@@ -535,15 +536,24 @@ pub fn applyBindings(bindings: BufferBindings) void {
 }
 
 pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) void {
-    const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
-
-    const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
-    var ib_offset = @intCast(usize, base_element * i_size + cur_ib_offset);
-
-    if (instance_count <= 1) {
-        glDrawElements(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset));
+    if (cur_bindings.index_buffer == 0) {
+        // no index buffer, so we draw non-indexed
+        if (instance_count <= 1) {
+            glDrawArrays(GL_TRIANGLES, base_element, element_count);
+        } else {
+            glDrawArraysInstanced(GL_TRIANGLE_FAN, base_element, element_count, instance_count);
+        }
     } else {
-        glDrawElementsInstanced(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset), instance_count);
+        const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
+
+        const i_size: c_int = if (ibuffer.index_buffer_type == GL_UNSIGNED_SHORT) 2 else 4;
+        var ib_offset = @intCast(usize, base_element * i_size + cur_ib_offset);
+
+        if (instance_count <= 1) {
+            glDrawElements(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset));
+        } else {
+            glDrawElementsInstanced(GL_TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*GLvoid, ib_offset), instance_count);
+        }
     }
 }
 

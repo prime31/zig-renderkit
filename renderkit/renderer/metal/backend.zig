@@ -57,7 +57,6 @@ pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
     mtl_update_image(img.*, content.ptr);
 }
 
-
 // passes
 pub fn createPass(desc: PassDesc) Pass {
     const pass = mtl_create_pass(MtlPassDesc.init(desc));
@@ -306,7 +305,7 @@ const MtlBufferBindings = extern struct {
 
     pub fn init(bindings: BufferBindings) MtlBufferBindings {
         var mtl_bindings = MtlBufferBindings{
-            .index_buffer = buffer_cache.get(bindings.index_buffer).*,
+            .index_buffer = if (bindings.index_buffer != 0) buffer_cache.get(bindings.index_buffer).* else null,
             .index_buffer_offset = bindings.index_buffer_offset,
         };
 

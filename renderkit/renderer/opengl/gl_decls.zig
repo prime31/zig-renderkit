@@ -98,6 +98,7 @@ const Funcs = struct {
     glDrawElements: fn (GLenum, GLsizei, GLenum, ?*const c_void) void,
     glDrawElementsInstanced: fn (GLenum, GLsizei, GLenum, ?*const c_void, GLsizei) void,
     glDrawArrays: fn (GLenum, GLint, GLsizei) void,
+    glDrawArraysInstanced: fn (GLenum, GLint, GLsizei, GLsizei) void,
 
     glGenFramebuffers: fn (GLsizei, [*c]GLuint) void,
     glDeleteFramebuffers: fn (GLsizei, [*c]const GLuint) void,
@@ -414,6 +415,10 @@ pub fn glDrawElementsInstanced(mode: GLenum, count: GLsizei, kind: GLenum, indic
 
 pub fn glDrawArrays(mode: GLenum, first: GLint, count: GLsizei) void {
     gl.glDrawArrays(mode, first, count);
+}
+
+pub fn glDrawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, instance_count: GLsizei) void {
+    gl.glDrawArraysInstanced(mode, first, count, instance_count);
 }
 
 pub fn glGenFramebuffers(n: GLsizei, framebuffers: [*c]GLuint) void {
