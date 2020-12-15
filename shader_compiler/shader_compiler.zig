@@ -188,6 +188,7 @@ pub const ShaderCompileStep = struct {
             with_sep[rel_path_len] = '/';
             relative_path_from_package_to_shaders = with_sep;
         }
+
         for (parsed.shader_programs.items) |program| {
             if (std.mem.eql(u8, self.default_program_name, program.name)) continue;
             var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
@@ -207,7 +208,8 @@ pub const ShaderCompileStep = struct {
 
             const fs_reflection: ReflectionData = parsed.snippet_reflection_map.get(program.fs_snippet).?;
 
-            // only make a ShaderState for shaders with a frag uniform and no vert uniform
+            // TODO: support generating ShaderState for custom vert + custom frag shader setups
+            // only make a ShaderState for shaders with a frag uniform and the default vert shader
             if (program.has_default_vert_shader and fs_reflection.uniform_block != null) {
                 const uni_block = fs_reflection.uniform_block.?;
                 try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, uni_block.name });
@@ -222,7 +224,22 @@ pub const ShaderCompileStep = struct {
                 const vs_reflection: ReflectionData = parsed.snippet_reflection_map.get(program.vs_snippet).?;
 
                 const vs_uni_type = vs_reflection.uniform_block.?.name;
-                const fs_uni_type = if (fs_reflection.uniform_block) |uni_block| uni_block.name else "struct {}";
+                const fs_uni_type = if (fs_reflection.uniform_block) |uni_block| uni_block.name else blk: {
+                    // check for edge case: no frag uniform but more than one image. We need the `images` metadata so we use an anonymous struct
+                    if (fs_reflection.images.items.len > 0) {
+                        var img_array_list = std.ArrayList(u8).init(self.builder.allocator);
+                        var img_writer = img_array_list.writer();
+
+                        try img_writer.writeAll("struct { pub const metadata = .{ .images = .{ ");
+                        for (fs_reflection.images.items) |img, i| {
+                            try img_writer.print("\"{}\"", .{img.name});
+                            if (fs_reflection.images.items.len - 1 > i) try img_writer.writeAll(", ");
+                        }
+                        try img_writer.writeAll(" } }; }");
+                        break :blk img_array_list.items;
+                    }
+                    break :blk "struct {}";
+                };
 
                 try fn_writer.print("pub fn create{}Shader() !gfx.Shader {{\n", .{ name });
                 try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
