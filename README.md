@@ -48,7 +48,7 @@ Offscreen passes (commonly refered to as render targets or framebuffers).
 
 
 ### Render Loop
-These are the methods you will use in your main render loop. `beginPass` renderes to an offscreen pass and all offscreen rendering should be done first. Once all offscreen rendering is done drawing to the backbuffer is handled via `beginDefaultPass`. Each call to `beginPass/beginDefaultPass` should be followed by a matching call to `endPass`. Finally, when all rendering for the frame is done calling `commitFrame` flushes all the graphcis commands.
+These are the methods you will use in your main render loop. `beginPass` renders to an offscreen pass and all offscreen rendering should be done first. Once all offscreen rendering is done drawing to the backbuffer is handled via `beginDefaultPass`. Each call to `beginPass/beginDefaultPass` should be followed by a matching call to `endPass`. Finally, when all rendering for the frame is done calling `commitFrame` flushes all the graphics commands.
 
 `pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void`<br>
 `pub fn beginPass(pass: Pass, action: ClearCommand) void`<br>
