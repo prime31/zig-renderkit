@@ -202,7 +202,7 @@ const MtlBufferDesc = extern struct {
 
                 switch (@typeInfo(field.field_type)) {
                     .Int => |type_info| {
-                        if (type_info.is_signed) {
+                        if (type_info.signedness == .signed) {
                             unreachable;
                         } else {
                             switch (type_info.bits) {
