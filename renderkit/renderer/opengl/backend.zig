@@ -397,7 +397,7 @@ pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
 
                     switch (@typeInfo(field.field_type)) {
                         .Int => |type_info| {
-                            if (type_info.is_signed) {
+                            if (type_info.signedness == .signed) {
                                 unreachable;
                             } else {
                                 switch (type_info.bits) {
