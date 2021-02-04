@@ -173,7 +173,7 @@ pub const ShaderCompileStep = struct {
         var fn_writer = fn_array_list.writer();
 
         if (self.additional_imports) |imports| {
-            for (imports) |import| try writer.print("{}\n", .{import});
+            for (imports) |import| try writer.print("{s}\n", .{import});
         }
         try writer.writeAll("\n");
 
@@ -212,12 +212,12 @@ pub const ShaderCompileStep = struct {
             // only make a ShaderState for shaders with a frag uniform and the default vert shader
             if (program.has_default_vert_shader and fs_reflection.uniform_block != null) {
                 const uni_block = fs_reflection.uniform_block.?;
-                try writer.print("pub const {}Shader = gfx.ShaderState({});\n", .{ name, uni_block.name });
+                try writer.print("pub const {s}Shader = gfx.ShaderState({s});\n", .{ name, uni_block.name });
 
                 // write out creation helper functions
-                try fn_writer.print("pub fn create{0}Shader() {0}Shader {{\n", .{ name });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
-                try fn_writer.print("    return {0}Shader.init(.{{ .frag = frag, .onPostBind = {0}Shader.onPostBind }});\n", .{name});
+                try fn_writer.print("pub fn create{s}Shader() {s}Shader {{\n", .{ name, name });
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,relative_path_from_package_to_shaders, program.fs });
+                try fn_writer.print("    return {s}Shader.init(.{{ .frag = frag, .onPostBind = {s}Shader.onPostBind }});\n", .{name, name});
                 try fn_writer.writeAll("}\n\n");
             } else {
                 // we have a non-default vert shader is all we know here, frag could have a uniform or not
@@ -232,7 +232,7 @@ pub const ShaderCompileStep = struct {
 
                         try img_writer.writeAll("struct { pub const metadata = .{ .images = .{ ");
                         for (fs_reflection.images.items) |img, i| {
-                            try img_writer.print("\"{}\"", .{img.name});
+                            try img_writer.print("\"{s}\"", .{img.name});
                             if (fs_reflection.images.items.len - 1 > i) try img_writer.writeAll(", ");
                         }
                         try img_writer.writeAll(" } }; }");
@@ -241,10 +241,10 @@ pub const ShaderCompileStep = struct {
                     break :blk "struct {}";
                 };
 
-                try fn_writer.print("pub fn create{}Shader() !gfx.Shader {{\n", .{ name });
-                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0}{1}.glsl\") else @embedFile(\"{0}{1}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
-                try fn_writer.print("    return try gfx.Shader.initWithVertFrag({}, {}, .{{ .frag = frag, .vert = vert }});\n", .{vs_uni_type, fs_uni_type});
+                try fn_writer.print("pub fn create{s}Shader() !gfx.Shader {{\n", .{ name });
+                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs,relative_path_from_package_to_shaders, program.vs  });
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,relative_path_from_package_to_shaders, program.fs  });
+                try fn_writer.print("    return try gfx.Shader.initWithVertFrag({s}, {s}, .{{ .frag = frag, .vert = vert }});\n", .{vs_uni_type, fs_uni_type});
                 try fn_writer.writeAll("}\n\n");
             }
         }
@@ -316,7 +316,7 @@ pub const ShaderCompileStep = struct {
         const next_align16 = nextHighestAlign16(block.size);
         // warn("{}, size: {}, aligned size: {}", .{ block.name, block.size, next_align16 });
 
-        try writer.print("pub const {} = extern struct {{\n", .{block.name});
+        try writer.print("pub const {s} = extern struct {{\n", .{block.name});
 
         // struct metadata
         try writer.writeAll("    pub const metadata = .{\n");
@@ -326,13 +326,13 @@ pub const ShaderCompileStep = struct {
             try writer.writeAll("        .images = .{ ");
             for (reflection.images.items) |img, i| {
                 if (i > 0) try writer.writeAll(", ");
-                try writer.print("\"{}\"", .{img.name});
+                try writer.print("\"{s}\"", .{img.name});
             }
             try writer.writeAll(" },\n");
         }
 
         // uniforms, always float4 so not much to do here
-        try writer.print("        .uniforms = .{{ .{} = .{{ .type = .float4, .array_count = {} }} }},\n", .{ block.name, @divExact(next_align16, 16) });
+        try writer.print("        .uniforms = .{{ .{s} = .{{ .type = .float4, .array_count = {} }} }},\n", .{ block.name, @divExact(next_align16, 16) });
 
         // end metadata
         try writer.writeAll("    };\n\n");
@@ -347,7 +347,7 @@ pub const ShaderCompileStep = struct {
                 try writer.print("    _pad{}_{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(potential_pad, next_align16), pad_cnt, potential_pad, potential_pad });
                 pad_cnt += 1;
             }
-            try writer.print("    {}: {},\n", .{ uni.name, uni.type.zigType(uni.array_count, parsed) });
+            try writer.print("    {s}: {s},\n", .{ uni.name, uni.type.zigType(uni.array_count, parsed) });
 
             // generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
             // specs and also pad them out correctly. Only floats are suported for struct members because of this.
