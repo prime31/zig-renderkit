@@ -371,7 +371,7 @@ pub const ShdcParser = struct {
                     } else if (std.mem.eql(u8, name, "vec3")) {
                         self.float3_type = try std.mem.dupe(self.allocator, u8, replacement);
                     } else {
-                        std.debug.warn("unsupported type map found! {}\n", .{name});
+                        std.debug.warn("unsupported type map found! {s}\n", .{name});
                     }
                 }
             }
@@ -389,7 +389,7 @@ pub const ShdcParser = struct {
 
                 if (!self.snippet_reflection_map.contains(snippet_id)) {
                     const stage_name = if (uni_block) |uni| uni.name else null;
-                    std.debug.warn("snippet id: {}, stage: {}, uniform name: {}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
+                    std.debug.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
                 }
 
                 reflection.uniform_block = uni_block;
