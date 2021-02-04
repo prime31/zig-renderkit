@@ -216,8 +216,8 @@ pub const ShaderCompileStep = struct {
 
                 // write out creation helper functions
                 try fn_writer.print("pub fn create{s}Shader() {s}Shader {{\n", .{ name, name });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,relative_path_from_package_to_shaders, program.fs });
-                try fn_writer.print("    return {s}Shader.init(.{{ .frag = frag, .onPostBind = {s}Shader.onPostBind }});\n", .{name, name});
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,});
+                try fn_writer.print("    return {0s}Shader.init(.{{ .frag = frag, .onPostBind = {0s}Shader.onPostBind }});\n", .{name});
                 try fn_writer.writeAll("}\n\n");
             } else {
                 // we have a non-default vert shader is all we know here, frag could have a uniform or not
@@ -242,8 +242,8 @@ pub const ShaderCompileStep = struct {
                 };
 
                 try fn_writer.print("pub fn create{s}Shader() !gfx.Shader {{\n", .{ name });
-                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs,relative_path_from_package_to_shaders, program.vs  });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{s}{s}.glsl\") else @embedFile(\"{s}{s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,relative_path_from_package_to_shaders, program.fs  });
+                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
                 try fn_writer.print("    return try gfx.Shader.initWithVertFrag({s}, {s}, .{{ .frag = frag, .vert = vert }});\n", .{vs_uni_type, fs_uni_type});
                 try fn_writer.writeAll("}\n\n");
             }
