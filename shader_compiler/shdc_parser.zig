@@ -132,16 +132,16 @@ const UniformType = enum {
                 return print("[{0}]f32 = [_]f32{{0}} ** {0}", .{array_count});
             },
             .float2 => {
-                if (array_count == 1) return print("{} = .{{}}", .{shdr_compiler.float2_type});
-                return print("[{}]{}", .{ array_count, shdr_compiler.float2_type });
+                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.float2_type});
+                return print("[{d}]{s}", .{ array_count, shdr_compiler.float2_type });
             },
             .float3 => {
-                if (array_count == 1) return print("{} = .{{}}", .{shdr_compiler.float3_type});
-                return print("[{}]{}", .{ array_count, shdr_compiler.float3_type });
+                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.float3_type});
+                return print("[{d}]{s}", .{ array_count, shdr_compiler.float3_type });
             },
             .float4 => {
                 if (array_count == 1) return print("[4]f32 = [_]f32{{0}} ** 4", .{});
-                return print("[{}]f32 = [_]f32{{0}} ** {}", .{ array_count * 4, array_count * 4 });
+                return print("[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
             },
         };
     }

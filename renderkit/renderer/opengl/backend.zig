@@ -78,7 +78,7 @@ fn checkShaderError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("shader compilation error:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("shader compilation error:\n{s}", .{buf[0..@intCast(usize, total_len)]});
         return false;
     }
     return true;
@@ -96,7 +96,7 @@ fn checkProgramError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("program link error:\n{}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("program link error:\n{s}", .{buf[0..@intCast(usize, total_len)]});
         return false;
     }
     return true;
@@ -616,7 +616,7 @@ pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: t
                     glUniform1i(loc, image_slot);
                     image_slot += 1;
                 } else {
-                    std.debug.print("Could not find uniform for image [{}]!\n", .{img});
+                    std.debug.print("Could not find uniform for image [{s}]!\n", .{img});
                 }
             }
         }
@@ -629,13 +629,13 @@ pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: t
             const uniforms = @field(UniformT.metadata, "uniforms");
             inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
                 uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
-                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
+                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{s}] not found!\n", .{field.name});
             }
         } else {
             // cache a uniform for each struct fields. It is prefered to use the `metadata` approach above but this path is supported as well.
             inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
                 uniform_cache[i] = glGetUniformLocation(id, field.name ++ "\x00");
-                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{}] not found!\n", .{field.name});
+                if (std.builtin.mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{s}] not found!\n", .{field.name});
             }
         }
     }
