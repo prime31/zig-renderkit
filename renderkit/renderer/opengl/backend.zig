@@ -508,7 +508,6 @@ pub fn appendBuffer(comptime T: type, buffer: Buffer, data: []const T) u32 {
 var cur_ib_offset: c_int = 0;
 
 pub fn applyBindings(bindings: BufferBindings) void {
-    if (cur_bindings.eq(bindings)) return;
     cur_bindings = bindings;
 
     if (bindings.index_buffer != 0) {
