@@ -22,9 +22,7 @@ pub const ShaderProgram = struct {
     has_default_vert_shader: bool = false,
 };
 
-const ShaderStage = enum {
-    vs, fs
-};
+const ShaderStage = enum { vs, fs };
 
 pub const ReflectionData = struct {
     stage: ShaderStage = undefined,
@@ -32,9 +30,9 @@ pub const ReflectionData = struct {
     images: std.ArrayList(Image),
     inputs: std.ArrayList(ShaderAttribute),
     outputs: std.ArrayList(ShaderAttribute),
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
-    pub fn init(allocator: *std.mem.Allocator) ReflectionData {
+    pub fn init(allocator: std.mem.Allocator) ReflectionData {
         return .{
             .images = std.ArrayList(Image).init(allocator),
             .inputs = std.ArrayList(ShaderAttribute).init(allocator),
@@ -59,7 +57,7 @@ pub const ReflectionData = struct {
         }
 
         try self.images.append(.{
-            .name = try std.mem.dupe(self.allocator, u8, name),
+            .name = try self.allocator.dupe(u8, name),
             .slot = slot,
         });
     }
@@ -68,7 +66,7 @@ pub const ReflectionData = struct {
         // uv_in: slot=1, sem_name=TEXCOORD, sem_index=1
         const name = line[0..std.mem.indexOfScalar(u8, line, ':').?];
 
-        var iter = std.mem.split(line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..], "=");
+        var iter = std.mem.split(u8, line[std.mem.indexOfScalar(u8, line, ':').? + 2 ..], "=");
         _ = iter.next();
         const slot_str = iter.next().?;
         const slot = try std.fmt.parseUnsigned(u32, slot_str[0..std.mem.indexOf(u8, slot_str, ",").?], 10);
@@ -80,9 +78,9 @@ pub const ReflectionData = struct {
 
         var storage = if (is_input) &self.inputs else &self.outputs;
         try storage.append(.{
-            .name = try std.mem.dupe(self.allocator, u8, name),
+            .name = try self.allocator.dupe(u8, name),
             .slot = slot,
-            .sem_name = try std.mem.dupe(self.allocator, u8, sem_name),
+            .sem_name = try self.allocator.dupe(u8, sem_name),
             .sem_index = sem_index,
         });
     }
@@ -165,7 +163,7 @@ pub const UniformBlock = struct {
     size: u32,
     uniforms: std.ArrayList(Uniform),
 
-    pub fn init(allocator: *std.mem.Allocator, line: []const u8) !UniformBlock {
+    pub fn init(allocator: std.mem.Allocator, line: []const u8) !UniformBlock {
         var colon_index = std.mem.indexOfScalar(u8, line, ':').? + 2;
         var comma_index = std.mem.indexOfScalarPos(u8, line, colon_index, ',').?;
         var name = line[colon_index..comma_index];
@@ -180,7 +178,7 @@ pub const UniformBlock = struct {
         const size = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
 
         return UniformBlock{
-            .name = try std.mem.dupe(allocator, u8, name),
+            .name = try allocator.dupe(u8, name),
             .slot = slot,
             .size = size,
             .uniforms = std.ArrayList(Uniform).init(allocator),
@@ -207,7 +205,7 @@ pub const UniformBlock = struct {
         const offset = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
 
         try self.uniforms.append(.{
-            .name = try std.mem.dupe(std.testing.allocator, u8, name),
+            .name = try std.testing.allocator.dupe(u8, name),
             .type = UniformType.fromStr(kind),
             .array_count = array_count,
             .offset = offset,
@@ -228,9 +226,9 @@ pub const ShdcParser = struct {
     shader_programs: std.ArrayList(ShaderProgram),
     /// map of the snippet id to the reflection data block
     snippet_reflection_map: std.AutoHashMap(u8, ReflectionData),
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
 
-    pub fn init(allocator: *std.mem.Allocator, float2_type: []const u8, float3_type: []const u8) ShdcParser {
+    pub fn init(allocator: std.mem.Allocator, float2_type: []const u8, float3_type: []const u8) ShdcParser {
         return .{
             .float2_type = float2_type,
             .float3_type = float3_type,
@@ -264,7 +262,7 @@ pub const ShdcParser = struct {
                 } else if (std.mem.indexOf(u8, line_trimmed, "reflection for snippet") != null) {
                     parse_state = .reflection;
 
-                    const shader_id = try std.mem.dupe(self.allocator, u8, line_trimmed[std.mem.indexOf(u8, line_trimmed, "snippet").? + 8 .. std.mem.indexOfScalar(u8, line_trimmed, ':').?]);
+                    const shader_id = try self.allocator.dupe(u8, line_trimmed[std.mem.indexOf(u8, line_trimmed, "snippet").? + 8 .. std.mem.indexOfScalar(u8, line_trimmed, ':').?]);
 
                     // save this for later so we can associate a ReflectionData with the snippet id
                     snippet_id = try std.fmt.parseUnsigned(u8, shader_id, 10);
@@ -331,9 +329,9 @@ pub const ShdcParser = struct {
                         if (std.mem.indexOf(u8, line2_trimmed, "programs:") != null) {
                             inner_state = .programs;
                         } else if (std.mem.indexOf(u8, line2_trimmed, " => ") != null) {
-                            var iter = std.mem.split(line2_trimmed, "=>");
-                            const key = try std.mem.dupe(self.allocator, u8, std.mem.trim(u8, iter.next().?, " "));
-                            var val = try std.mem.dupe(self.allocator, u8, std.mem.trim(u8, iter.next().?, " "));
+                            var iter = std.mem.split(u8, line2_trimmed, "=>");
+                            const key = try self.allocator.dupe(u8, std.mem.trim(u8, iter.next().?, " "));
+                            var val = try self.allocator.dupe(u8, std.mem.trim(u8, iter.next().?, " "));
                             val = val[std.mem.indexOf(u8, val, " ").? + 1 ..];
                             try self.snippet_map.put(key, try std.fmt.parseUnsigned(u8, val, 10));
                             // std.debug.warn("-- snip: {} => {}\n", .{ key, val });
@@ -342,16 +340,16 @@ pub const ShdcParser = struct {
                         // start a new program
                         if (std.mem.indexOf(u8, line2_trimmed, "program ")) |prog_index| {
                             const name = line2_trimmed[prog_index + 8 .. std.mem.indexOf(u8, line2_trimmed, ":").?];
-                            program = .{ .name = try std.mem.dupe(self.allocator, u8, name) };
+                            program = .{ .name = try self.allocator.dupe(u8, name) };
                         } else if (std.mem.indexOf(u8, line2_trimmed, "line_index") != null) { // end the program
                             try self.shader_programs.append(program);
                         } else if (std.mem.indexOf(u8, line2_trimmed, "vs:")) |vs_index| {
                             const name = line2_trimmed[vs_index + 4 ..];
-                            program.vs = try std.mem.dupe(self.allocator, u8, name);
+                            program.vs = try self.allocator.dupe(u8, name);
                             program.vs_snippet = self.snippet_map.get(name).?;
                         } else if (std.mem.indexOf(u8, line2_trimmed, "fs:")) |vs_index| {
                             const name = line2_trimmed[vs_index + 4 ..];
-                            program.fs = try std.mem.dupe(self.allocator, u8, name);
+                            program.fs = try self.allocator.dupe(u8, name);
                             program.fs_snippet = self.snippet_map.get(name).?;
                         }
                     }
@@ -367,11 +365,11 @@ pub const ShdcParser = struct {
                     var replacement = line_trimmed[colon_index + 2 ..];
 
                     if (std.mem.eql(u8, name, "vec2")) {
-                        self.float2_type = try std.mem.dupe(self.allocator, u8, replacement);
+                        self.float2_type = try self.allocator.dupe(u8, replacement);
                     } else if (std.mem.eql(u8, name, "vec3")) {
-                        self.float3_type = try std.mem.dupe(self.allocator, u8, replacement);
+                        self.float3_type = try self.allocator.dupe(u8, replacement);
                     } else {
-                        std.debug.warn("unsupported type map found! {s}\n", .{name});
+                        std.log.warn("unsupported type map found! {s}\n", .{name});
                     }
                 }
             }
@@ -389,7 +387,7 @@ pub const ShdcParser = struct {
 
                 if (!self.snippet_reflection_map.contains(snippet_id)) {
                     const stage_name = if (uni_block) |uni| uni.name else null;
-                    std.debug.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
+                    std.log.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
                 }
 
                 reflection.uniform_block = uni_block;

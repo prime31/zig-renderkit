@@ -17,11 +17,11 @@ pub fn Handles(comptime HandleType: type, comptime IndexType: type, comptime Ver
         handles: []HandleType,
         append_cursor: IndexType = 1, // reserve 0 for invalid
         last_destroyed: ?IndexType = null,
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
 
         const invalid_id = std.math.maxInt(IndexType);
 
-        pub fn init(allocator: *std.mem.Allocator, capacity: usize) Self {
+        pub fn init(allocator: std.mem.Allocator, capacity: usize) Self {
             return Self{
                 .handles = allocator.alloc(HandleType, capacity) catch unreachable,
                 .allocator = allocator,
@@ -33,10 +33,12 @@ pub fn Handles(comptime HandleType: type, comptime IndexType: type, comptime Ver
         }
 
         pub fn extractIndex(self: Self, handle: HandleType) IndexType {
+            _ = self;
             return @truncate(IndexType, handle);
         }
 
         pub fn extractVersion(self: Self, handle: HandleType) VersionType {
+            _ = self;
             return @truncate(VersionType, handle >> @bitSizeOf(IndexType));
         }
 
@@ -95,7 +97,7 @@ pub fn HandledCache(comptime T: type) type {
         items: []T,
         handles: Handles(u16, u8, u8),
 
-        pub fn init(allocator: *std.mem.Allocator, capacity: usize) @This() {
+        pub fn init(allocator: std.mem.Allocator, capacity: usize) @This() {
             return .{
                 .items = allocator.alloc(T, capacity) catch unreachable,
                 .handles = Handles(u16, u8, u8).init(allocator, capacity),

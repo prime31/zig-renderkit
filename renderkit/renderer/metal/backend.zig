@@ -1,6 +1,8 @@
 const std = @import("std");
-usingnamespace @import("../types.zig");
-usingnamespace @import("../descriptions.zig");
+const types = @import("../types.zig");
+usingnamespace types;
+const descriptions = @import("../descriptions.zig");
+usingnamespace descriptions;
 
 const HandledCache = @import("../handles.zig").HandledCache;
 const num_in_flight_frames: usize = 1;
@@ -10,7 +12,7 @@ var pass_cache: HandledCache(*MtlPass) = undefined;
 var buffer_cache: HandledCache(*MtlBuffer) = undefined;
 var shader_cache: HandledCache(*MtlShader) = undefined;
 
-pub fn setup(desc: RendererDesc) void {
+pub fn setup(desc: descriptions.RendererDesc) void {
     image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture * num_in_flight_frames);
     pass_cache = HandledCache(*MtlPass).init(desc.allocator, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
     buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers * num_in_flight_frames);
@@ -29,7 +31,7 @@ pub fn shutdown() void {
     mtl_shutdown();
 }
 
-pub fn setRenderState(state: RenderState) void {
+pub fn setRenderState(state: types.RenderState) void {
     mtl_set_render_state(state);
 }
 
@@ -42,37 +44,37 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
 }
 
 // images
-pub fn createImage(desc: ImageDesc) Image {
+pub fn createImage(desc: descriptions.ImageDesc) types.Image {
     const img = mtl_create_image(desc);
     return image_cache.append(img);
 }
 
-pub fn destroyImage(image: Image) void {
+pub fn destroyImage(image: types.Image) void {
     var img = image_cache.free(image);
     mtl_destroy_image(img.*);
 }
 
-pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
+pub fn updateImage(comptime T: type, image: types.Image, content: []const T) void {
     var img = image_cache.get(image);
     mtl_update_image(img.*, content.ptr);
 }
 
 // passes
-pub fn createPass(desc: PassDesc) Pass {
+pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     const pass = mtl_create_pass(MtlPassDesc.init(desc));
     return pass_cache.append(pass);
 }
 
-pub fn destroyPass(pass: Pass) void {
+pub fn destroyPass(pass: types.Pass) void {
     var p = pass_cache.free(pass);
     mtl_destroy_pass(p.*);
 }
 
-pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
+pub fn beginDefaultPass(action: types.ClearCommand, width: c_int, height: c_int) void {
     mtl_begin_pass(null, action, width, height);
 }
 
-pub fn beginPass(pass: Pass, action: ClearCommand) void {
+pub fn beginPass(pass: types.Pass, action: types.ClearCommand) void {
     var p = pass_cache.get(pass);
     mtl_begin_pass(p.*, action, -1, -1);
 }
@@ -86,50 +88,50 @@ pub fn commitFrame() void {
 }
 
 // buffers
-pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
+pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Buffer {
     const buffer = mtl_create_buffer(MtlBufferDesc.init(T, desc));
     return buffer_cache.append(buffer);
 }
 
-pub fn destroyBuffer(buffer: Buffer) void {
+pub fn destroyBuffer(buffer: types.Buffer) void {
     var buff = buffer_cache.free(buffer);
     mtl_destroy_buffer(buff.*);
 }
 
-pub fn updateBuffer(comptime T: type, buffer: Buffer, verts: []const T) void {
+pub fn updateBuffer(comptime T: type, buffer: types.Buffer, verts: []const T) void {
     var buff = buffer_cache.get(buffer);
     mtl_update_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
 
-pub fn appendBuffer(comptime T: type, buffer: Buffer, verts: []const T) u32 {
+pub fn appendBuffer(comptime T: type, buffer: types.Buffer, verts: []const T) u32 {
     var buff = buffer_cache.get(buffer);
     return mtl_append_buffer(buff.*, verts.ptr, @intCast(u32, verts.len * @sizeOf(T)));
 }
 
 // shaders
-pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: descriptions.ShaderDesc) types.ShaderProgram {
     const shader = mtl_create_shader(MtlShaderDesc.init(VertUniformT, FragUniformT, desc));
     return shader_cache.append(shader);
 }
 
-pub fn destroyShaderProgram(shader: ShaderProgram) void {
+pub fn destroyShaderProgram(shader: types.ShaderProgram) void {
     var shd = shader_cache.free(shader);
     mtl_destroy_shader(shd.*);
 }
 
-pub fn useShaderProgram(shader: ShaderProgram) void {
+pub fn useShaderProgram(shader: types.ShaderProgram) void {
     var shdr = shader_cache.get(shader);
     mtl_use_shader(shdr.*);
 }
 
-pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
+pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: types.ShaderProgram, stage: types.ShaderStage, value: *UniformT) void {
     var shdr = shader_cache.get(shader);
     var data = std.mem.asBytes(value);
     mtl_set_shader_uniform_block(shdr.*, stage, data, @intCast(c_int, @sizeOf(UniformT)));
 }
 
 // bindings and drawing
-pub fn applyBindings(bindings: BufferBindings) void {
+pub fn applyBindings(bindings: types.BufferBindings) void {
     mtl_apply_bindings(MtlBufferBindings.init(bindings));
 }
 
@@ -139,7 +141,7 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 
 // C api
 // we need these due to the normal descriptors either being generic or not able to be extern
-const MtlVertexFormat = extern enum {
+const MtlVertexFormat = enum(c_int) {
     float,
     float2,
     float3,
@@ -147,7 +149,7 @@ const MtlVertexFormat = extern enum {
     u_byte_4n,
 };
 
-const MtlIndexType = extern enum {
+const MtlIndexType = enum(c_int) {
     uint16,
     uint32,
 };
@@ -159,14 +161,14 @@ const MtlVertexAttribute = extern struct {
 
 const MtlVertexLayout = extern struct {
     stride: c_int = 0,
-    step_func: VertexStep = .per_vertex,
+    step_func: types.VertexStep = .per_vertex,
 };
 
 const MtlBufferDesc = extern struct {
     size: c_long = 0, // either size (for stream buffers) or content (for static/dynamic) must be set
-    type: BufferType = .vertex,
+    type: types.BufferType = .vertex,
     type_id: u8,
-    usage: Usage = .immutable,
+    usage: types.Usage = .immutable,
     content: ?*const c_void = null,
     index_type: MtlIndexType = .uint16,
     vertex_layout: [4]MtlVertexLayout,
@@ -177,6 +179,7 @@ const MtlBufferDesc = extern struct {
     /// registered vertex types. this provides a way for us to send a unique id for each vertex type that can be used
     /// on the C side to identify a vertex buffer
     fn typeHandle(comptime T: type) *u8 {
+        _ = T;
         return &(struct {
             pub var handle: u8 = std.math.maxInt(u8);
         }.handle);
@@ -192,13 +195,13 @@ const MtlBufferDesc = extern struct {
         return handle.*;
     }
 
-    pub fn init(comptime T: type, buffer_desc: BufferDesc(T)) MtlBufferDesc {
+    pub fn init(comptime T: type, buffer_desc: descriptions.BufferDesc(T)) MtlBufferDesc {
         var vertex_attrs: [8]MtlVertexAttribute = [_]MtlVertexAttribute{.{}} ** 8;
 
         if (@typeInfo(T) == .Struct) {
             var attr_index: usize = 0;
             inline for (@typeInfo(T).Struct.fields) |field, i| {
-                const offset: c_int = if (i == 0) 0 else @byteOffsetOf(T, field.name);
+                const offset: c_int = if (i == 0) 0 else @offsetOf(T, field.name);
 
                 switch (@typeInfo(field.field_type)) {
                     .Int => |type_info| {
@@ -268,7 +271,7 @@ const MtlPassDesc = extern struct {
     color_img: ?*MtlImage,
     depth_stencil_img: ?*MtlImage = null,
 
-    pub fn init(desc: PassDesc) MtlPassDesc {
+    pub fn init(desc: descriptions.PassDesc) MtlPassDesc {
         var mtl_desc = MtlPassDesc{
             .color_img = image_cache.get(desc.color_img).*,
         };
@@ -286,7 +289,7 @@ const MtlShaderDesc = extern struct {
     vs_uniform_size: u32,
     fs_uniform_size: u32,
 
-    pub fn init(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) MtlShaderDesc {
+    pub fn init(comptime VertUniformT: type, comptime FragUniformT: type, desc: descriptions.ShaderDesc) MtlShaderDesc {
         return .{
             .vs = desc.vs,
             .fs = desc.fs,
@@ -303,7 +306,7 @@ const MtlBufferBindings = extern struct {
     vertex_buffer_offsets: [4]u32 = [_]u32{0} ** 4,
     images: [8]?*MtlImage = [_]?*MtlImage{null} ** 8,
 
-    pub fn init(bindings: BufferBindings) MtlBufferBindings {
+    pub fn init(bindings: types.BufferBindings) MtlBufferBindings {
         var mtl_bindings = MtlBufferBindings{
             .index_buffer = if (bindings.index_buffer != 0) buffer_cache.get(bindings.index_buffer).* else null,
             .index_buffer_offset = bindings.index_buffer_offset,
@@ -331,20 +334,20 @@ const MtlBuffer = opaque {};
 const MtlPass = opaque {};
 const MtlShader = opaque {};
 
-extern fn mtl_setup(desc: RendererDesc) void;
+extern fn mtl_setup(desc: descriptions.RendererDesc) void;
 extern fn mtl_shutdown() void;
 
-extern fn mtl_set_render_state(state: RenderState) void;
+extern fn mtl_set_render_state(state: types.RenderState) void;
 extern fn mtl_viewport(x: c_int, y: c_int, w: c_int, h: c_int) void;
 extern fn mtl_scissor(x: c_int, y: c_int, w: c_int, h: c_int) void;
 
-extern fn mtl_create_image(desc: ImageDesc) *MtlImage;
+extern fn mtl_create_image(desc: descriptions.ImageDesc) *MtlImage;
 extern fn mtl_destroy_image(image: *MtlImage) void;
 extern fn mtl_update_image(image: *MtlImage, arg1: ?*const c_void) void;
 
 extern fn mtl_create_pass(desc: MtlPassDesc) *MtlPass;
 extern fn mtl_destroy_pass(pass: *MtlPass) void;
-extern fn mtl_begin_pass(pass: ?*MtlPass, arg0: ClearCommand, w: c_int, h: c_int) void;
+extern fn mtl_begin_pass(pass: ?*MtlPass, arg0: types.ClearCommand, w: c_int, h: c_int) void;
 extern fn mtl_end_pass() void;
 extern fn mtl_commit_frame() void;
 
@@ -356,7 +359,7 @@ extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size:
 extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;
 extern fn mtl_use_shader(shader: *MtlShader) void;
-extern fn mtl_set_shader_uniform_block(shader: *MtlShader, stage: ShaderStage, data: ?*const c_void, num_bytes: c_int) void;
+extern fn mtl_set_shader_uniform_block(shader: *MtlShader, stage: types.ShaderStage, data: ?*const c_void, num_bytes: c_int) void;
 
 extern fn mtl_apply_bindings(bindings: MtlBufferBindings) void;
 extern fn mtl_draw(base_element: c_int, element_count: c_int, instance_count: c_int) void;
