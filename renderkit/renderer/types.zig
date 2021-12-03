@@ -8,46 +8,46 @@ pub const ShaderProgram = u16;
 pub const Pass = u16;
 pub const Buffer = u16;
 
-pub const UniformType = extern enum {
+pub const UniformType = enum(c_int) {
     float,
     float2,
     float3,
     float4,
 };
 
-pub const TextureFilter = extern enum {
+pub const TextureFilter = enum(c_int) {
     nearest,
     linear,
 };
 
-pub const TextureWrap = extern enum {
+pub const TextureWrap = enum(c_int) {
     clamp,
     repeat,
 };
 
-pub const PixelFormat = extern enum {
+pub const PixelFormat = enum(c_int) {
     rgba8,
     stencil,
     depth_stencil,
 };
 
-pub const Usage = extern enum {
+pub const Usage = enum(c_int) {
     immutable,
     dynamic,
     stream,
 };
 
-pub const BufferType = extern enum {
+pub const BufferType = enum(c_int) {
     vertex,
     index,
 };
 
-pub const ShaderStage = extern enum {
+pub const ShaderStage = enum(c_int) {
     fs,
     vs,
 };
 
-pub const PrimitiveType = extern enum {
+pub const PrimitiveType = enum(c_int) {
     points,
     line_strip,
     lines,
@@ -55,13 +55,13 @@ pub const PrimitiveType = extern enum {
     triangles,
 };
 
-pub const ElementType = extern enum {
+pub const ElementType = enum(c_int) {
     u8,
     u16,
     u32,
 };
 
-pub const CompareFunc = extern enum {
+pub const CompareFunc = enum(c_int) {
     never,
     less,
     equal,
@@ -72,7 +72,7 @@ pub const CompareFunc = extern enum {
     always,
 };
 
-pub const StencilOp = extern enum {
+pub const StencilOp = enum(c_int) {
     keep,
     zero,
     replace,
@@ -83,7 +83,7 @@ pub const StencilOp = extern enum {
     decr_wrap,
 };
 
-pub const BlendFactor = extern enum {
+pub const BlendFactor = enum(c_int) {
     zero,
     one,
     src_color,
@@ -101,19 +101,19 @@ pub const BlendFactor = extern enum {
     one_minus_blend_alpha,
 };
 
-pub const BlendOp = extern enum {
+pub const BlendOp = enum(c_int) {
     add,
     subtract,
     reverse_subtract,
 };
 
-pub const ClearAction = extern enum {
+pub const ClearAction = enum(c_int) {
     clear,
     dont_care, // if all the render target pixels are rendered to, choose the DontCare action
     load, // if the previous contents of the render target need to be preserved and only some of its pixels are rendered to, choose the load action
 };
 
-pub const ColorMask = extern enum(u32) {
+pub const ColorMask = enum(u32) {
     none,
     r = (1 << 0),
     g = (1 << 1),

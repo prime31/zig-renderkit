@@ -39,7 +39,7 @@ pub const PassDesc = struct {
 };
 
 /// whether the pointer is advanced "per vertex" or "per instance". The latter is used for instanced rendering.
-pub const VertexStep = extern enum {
+pub const VertexStep = enum(c_int) {
     per_vertex,
     per_instance,
 };

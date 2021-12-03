@@ -10,7 +10,7 @@ const ReflectionData = @import("shdc_parser.zig").ReflectionData;
 const UniformBlock = @import("shdc_parser.zig").UniformBlock;
 
 fn warn(comptime format: []const u8, args: anytype) void {
-    std.debug.warn(format ++ "\n", args);
+    std.log.warn(format ++ "\n", args);
 }
 
 /// Utility functionality to help with compiling shaders from build.zig. Invokes sokol-shdc for each shader added via `addShader`.
@@ -93,7 +93,7 @@ pub const ShaderCompileStep = struct {
                 .dependencies = options.package_deps,
             };
         }
-        const shdc_binary = switch (std.builtin.os.tag) {
+        const shdc_binary = switch (@import("builtin").os.tag) {
             .macos => "sokol-shdc",
             .linux => "sokol-shdc-linux",
             .windows => "sokol-shdc.exe",
@@ -102,7 +102,7 @@ pub const ShaderCompileStep = struct {
 
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
-            .step = Step.init(.Custom, "shader-compile", builder.allocator, make),
+            .step = Step.init(.custom, "shader-compile", builder.allocator, make),
             .builder = builder,
             .shdc_cmd = &[_][]const u8{ "." ++ path.sep_str ++ prefix_path ++ "bin" ++ path.sep_str ++ shdc_binary, "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
             .shader = options.shader,
@@ -140,7 +140,7 @@ pub const ShaderCompileStep = struct {
         switch (res.term) {
             .Exited => |code| {
                 if (code != 0) {
-                    std.debug.warn("The following command exited with error code {}:\n", .{code});
+                    std.log.warn("The following command exited with error code {}:\n", .{code});
                     return error.UncleanExit;
                 }
 
@@ -155,7 +155,7 @@ pub const ShaderCompileStep = struct {
                 self.builder.allocator.free(res.stderr);
             },
             else => {
-                std.debug.warn("The following command terminated unexpectedly:\n", .{});
+                std.log.warn("The following command terminated unexpectedly:\n", .{});
                 return error.UncleanExit;
             },
         }
@@ -191,7 +191,7 @@ pub const ShaderCompileStep = struct {
 
         for (parsed.shader_programs.items) |program| {
             if (std.mem.eql(u8, self.default_program_name, program.name)) continue;
-            var name = try std.mem.dupe(self.builder.allocator, u8, program.name);
+            var name = try self.builder.allocator.dupe(u8, program.name);
             name[0] = std.ascii.toUpper(name[0]);
 
             // cleanup underscores in names by removing them and capitilizing the next letter
@@ -216,7 +216,10 @@ pub const ShaderCompileStep = struct {
 
                 // write out creation helper functions
                 try fn_writer.print("pub fn create{s}Shader() {s}Shader {{\n", .{ name, name });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs,});
+                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{
+                    relative_path_from_package_to_shaders,
+                    program.fs,
+                });
                 try fn_writer.print("    return {0s}Shader.init(.{{ .frag = frag, .onPostBind = {0s}Shader.onPostBind }});\n", .{name});
                 try fn_writer.writeAll("}\n\n");
             } else {
@@ -241,10 +244,10 @@ pub const ShaderCompileStep = struct {
                     break :blk "struct {}";
                 };
 
-                try fn_writer.print("pub fn create{s}Shader() !gfx.Shader {{\n", .{ name });
+                try fn_writer.print("pub fn create{s}Shader() !gfx.Shader {{\n", .{name});
                 try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
                 try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
-                try fn_writer.print("    return try gfx.Shader.initWithVertFrag({s}, {s}, .{{ .frag = frag, .vert = vert }});\n", .{vs_uni_type, fs_uni_type});
+                try fn_writer.print("    return try gfx.Shader.initWithVertFrag({s}, {s}, .{{ .frag = frag, .vert = vert }});\n", .{ vs_uni_type, fs_uni_type });
                 try fn_writer.writeAll("}\n\n");
             }
         }
@@ -255,7 +258,7 @@ pub const ShaderCompileStep = struct {
 
         var iter = parsed.snippet_reflection_map.iterator();
         while (iter.next()) |entry| {
-            const reflection: ReflectionData = entry.value;
+            const reflection: ReflectionData = entry.value_ptr.*;
             if (reflection.uniform_block) |uniform| {
                 try self.generateUniformBlockStruct(reflection, uniform, parsed, writer);
             }
@@ -275,12 +278,15 @@ pub const ShaderCompileStep = struct {
             return;
         };
 
-        var walker = try std.fs.walkPath(self.builder.allocator, self.shader_out_path[0 .. self.shader_out_path.len - 1]);
+        var dir_obj = try std.fs.cwd().openDir(self.shader_out_path[0 .. self.shader_out_path.len - 1], .{ .iterate = true });
+        defer dir_obj.close();
+        var walker = try dir_obj.walk(self.builder.allocator);
         defer walker.deinit();
 
         while (try walker.next()) |entry| {
             if (entry.kind != .File) continue;
             if (std.mem.indexOf(u8, entry.basename, "_vs")) |vs_index| {
+                _ = vs_index;
                 // if this shader isnt a unique vert program delete it
                 const shader_stage_name = entry.basename[0..std.mem.lastIndexOf(u8, entry.basename, ".").?];
                 const shader_name = shader_stage_name[0 .. shader_stage_name.len - 3];
@@ -313,6 +319,7 @@ pub const ShaderCompileStep = struct {
     /// generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
     /// specs and also pad them out correctly. Only floats are suported for struct members because of this.
     fn generateUniformBlockStruct(self: *ShaderCompileStep, reflection: ReflectionData, block: UniformBlock, parsed: *ShdcParser, writer: std.ArrayList(u8).Writer) !void {
+        _ = self;
         const next_align16 = nextHighestAlign16(block.size);
         // warn("{}, size: {}, aligned size: {}", .{ block.name, block.size, next_align16 });
 
@@ -361,7 +368,7 @@ pub const ShaderCompileStep = struct {
 
     /// custom exec because the normal one deadlocks due to the output being huge
     fn exec(args: struct {
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
         argv: []const []const u8,
         cwd: ?[]const u8 = null,
         cwd_dir: ?std.fs.Dir = null,

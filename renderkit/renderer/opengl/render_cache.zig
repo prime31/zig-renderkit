@@ -1,5 +1,8 @@
 const std = @import("std");
-usingnamespace @import("gl_decls.zig");
+const decls = @import("gl_decls.zig");
+// usingnamespace decls;
+const GLuint = decls.GLuint;
+const GLenum = decls.GLenum;
 
 pub const RenderCache = struct {
     vao: GLuint = 0,
@@ -15,62 +18,62 @@ pub const RenderCache = struct {
     pub fn bindVertexArray(self: *@This(), vao: GLuint) void {
         if (self.vao != vao) {
             self.vao = vao;
-            glBindVertexArray(vao);
+            decls.glBindVertexArray(vao);
         }
     }
 
     pub fn invalidateVertexArray(self: *@This(), vao: GLuint) void {
         if (self.vao == vao) {
             self.vao = 0;
-            glBindVertexArray(0);
+            decls.glBindVertexArray(0);
         }
     }
 
     pub fn bindBuffer(self: *@This(), target: GLenum, buffer: GLuint) void {
-        std.debug.assert(target == GL_ELEMENT_ARRAY_BUFFER or target == GL_ARRAY_BUFFER);
+        std.debug.assert(target == decls.GL_ELEMENT_ARRAY_BUFFER or target == decls.GL_ARRAY_BUFFER);
 
-        if (target == GL_ELEMENT_ARRAY_BUFFER) {
+        if (target == decls.GL_ELEMENT_ARRAY_BUFFER) {
             if (self.ebo != buffer) {
                 self.ebo = buffer;
-                glBindBuffer(target, buffer);
+                decls.glBindBuffer(target, buffer);
             }
         } else {
             if (self.vbo != buffer) {
                 self.vbo = buffer;
-                glBindBuffer(target, buffer);
+                decls.glBindBuffer(target, buffer);
             }
         }
     }
 
     /// forces a bind whether bound or not. Needed for creating Vertex Array Objects
     pub fn forceBindBuffer(self: *@This(), target: GLenum, buffer: GLuint) void {
-        std.debug.assert(target == GL_ELEMENT_ARRAY_BUFFER or target == GL_ARRAY_BUFFER);
+        std.debug.assert(target == decls.GL_ELEMENT_ARRAY_BUFFER or target == decls.GL_ARRAY_BUFFER);
 
-        if (target == GL_ELEMENT_ARRAY_BUFFER) {
+        if (target == decls.GL_ELEMENT_ARRAY_BUFFER) {
             self.ebo = buffer;
-            glBindBuffer(target, buffer);
+            decls.glBindBuffer(target, buffer);
         } else {
             self.vbo = buffer;
-            glBindBuffer(target, buffer);
+            decls.glBindBuffer(target, buffer);
         }
     }
 
     pub fn invalidateBuffer(self: *@This(), buffer: GLuint) void {
         if (self.ebo == buffer) {
             self.ebo = 0;
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            decls.glBindBuffer(decls.GL_ELEMENT_ARRAY_BUFFER, 0);
         }
         if (self.vbo == buffer) {
             self.vbo = 0;
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            decls.glBindBuffer(decls.GL_ARRAY_BUFFER, 0);
         }
     }
 
     pub fn bindImage(self: *@This(), tid: c_uint, slot: c_uint) void {
         if (self.textures[slot] != tid) {
             self.textures[slot] = tid;
-            glActiveTexture(GL_TEXTURE0 + slot);
-            glBindTexture(GL_TEXTURE_2D, tid);
+            decls.glActiveTexture(decls.GL_TEXTURE0 + slot);
+            decls.glBindTexture(decls.GL_TEXTURE_2D, tid);
         }
     }
 
@@ -78,8 +81,8 @@ pub const RenderCache = struct {
         for (self.textures) |*tex, i| {
             if (tex.* == tid) {
                 tex.* = 0;
-                glActiveTexture(GL_TEXTURE0 + @intCast(c_uint, i));
-                glBindTexture(GL_TEXTURE_2D, tid);
+                decls.glActiveTexture(decls.GL_TEXTURE0 + @intCast(c_uint, i));
+                decls.glBindTexture(decls.GL_TEXTURE_2D, tid);
             }
         }
     }
@@ -87,14 +90,14 @@ pub const RenderCache = struct {
     pub fn useShaderProgram(self: *@This(), program: GLuint) void {
         if (self.shader != program) {
             self.shader = program;
-            glUseProgram(program);
+            decls.glUseProgram(program);
         }
     }
 
     pub fn invalidateProgram(self: *@This(), program: GLuint) void {
         if (self.shader == program) {
             self.shader = 0;
-            glUseProgram(0);
+            decls.glUseProgram(0);
         }
     }
 };

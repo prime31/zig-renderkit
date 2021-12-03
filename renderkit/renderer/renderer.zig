@@ -1,9 +1,8 @@
 const std = @import("std");
 // export the types and descriptions and also import all of them for use in this file
-pub const renderkit_types = @import("types.zig");
-usingnamespace @import("types.zig");
+pub const types = @import("types.zig");
+pub usingnamespace types;
 pub const descriptions = @import("descriptions.zig");
-usingnamespace @import("descriptions.zig");
 
 // this is the entrypoint for all renderer specific types. They are loaded based on the chosen Renderer
 // and exposed via this interface.
@@ -42,10 +41,11 @@ pub const Renderer = enum {
 };
 
 // import our chosen backend renderer
-const backend = @import(@tagName(@import("../renderkit.zig").current_renderer) ++ "/backend.zig");
+const renderkit = @import("../renderkit.zig");
+const backend = if (renderkit.current_renderer == .opengl) @import("opengl/backend.zig") else @import("metal/backend.zig");
 
 // setup and state
-pub fn setup(desc: RendererDesc) void {
+pub fn setup(desc: descriptions.RendererDesc) void {
     if (@import("../renderkit.zig").current_renderer == .metal and std.builtin.os.tag != .macos) @panic("Metal only exists on macOS!");
     backend.setup(desc);
 }
@@ -54,7 +54,7 @@ pub fn shutdown() void {
     backend.shutdown();
 }
 
-pub fn setRenderState(state: RenderState) void {
+pub fn setRenderState(state: types.RenderState) void {
     backend.setRenderState(state);
 }
 
@@ -70,38 +70,36 @@ pub fn scissor(x: c_int, y: c_int, width: c_int, height: c_int) void {
         backend.scissor(x, y, width, height);
 }
 
-
 // textures
-pub fn createImage(desc: ImageDesc) Image {
+pub fn createImage(desc: descriptions.ImageDesc) types.Image {
     return backend.createImage(desc);
 }
 
-pub fn destroyImage(image: Image) void {
+pub fn destroyImage(image: types.Image) void {
     backend.destroyImage(image);
 }
 
-pub fn updateImage(comptime T: type, image: Image, content: []const T) void {
+pub fn updateImage(comptime T: type, image: types.Image, content: []const T) void {
     std.debug.assert(T == u8 or T == u32);
     backend.updateImage(T, image, content);
 }
 
-
 // passes
-pub fn createPass(desc: PassDesc) Pass {
+pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     return backend.createPass(desc);
 }
 
-pub fn destroyPass(pass: Pass) void {
+pub fn destroyPass(pass: types.Pass) void {
     backend.destroyPass(pass);
 }
 
-pub fn beginDefaultPass(action: ClearCommand, width: c_int, height: c_int) void {
+pub fn beginDefaultPass(action: types.ClearCommand, width: c_int, height: c_int) void {
     std.debug.assert(!cache.in_pass);
     cache.in_pass = true;
     backend.beginDefaultPass(action, width, height);
 }
 
-pub fn beginPass(pass: Pass, action: ClearCommand) void {
+pub fn beginPass(pass: types.Pass, action: types.ClearCommand) void {
     std.debug.assert(!cache.in_pass);
     cache.in_pass = true;
     backend.beginPass(pass, action);
@@ -119,24 +117,24 @@ pub fn commitFrame() void {
 }
 
 // buffers
-pub fn createBuffer(comptime T: type, desc: BufferDesc(T)) Buffer {
+pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Buffer {
     return backend.createBuffer(T, desc);
 }
 
-pub fn destroyBuffer(buffer: Buffer) void {
+pub fn destroyBuffer(buffer: types.Buffer) void {
     backend.destroyBuffer(buffer);
 }
 
-pub fn updateBuffer(comptime T: type, buffer: Buffer, data: []const T) void {
+pub fn updateBuffer(comptime T: type, buffer: types.Buffer, data: []const T) void {
     backend.updateBuffer(T, buffer, data);
 }
 
-pub fn appendBuffer(comptime T: type, buffer: Buffer, data: []const T) u32 {
+pub fn appendBuffer(comptime T: type, buffer: types.Buffer, data: []const T) u32 {
     return backend.appendBuffer(T, buffer, data);
 }
 
 // bindings and drawing
-pub fn applyBindings(bindings: BufferBindings) void {
+pub fn applyBindings(bindings: types.BufferBindings) void {
     std.debug.assert(cache.in_pass);
     backend.applyBindings(bindings);
 }
@@ -147,19 +145,19 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
 }
 
 // shaders
-pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: ShaderDesc) ShaderProgram {
+pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: type, desc: descriptions.ShaderDesc) types.ShaderProgram {
     return backend.createShaderProgram(VertUniformT, FragUniformT, desc);
 }
 
-pub fn destroyShaderProgram(shader: ShaderProgram) void {
+pub fn destroyShaderProgram(shader: types.ShaderProgram) void {
     return backend.destroyShaderProgram(shader);
 }
 
-pub fn useShaderProgram(shader: ShaderProgram) void {
+pub fn useShaderProgram(shader: types.ShaderProgram) void {
     backend.useShaderProgram(shader);
 }
 
-pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: ShaderProgram, stage: ShaderStage, value: *UniformT) void {
+pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: types.ShaderProgram, stage: types.ShaderStage, value: *UniformT) void {
     std.debug.assert(cache.in_pass);
     backend.setShaderProgramUniformBlock(UniformT, shader, stage, value);
 }
