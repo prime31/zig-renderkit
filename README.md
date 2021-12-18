@@ -11,7 +11,7 @@ There is a _dummy_ backend that can be used as a template to add a new backend. 
 
 
 ## Dependencies
-RenderKit has just one external dependency: SDL. You can install SDL with the package manager of your choice. On macOS if you intend to use the Metal renderer you will need to build from source until the next SDL release drops.
+RenderKit has just one external dependency: SDL. You can install SDL with the package manager of your choice.
 
 
 ### Usage
