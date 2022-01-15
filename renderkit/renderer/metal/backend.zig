@@ -13,10 +13,10 @@ var buffer_cache: HandledCache(*MtlBuffer) = undefined;
 var shader_cache: HandledCache(*MtlShader) = undefined;
 
 pub fn setup(desc: descriptions.RendererDesc) void {
-    image_cache = HandledCache(*MtlImage).init(desc.allocator, desc.pool_sizes.texture * num_in_flight_frames);
-    pass_cache = HandledCache(*MtlPass).init(desc.allocator, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
-    buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator, desc.pool_sizes.buffers * num_in_flight_frames);
-    shader_cache = HandledCache(*MtlShader).init(desc.allocator, desc.pool_sizes.shaders * num_in_flight_frames);
+    image_cache = HandledCache(*MtlImage).init(desc.allocator.*, desc.pool_sizes.texture * num_in_flight_frames);
+    pass_cache = HandledCache(*MtlPass).init(desc.allocator.*, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
+    buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator.*, desc.pool_sizes.buffers * num_in_flight_frames);
+    shader_cache = HandledCache(*MtlShader).init(desc.allocator.*, desc.pool_sizes.shaders * num_in_flight_frames);
 
     mtl_setup(desc);
     setRenderState(.{});
@@ -161,7 +161,7 @@ const MtlVertexAttribute = extern struct {
 
 const MtlVertexLayout = extern struct {
     stride: c_int = 0,
-    step_func: types.VertexStep = .per_vertex,
+    step_func: descriptions.VertexStep = .per_vertex,
 };
 
 const MtlBufferDesc = extern struct {
@@ -169,7 +169,7 @@ const MtlBufferDesc = extern struct {
     type: types.BufferType = .vertex,
     type_id: u8,
     usage: types.Usage = .immutable,
-    content: ?*const c_void = null,
+    content: ?*const anyopaque = null,
     index_type: MtlIndexType = .uint16,
     vertex_layout: [4]MtlVertexLayout,
     vertex_attrs: [8]MtlVertexAttribute,
@@ -343,7 +343,7 @@ extern fn mtl_scissor(x: c_int, y: c_int, w: c_int, h: c_int) void;
 
 extern fn mtl_create_image(desc: descriptions.ImageDesc) *MtlImage;
 extern fn mtl_destroy_image(image: *MtlImage) void;
-extern fn mtl_update_image(image: *MtlImage, arg1: ?*const c_void) void;
+extern fn mtl_update_image(image: *MtlImage, arg1: ?*const anyopaque) void;
 
 extern fn mtl_create_pass(desc: MtlPassDesc) *MtlPass;
 extern fn mtl_destroy_pass(pass: *MtlPass) void;
@@ -353,13 +353,13 @@ extern fn mtl_commit_frame() void;
 
 extern fn mtl_create_buffer(desc: MtlBufferDesc) *MtlBuffer;
 extern fn mtl_destroy_buffer(buffer: *MtlBuffer) void;
-extern fn mtl_update_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) void;
-extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const c_void, data_size: u32) u32;
+extern fn mtl_update_buffer(buffer: *MtlBuffer, data: ?*const anyopaque, data_size: u32) void;
+extern fn mtl_append_buffer(buffer: *MtlBuffer, data: ?*const anyopaque, data_size: u32) u32;
 
 extern fn mtl_create_shader(desc: MtlShaderDesc) *MtlShader;
 extern fn mtl_destroy_shader(shader: *MtlShader) void;
 extern fn mtl_use_shader(shader: *MtlShader) void;
-extern fn mtl_set_shader_uniform_block(shader: *MtlShader, stage: types.ShaderStage, data: ?*const c_void, num_bytes: c_int) void;
+extern fn mtl_set_shader_uniform_block(shader: *MtlShader, stage: types.ShaderStage, data: ?*const anyopaque, num_bytes: c_int) void;
 
 extern fn mtl_apply_bindings(bindings: MtlBufferBindings) void;
 extern fn mtl_draw(base_element: c_int, element_count: c_int, instance_count: c_int) void;

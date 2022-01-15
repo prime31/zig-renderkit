@@ -46,7 +46,7 @@ const backend = if (renderkit.current_renderer == .opengl) @import("opengl/backe
 
 // setup and state
 pub fn setup(desc: descriptions.RendererDesc) void {
-    if (@import("../renderkit.zig").current_renderer == .metal and std.builtin.os.tag != .macos) @panic("Metal only exists on macOS!");
+    if (@import("../renderkit.zig").current_renderer == .metal and @import("builtin").os.tag != .macos) @panic("Metal only exists on macOS!");
     backend.setup(desc);
 }
 

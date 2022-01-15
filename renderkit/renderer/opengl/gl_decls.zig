@@ -6,7 +6,7 @@ pub const GLclampf = f32;
 pub const GLfixed = i32;
 pub const GLshort = c_short;
 pub const GLushort = c_ushort;
-pub const GLvoid = c_void;
+pub const GLvoid = anyopaque;
 pub const GLsync = ?*opaque {};
 pub const GLint64 = i64;
 pub const GLuint64 = u64;
@@ -57,8 +57,8 @@ const Funcs = struct {
     glDeleteBuffers: fn (n: GLsizei, buffers: [*]GLuint) void,
     glGenVertexArrays: fn (n: GLsizei, arrays: [*c]GLuint) void,
     glBindBuffer: fn (target: GLenum, buffer: GLuint) void,
-    glBufferData: fn (target: GLenum, size: GLsizeiptr, data: ?*const c_void, usage: GLenum) void,
-    glBufferSubData: fn (GLenum, GLintptr, GLsizeiptr, ?*const c_void) void,
+    glBufferData: fn (target: GLenum, size: GLsizeiptr, data: ?*const anyopaque, usage: GLenum) void,
+    glBufferSubData: fn (GLenum, GLintptr, GLsizeiptr, ?*const anyopaque) void,
 
     glCreateShader: fn (shader: GLenum) GLuint,
     glShaderSource: fn (shader: GLuint, count: GLsizei, string: *[:0]const GLchar, length: ?*c_int) void,
@@ -75,7 +75,7 @@ const Funcs = struct {
     glGetAttribLocation: fn (program: GLuint, name: [*:0]const GLchar) GLint,
     glBindFragDataLocation: fn (program: GLuint, colorNumber: GLuint, name: [*:0]const GLchar) void,
     glVertexAttribDivisor: fn (index: GLuint, divisor: GLuint) void,
-    glVertexAttribPointer: fn (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, offset: ?*const c_void) void,
+    glVertexAttribPointer: fn (index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, offset: ?*const anyopaque) void,
     glBindVertexArray: fn (array: GLuint) void,
 
     glGetShaderiv: fn (shader: GLuint, pname: GLenum, params: *GLint) void,
@@ -95,8 +95,8 @@ const Funcs = struct {
     glUniformMatrix4fv: fn (location: GLint, count: GLsizei, transpose: GLboolean, value: *const GLfloat) void,
     glUniformMatrix3x2fv: fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) void,
 
-    glDrawElements: fn (GLenum, GLsizei, GLenum, ?*const c_void) void,
-    glDrawElementsInstanced: fn (GLenum, GLsizei, GLenum, ?*const c_void, GLsizei) void,
+    glDrawElements: fn (GLenum, GLsizei, GLenum, ?*const anyopaque) void,
+    glDrawElementsInstanced: fn (GLenum, GLsizei, GLenum, ?*const anyopaque, GLsizei) void,
     glDrawArrays: fn (GLenum, GLint, GLsizei) void,
     glDrawArraysInstanced: fn (GLenum, GLint, GLsizei, GLsizei) void,
 
@@ -118,8 +118,8 @@ const Funcs = struct {
     glBindTexture: fn (GLenum, GLuint) void,
     glTexParameteri: fn (GLenum, GLenum, GLint) void,
     glTexParameteriv: fn (GLenum, GLenum, [*c]const GLint) void,
-    glTexImage1D: fn (GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, ?*const c_void) void,
-    glTexImage2D: fn (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, ?*const c_void) void,
+    glTexImage1D: fn (GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, ?*const anyopaque) void,
+    glTexImage2D: fn (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, ?*const anyopaque) void,
     glGenerateMipmap: fn (GLenum) void,
     glActiveTexture: fn (GLenum) void,
 };
@@ -146,7 +146,7 @@ pub fn loadFunctionsZig() void {
 }
 
 /// loader is a GL function loader, for example SDL_GL_GetProcAddress or glfwGetProcAddress
-pub fn loadFunctions(loader: fn ([*c]const u8) callconv(.C) ?*c_void) void {
+pub fn loadFunctions(loader: fn ([*c]const u8) callconv(.C) ?*anyopaque) void {
     inline for (@typeInfo(Funcs).Struct.fields) |field| {
         @field(gl, field.name) = @ptrCast(field.field_type, loader(field.name ++ &[_]u8{0}));
     }
@@ -272,11 +272,11 @@ pub fn glBindBuffer(target: GLenum, buffer: GLuint) void {
     gl.glBindBuffer(target, buffer);
 }
 
-pub fn glBufferData(target: GLenum, size: GLsizeiptr, data: ?*const c_void, usage: GLenum) void {
+pub fn glBufferData(target: GLenum, size: GLsizeiptr, data: ?*const anyopaque, usage: GLenum) void {
     gl.glBufferData(target, size, data, usage);
 }
 
-pub fn glBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: ?*const c_void) void {
+pub fn glBufferSubData(target: GLenum, offset: GLintptr, size: GLsizeiptr, data: ?*const anyopaque) void {
     gl.glBufferSubData(target, offset, size, data);
 }
 
@@ -333,7 +333,7 @@ pub fn glBindFragDataLocation(program: GLuint, colorNumber: GLuint, name: [*:0]c
 }
 
 pub fn glVertexAttribPointer(index: GLuint, size: GLint, kind: GLenum, normalized: GLboolean, stride: GLsizei, offset: ?usize) void {
-    const off = if (offset) |o| @intToPtr(*c_void, o) else null;
+    const off = if (offset) |o| @intToPtr(*anyopaque, o) else null;
     gl.glVertexAttribPointer(index, size, kind, normalized, stride, off);
 }
 
@@ -405,11 +405,11 @@ pub fn glUniformMatrix3x2fv(location: GLint, count: GLsizei, transpose: GLboolea
     gl.glUniformMatrix3x2fv(location, count, transpose, value);
 }
 
-pub fn glDrawElements(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const c_void) void {
+pub fn glDrawElements(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const anyopaque) void {
     gl.glDrawElements(mode, count, kind, indices);
 }
 
-pub fn glDrawElementsInstanced(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const c_void, instance_count: GLsizei) void {
+pub fn glDrawElementsInstanced(mode: GLenum, count: GLsizei, kind: GLenum, indices: ?*const anyopaque, instance_count: GLsizei) void {
     gl.glDrawElementsInstanced(mode, count, kind, indices, instance_count);
 }
 
@@ -485,11 +485,11 @@ pub fn glTexParameteriv(target: GLenum, pname: GLenum, param: [*c]const GLint) v
     gl.glTexParameteriv(target, pname, param);
 }
 
-pub fn glTexImage1D(target: GLenum, level: GLint, internal_format: GLint, width: GLsizei, border: GLint, format: GLenum, kind: GLenum, data: ?*const c_void) void {
+pub fn glTexImage1D(target: GLenum, level: GLint, internal_format: GLint, width: GLsizei, border: GLint, format: GLenum, kind: GLenum, data: ?*const anyopaque) void {
     gl.glTexImage1D(target, level, internal_format, width, border, format, kind, data);
 }
 
-pub fn glTexImage2D(target: GLenum, level: GLint, internal_format: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, kind: GLenum, data: ?*const c_void) void {
+pub fn glTexImage2D(target: GLenum, level: GLint, internal_format: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, kind: GLenum, data: ?*const anyopaque) void {
     gl.glTexImage2D(target, level, internal_format, width, height, border, format, kind, data);
 }
 

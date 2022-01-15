@@ -304,7 +304,7 @@ pub const ShaderCompileStep = struct {
 
                 if (uses_default_vs) {
                     // we may have a relative path if the Options were given a relative output path for the shader or package
-                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try std.fs.cwd().deleteFile(entry.path);
+                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try dir_obj.deleteFile(entry.path);
                 }
             }
         }

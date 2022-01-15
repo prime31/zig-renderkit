@@ -2,7 +2,7 @@ const std = @import("std");
 const renderkit = @import("types.zig");
 
 pub const MetalSetup = extern struct {
-    ca_layer: ?*const c_void = null,
+    ca_layer: ?*const anyopaque = null,
 };
 
 pub const RendererDesc = extern struct {
@@ -14,7 +14,7 @@ pub const RendererDesc = extern struct {
     };
 
     allocator: *std.mem.Allocator,
-    gl_loader: ?fn ([*c]const u8) callconv(.C) ?*c_void = null,
+    gl_loader: ?fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
     disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},
     metal: MetalSetup = .{},
@@ -30,7 +30,7 @@ pub const ImageDesc = extern struct {
     mag_filter: renderkit.TextureFilter = .nearest,
     wrap_u: renderkit.TextureWrap = .clamp,
     wrap_v: renderkit.TextureWrap = .clamp,
-    content: ?*const c_void = null,
+    content: ?*const anyopaque = null,
 };
 
 pub const PassDesc = struct {
