@@ -3,7 +3,7 @@ usingnamespace @import("../types.zig");
 usingnamespace @import("../descriptions.zig");
 
 // the dummy backend defines the interface that all other backends need to implement for renderer compliance
-pub fn setup(desc: RendererDesc) void {}
+pub fn setup(desc: RendererDesc, allocator: std.mem.Allocator) void {}
 pub fn shutdown() void {}
 pub fn setRenderState(state: RenderState) void {}
 pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void {}

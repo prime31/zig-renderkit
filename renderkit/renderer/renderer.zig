@@ -45,9 +45,9 @@ const renderkit = @import("../renderkit.zig");
 const backend = if (renderkit.current_renderer == .opengl) @import("opengl/backend.zig") else @import("metal/backend.zig");
 
 // setup and state
-pub fn setup(desc: descriptions.RendererDesc) void {
+pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void {
     if (@import("../renderkit.zig").current_renderer == .metal and @import("builtin").os.tag != .macos) @panic("Metal only exists on macOS!");
-    backend.setup(desc);
+    backend.setup(desc, allocator);
 }
 
 pub fn shutdown() void {

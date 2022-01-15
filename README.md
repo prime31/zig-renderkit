@@ -25,7 +25,7 @@ Currently, RenderKit supports OpenGL and Metal. You can set the renderer used by
 ### Setup and State
 General backend setup and management of graphics state.
 
-`pub fn setup(desc: RendererDesc) void`<br>
+`pub fn setup(desc: RendererDesc, allocator: Allocator) void`<br>
 `pub fn shutdown() void`<br>
 `pub fn setRenderState(state: RenderState) void`<br>
 `pub fn viewport(x: c_int, y: c_int, width: c_int, height: c_int) void`<br>

@@ -12,11 +12,11 @@ var pass_cache: HandledCache(*MtlPass) = undefined;
 var buffer_cache: HandledCache(*MtlBuffer) = undefined;
 var shader_cache: HandledCache(*MtlShader) = undefined;
 
-pub fn setup(desc: descriptions.RendererDesc) void {
-    image_cache = HandledCache(*MtlImage).init(desc.allocator.*, desc.pool_sizes.texture * num_in_flight_frames);
-    pass_cache = HandledCache(*MtlPass).init(desc.allocator.*, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
-    buffer_cache = HandledCache(*MtlBuffer).init(desc.allocator.*, desc.pool_sizes.buffers * num_in_flight_frames);
-    shader_cache = HandledCache(*MtlShader).init(desc.allocator.*, desc.pool_sizes.shaders * num_in_flight_frames);
+pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void {
+    image_cache = HandledCache(*MtlImage).init(allocator, desc.pool_sizes.texture * num_in_flight_frames);
+    pass_cache = HandledCache(*MtlPass).init(allocator, desc.pool_sizes.offscreen_pass * num_in_flight_frames);
+    buffer_cache = HandledCache(*MtlBuffer).init(allocator, desc.pool_sizes.buffers * num_in_flight_frames);
+    shader_cache = HandledCache(*MtlShader).init(allocator, desc.pool_sizes.shaders * num_in_flight_frames);
 
     mtl_setup(desc);
     setRenderState(.{});

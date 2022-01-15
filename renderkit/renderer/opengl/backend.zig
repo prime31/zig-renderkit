@@ -30,11 +30,11 @@ var frame_index: u32 = 1;
 var cur_pass_h: c_int = 0; // used to flip scissor rects to be top-left origin to match Metal
 
 // setup
-pub fn setup(desc: descriptions.RendererDesc) void {
-    image_cache = HandledCache(GLImage).init(desc.allocator.*, desc.pool_sizes.texture);
-    pass_cache = HandledCache(GLPass).init(desc.allocator.*, desc.pool_sizes.offscreen_pass);
-    buffer_cache = HandledCache(GLBuffer).init(desc.allocator.*, desc.pool_sizes.buffers);
-    shader_cache = HandledCache(GLShaderProgram).init(desc.allocator.*, desc.pool_sizes.shaders);
+pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void {
+    image_cache = HandledCache(GLImage).init(allocator, desc.pool_sizes.texture);
+    pass_cache = HandledCache(GLPass).init(allocator, desc.pool_sizes.offscreen_pass);
+    buffer_cache = HandledCache(GLBuffer).init(allocator, desc.pool_sizes.buffers);
+    shader_cache = HandledCache(GLShaderProgram).init(allocator, desc.pool_sizes.shaders);
 
     if (desc.gl_loader) |loader| {
         decls.loadFunctions(loader);

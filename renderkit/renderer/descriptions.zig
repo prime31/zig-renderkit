@@ -13,7 +13,6 @@ pub const RendererDesc = extern struct {
         shaders: u8 = 16,
     };
 
-    allocator: *std.mem.Allocator,
     gl_loader: ?fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
     disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},

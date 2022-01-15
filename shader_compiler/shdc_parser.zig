@@ -334,7 +334,7 @@ pub const ShdcParser = struct {
                             var val = try self.allocator.dupe(u8, std.mem.trim(u8, iter.next().?, " "));
                             val = val[std.mem.indexOf(u8, val, " ").? + 1 ..];
                             try self.snippet_map.put(key, try std.fmt.parseUnsigned(u8, val, 10));
-                            // std.debug.warn("-- snip: {} => {}\n", .{ key, val });
+                            // std.debug.print("-- snip: {} => {}\n", .{ key, val });
                         }
                     } else if (inner_state == .programs) {
                         // start a new program
