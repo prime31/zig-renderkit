@@ -84,6 +84,11 @@ pub fn updateImage(comptime T: type, image: types.Image, content: []const T) voi
     backend.updateImage(T, image, content);
 }
 
+// TODO: should this return *anyopaque?
+pub fn getNativeTid(image: types.Image) c_uint {
+    return backend.getNativeTid(image);
+}
+
 // passes
 pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     return backend.createPass(desc);

@@ -281,6 +281,10 @@ pub fn updateImage(comptime T: type, image: types.Image, content: []const T) voi
     cache.bindImage(0, 0);
 }
 
+pub fn getNativeTid(image: types.Image) c_uint {
+    return image_cache.get(image).tid;
+}
+
 // offscreen pass
 const GLPass = struct {
     framebuffer_tid: GLuint,

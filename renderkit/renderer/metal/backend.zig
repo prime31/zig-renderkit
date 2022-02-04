@@ -59,6 +59,10 @@ pub fn updateImage(comptime T: type, image: types.Image, content: []const T) voi
     mtl_update_image(img.*, content.ptr);
 }
 
+pub fn getNativeTid(image: types.Image) c_uint {
+    return @ptrToInt(image_cache.get(image));
+}
+
 // passes
 pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     const pass = mtl_create_pass(MtlPassDesc.init(desc));
