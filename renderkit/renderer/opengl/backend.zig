@@ -115,7 +115,8 @@ fn checkProgramError(shader: GLuint) bool {
 pub fn setRenderState(state: types.RenderState) void {
     // depth
     if (state.depth.enabled != pip_cache.depth.enabled) {
-        decls.glDepthMask(if (state.depth.enabled) 1 else 0);
+        if (state.depth.enabled) decls.glEnable(decls.GL_DEPTH_TEST) else decls.glDisable(decls.GL_DEPTH_TEST);
+        decls.glDepthMask(if (state.depth.enabled) decls.GL_TRUE else decls.GL_FALSE);
         pip_cache.depth.enabled = state.depth.enabled;
     }
 
@@ -202,6 +203,23 @@ pub fn setRenderState(state: types.RenderState) void {
     if (state.scissor != pip_cache.scissor) {
         if (state.scissor) decls.glEnable(decls.GL_SCISSOR_TEST) else decls.glDisable(decls.GL_SCISSOR_TEST);
         pip_cache.scissor = state.scissor;
+    }
+
+    // cull mode
+    if (state.cull_mode != pip_cache.cull_mode) {
+        if (state.cull_mode == .none) decls.glEnable(decls.GL_CULL_FACE) else decls.glDisable(decls.GL_CULL_FACE);
+        switch (state.cull_mode) {
+            .front => decls.glCullFace(decls.GL_FRONT),
+            .back => decls.glCullFace(decls.GL_BACK),
+            else => {},
+        }
+        pip_cache.cull_mode = state.cull_mode;
+    }
+
+    // face winding
+    if (state.face_winding != pip_cache.face_winding) {
+        decls.glFrontFace(if (state.face_winding == .ccw) decls.GL_CCW else decls.GL_CW);
+        pip_cache.face_winding = state.face_winding;
     }
 }
 

@@ -42,6 +42,8 @@ const Funcs = struct {
     glStencilOp: fn (GLenum, GLenum, GLenum) void,
     glStencilOpSeparate: fn (GLenum, GLenum, GLenum, GLenum) void,
     glColorMask: fn (GLboolean, GLboolean, GLboolean, GLboolean) void,
+    glCullFace: fn(mode: GLenum) void,
+    glFrontFace: fn(mode: GLenum) void,
 
     glViewport: fn (GLint, GLint, GLsizei, GLsizei) void,
     glScissor: fn (GLint, GLint, GLsizei, GLsizei) void,
@@ -214,6 +216,14 @@ pub fn glStencilOpSeparate(face: GLenum, sfail: GLenum, dpfail: GLenum, dppass: 
 
 pub fn glColorMask(r: GLboolean, g: GLboolean, b: GLboolean, a: GLboolean) void {
     gl.glColorMask(r, g, b, a);
+}
+
+pub fn glCullFace(mode: GLenum) void {
+    gl.glCullFace(mode);
+}
+
+pub fn glFrontFace(mode: GLenum) void {
+    gl.glFrontFace(mode);
 }
 
 pub fn glViewport(x: GLint, y: GLint, w: GLsizei, h: GLsizei) void {

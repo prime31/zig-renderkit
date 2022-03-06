@@ -32,6 +32,7 @@ pub const ShaderCompileStep = struct {
     /// map of types that can be added to manually here or via Sokol's `@ctype vec2 [2]f32`
     float2_type: []const u8 = "[2]f32",
     float3_type: []const u8 = "[3]f32",
+    mat4_type: []const u8 = "[16]f32",
 
     pub const Options = struct {
         /// the source glsl shader file
@@ -147,7 +148,7 @@ pub const ShaderCompileStep = struct {
                 // dump sokol output
                 // warn("{}", .{res.stderr});
 
-                var parsed = ShdcParser.init(self.builder.allocator, self.float2_type, self.float3_type);
+                var parsed = ShdcParser.init(self.builder.allocator, self.float2_type, self.float3_type, self.mat4_type);
                 try parsed.parse(res.stderr);
 
                 try self.cleanUnusedVertPrograms(parsed.shader_programs.items);

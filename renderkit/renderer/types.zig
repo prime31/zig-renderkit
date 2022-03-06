@@ -101,6 +101,17 @@ pub const BlendFactor = enum(c_int) {
     one_minus_blend_alpha,
 };
 
+pub const CullMode = enum(c_int) {
+    none,
+    front,
+    back,
+};
+
+pub const FaceWinding = enum(c_int) {
+    ccw,
+    cw,
+};
+
 pub const BlendOp = enum(c_int) {
     add,
     subtract,
@@ -155,6 +166,8 @@ pub const RenderState = extern struct {
     stencil: Stencil = .{},
     blend: Blend = .{},
     scissor: bool = false,
+    cull_mode: CullMode = .none,
+    face_winding: FaceWinding = .ccw,
 };
 
 pub const ClearCommand = extern struct {
@@ -163,7 +176,7 @@ pub const ClearCommand = extern struct {
     stencil_action: ClearAction = .dont_care,
     stencil: u8 = 0,
     depth_action: ClearAction = .dont_care,
-    depth: f64 = 0,
+    depth: f64 = 1,
 };
 
 pub const BufferBindings = struct {

@@ -98,12 +98,15 @@ const UniformType = enum {
     float2,
     float3,
     float4,
+    mat4,
 
     pub fn fromStr(kind: []const u8) UniformType {
         if (std.mem.eql(u8, kind, "FLOAT")) return .float;
         if (std.mem.eql(u8, kind, "FLOAT2")) return .float2;
         if (std.mem.eql(u8, kind, "FLOAT3")) return .float3;
         if (std.mem.eql(u8, kind, "FLOAT4")) return .float4;
+        if (std.mem.eql(u8, kind, "MAT4")) return .mat4;
+        std.debug.print("Invalid type: {s}\n", .{ kind });
         @panic("unidentified uniform type");
     }
 
@@ -113,6 +116,7 @@ const UniformType = enum {
             .float2 => 8 * array_count,
             .float3 => 12 * array_count,
             .float4 => 16 * array_count,
+            .mat4 => 16 * 4 * array_count,
         };
     }
 
@@ -139,6 +143,10 @@ const UniformType = enum {
             },
             .float4 => {
                 if (array_count == 1) return print("[4]f32 = [_]f32{{0}} ** 4", .{});
+                return print("[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
+            },
+            .mat4 => {
+                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.mat4_type});
                 return print("[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
             },
         };
@@ -219,6 +227,7 @@ pub const ShdcParser = struct {
     /// type maps first provided in init. These can be overriden if @ctype declarations are in the shader
     float2_type: []const u8,
     float3_type: []const u8,
+    mat4_type: []const u8,
 
     /// map of the vert/fragment shader name to the snippet id
     snippet_map: std.StringHashMap(u8),
@@ -228,10 +237,11 @@ pub const ShdcParser = struct {
     snippet_reflection_map: std.AutoHashMap(u8, ReflectionData),
     allocator: std.mem.Allocator,
 
-    pub fn init(allocator: std.mem.Allocator, float2_type: []const u8, float3_type: []const u8) ShdcParser {
+    pub fn init(allocator: std.mem.Allocator, float2_type: []const u8, float3_type: []const u8, mat4_type: []const u8) ShdcParser {
         return .{
             .float2_type = float2_type,
             .float3_type = float3_type,
+            .mat4_type = mat4_type,
             .snippet_map = std.StringHashMap(u8).init(allocator),
             .shader_programs = std.ArrayList(ShaderProgram).init(allocator),
             .snippet_reflection_map = std.AutoHashMap(u8, ReflectionData).init(allocator),
@@ -368,6 +378,8 @@ pub const ShdcParser = struct {
                         self.float2_type = try self.allocator.dupe(u8, replacement);
                     } else if (std.mem.eql(u8, name, "vec3")) {
                         self.float3_type = try self.allocator.dupe(u8, replacement);
+                    } else if (std.mem.eql(u8, name, "mat4")) {
+                        self.mat4_type = try self.allocator.dupe(u8, replacement);
                     } else {
                         std.log.warn("unsupported type map found! {s}\n", .{name});
                     }
