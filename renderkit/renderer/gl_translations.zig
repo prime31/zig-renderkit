@@ -1,4 +1,4 @@
-const renderkit = @import("../types.zig");
+const renderkit = @import("types.zig");
 const decls = @import("gl_decls.zig");
 const GLenum = decls.GLenum;
 const GLint = decls.GLint;

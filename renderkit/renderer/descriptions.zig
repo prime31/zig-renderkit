@@ -1,10 +1,6 @@
 const std = @import("std");
 const renderkit = @import("types.zig");
 
-pub const MetalSetup = extern struct {
-    ca_layer: ?*const anyopaque = null,
-};
-
 pub const RendererDesc = extern struct {
     const PoolSizes = extern struct {
         texture: u8 = 64,
@@ -16,7 +12,6 @@ pub const RendererDesc = extern struct {
     gl_loader: ?fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
     disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},
-    metal: MetalSetup = .{},
 };
 
 pub const ImageDesc = extern struct {

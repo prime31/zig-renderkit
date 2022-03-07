@@ -105,7 +105,7 @@ pub const ShaderCompileStep = struct {
         self.* = .{
             .step = Step.init(.custom, "shader-compile", builder.allocator, make),
             .builder = builder,
-            .shdc_cmd = &[_][]const u8{ "." ++ path.sep_str ++ prefix_path ++ "bin" ++ path.sep_str ++ shdc_binary, "-d", "-l", "glsl330:metal_macos", "-f", "bare", "-i" },
+            .shdc_cmd = &[_][]const u8{ "." ++ path.sep_str ++ prefix_path ++ "bin" ++ path.sep_str ++ shdc_binary, "-d", "-l", "glsl330", "-f", "bare", "-i" },
             .shader = options.shader,
             .package = package,
             .package_filename = package_filename,
@@ -217,7 +217,7 @@ pub const ShaderCompileStep = struct {
 
                 // write out creation helper functions
                 try fn_writer.print("pub fn create{s}Shader() {s}Shader {{\n", .{ name, name });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{
+                try fn_writer.print("    const frag = @embedFile(\"{0s}{1s}.glsl\");\n", .{
                     relative_path_from_package_to_shaders,
                     program.fs,
                 });
@@ -246,8 +246,8 @@ pub const ShaderCompileStep = struct {
                 };
 
                 try fn_writer.print("pub fn create{s}Shader() !gfx.Shader {{\n", .{name});
-                try fn_writer.print("    const vert = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.vs });
-                try fn_writer.print("    const frag = if (renderkit.current_renderer == .opengl) @embedFile(\"{0s}{1s}.glsl\") else @embedFile(\"{0s}{1s}.metal\");\n", .{ relative_path_from_package_to_shaders, program.fs });
+                try fn_writer.print("    const vert = @embedFile(\"{0s}{1s}.glsl\");\n", .{ relative_path_from_package_to_shaders, program.vs });
+                try fn_writer.print("    const frag = @embedFile(\"{0s}{1s}.glsl\");\n", .{ relative_path_from_package_to_shaders, program.fs });
                 try fn_writer.print("    return try gfx.Shader.initWithVertFrag({s}, {s}, .{{ .frag = frag, .vert = vert }});\n", .{ vs_uni_type, fs_uni_type });
                 try fn_writer.writeAll("}\n\n");
             }
