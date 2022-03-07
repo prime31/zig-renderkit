@@ -1,12 +1,7 @@
 const std = @import("std");
 const Pkg = std.build.Pkg;
 const Builder = @import("std").build.Builder;
-const Renderer = @import("renderkit/renderer/renderer.zig").Renderer;
 pub const ShaderCompileStep = @import("shader_compiler/shader_compiler.zig").ShaderCompileStep;
-
-/// cached directory so we dont have to query Xcode multiple times
-var framework_dir: ?[]u8 = null;
-var renderer: ?Renderer = null;
 
 pub fn getRenderKitPackage(comptime prefix_path: []const u8) Pkg {
     return .{

@@ -1,14 +1,34 @@
 const std = @import("std");
-const decls = @import("gl_decls.zig");
-// usingnamespace decls;
-const GLuint = decls.GLuint;
-const GLenum = decls.GLenum;
+const gl = @import("gl_4v1.zig");
+
+const GLuint = gl.GLuint;
+const GLenum = gl.GLenum;
+
+const Rect = struct {
+    x: c_int = 0,
+    y: c_int = 0,
+    w: c_int = 0,
+    h: c_int = 0,
+
+    pub fn changed(self: *@This(), x: c_int, y: c_int, w: c_int, h: c_int) bool {
+        if (self.w != w or self.h != h or self.x != x or self.y != y) {
+            self.x = x;
+            self.y = y;
+            self.w = w;
+            self.h = h;
+            return true;
+        }
+        return false;
+    }
+};
 
 pub const RenderCache = struct {
     vao: GLuint = 0,
     vbo: GLuint = 0,
     ebo: GLuint = 0,
     shader: GLuint = 0,
+    viewport_rect: Rect = .{},
+    scissor_rect: Rect = .{},
     textures: [8]c_uint = [_]c_uint{0} ** 8,
 
     pub fn init() RenderCache {
@@ -18,62 +38,62 @@ pub const RenderCache = struct {
     pub fn bindVertexArray(self: *@This(), vao: GLuint) void {
         if (self.vao != vao) {
             self.vao = vao;
-            decls.glBindVertexArray(vao);
+            gl.bindVertexArray(vao);
         }
     }
 
     pub fn invalidateVertexArray(self: *@This(), vao: GLuint) void {
         if (self.vao == vao) {
             self.vao = 0;
-            decls.glBindVertexArray(0);
+            gl.bindVertexArray(0);
         }
     }
 
     pub fn bindBuffer(self: *@This(), target: GLenum, buffer: GLuint) void {
-        std.debug.assert(target == decls.GL_ELEMENT_ARRAY_BUFFER or target == decls.GL_ARRAY_BUFFER);
+        std.debug.assert(target == gl.ELEMENT_ARRAY_BUFFER or target == gl.ARRAY_BUFFER);
 
-        if (target == decls.GL_ELEMENT_ARRAY_BUFFER) {
+        if (target == gl.ELEMENT_ARRAY_BUFFER) {
             if (self.ebo != buffer) {
                 self.ebo = buffer;
-                decls.glBindBuffer(target, buffer);
+                gl.bindBuffer(target, buffer);
             }
         } else {
             if (self.vbo != buffer) {
                 self.vbo = buffer;
-                decls.glBindBuffer(target, buffer);
+                gl.bindBuffer(target, buffer);
             }
         }
     }
 
     /// forces a bind whether bound or not. Needed for creating Vertex Array Objects
     pub fn forceBindBuffer(self: *@This(), target: GLenum, buffer: GLuint) void {
-        std.debug.assert(target == decls.GL_ELEMENT_ARRAY_BUFFER or target == decls.GL_ARRAY_BUFFER);
+        std.debug.assert(target == gl.ELEMENT_ARRAY_BUFFER or target == gl.ARRAY_BUFFER);
 
-        if (target == decls.GL_ELEMENT_ARRAY_BUFFER) {
+        if (target == gl.ELEMENT_ARRAY_BUFFER) {
             self.ebo = buffer;
-            decls.glBindBuffer(target, buffer);
+            gl.bindBuffer(target, buffer);
         } else {
             self.vbo = buffer;
-            decls.glBindBuffer(target, buffer);
+            gl.bindBuffer(target, buffer);
         }
     }
 
     pub fn invalidateBuffer(self: *@This(), buffer: GLuint) void {
         if (self.ebo == buffer) {
             self.ebo = 0;
-            decls.glBindBuffer(decls.GL_ELEMENT_ARRAY_BUFFER, 0);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0);
         }
         if (self.vbo == buffer) {
             self.vbo = 0;
-            decls.glBindBuffer(decls.GL_ARRAY_BUFFER, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, 0);
         }
     }
 
     pub fn bindImage(self: *@This(), tid: c_uint, slot: c_uint) void {
         if (self.textures[slot] != tid) {
             self.textures[slot] = tid;
-            decls.glActiveTexture(decls.GL_TEXTURE0 + slot);
-            decls.glBindTexture(decls.GL_TEXTURE_2D, tid);
+            gl.activeTexture(gl.TEXTURE0 + slot);
+            gl.bindTexture(gl.TEXTURE_2D, tid);
         }
     }
 
@@ -81,8 +101,8 @@ pub const RenderCache = struct {
         for (self.textures) |*tex, i| {
             if (tex.* == tid) {
                 tex.* = 0;
-                decls.glActiveTexture(decls.GL_TEXTURE0 + @intCast(c_uint, i));
-                decls.glBindTexture(decls.GL_TEXTURE_2D, tid);
+                gl.activeTexture(gl.TEXTURE0 + @intCast(c_uint, i));
+                gl.bindTexture(gl.TEXTURE_2D, tid);
             }
         }
     }
@@ -90,14 +110,26 @@ pub const RenderCache = struct {
     pub fn useShaderProgram(self: *@This(), program: GLuint) void {
         if (self.shader != program) {
             self.shader = program;
-            decls.glUseProgram(program);
+            gl.useProgram(program);
         }
     }
 
     pub fn invalidateProgram(self: *@This(), program: GLuint) void {
         if (self.shader == program) {
             self.shader = 0;
-            decls.glUseProgram(0);
+            gl.useProgram(0);
+        }
+    }
+
+    pub fn viewport(self: *@This(), x: c_int, y: c_int, width: c_int, height: c_int) void {
+        if (self.viewport_rect.changed(x, y, width, height))
+            gl.viewport(x, y, width, height);
+    }
+
+    pub fn scissor(self: *@This(), x: c_int, y: c_int, width: c_int, height: c_int, cur_pass_h: c_int) void {
+        if (self.scissor_rect.changed(x, y, width, height)) {
+            var y_tl = cur_pass_h - (y + height);
+            gl.scissor(x, y_tl, width, height);
         }
     }
 };

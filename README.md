@@ -115,3 +115,4 @@ pub const DissolveParams = extern struct {
 [learnopengl](https://github.com/cshenton/learnopengl)<br/>
 [minifb (Rust)](https://github.com/emoon/rust_minifb)<br/>
 [Mach GLFW](https://github.com/hexops/mach-glfw)<br/>
+[Zig OpenGL](https://github.com/MasterQ32/zig-opengl)<br/>
