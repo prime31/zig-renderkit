@@ -311,6 +311,10 @@ const GLPass = struct {
     color_img3: ?types.Image,
     color_img4: ?types.Image,
     depth_stencil_img: ?types.Image,
+
+    pub fn hasMrt(self: GLPass) bool {
+        return self.color_img2 != null;
+    }
 };
 
 pub fn createPass(desc: descriptions.PassDesc) types.Pass {
@@ -376,6 +380,8 @@ pub fn beginPass(pass: types.Pass, action: types.ClearCommand) void {
 }
 
 fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCommand, width: c_int, height: c_int) void {
+    var has_mrt = false;
+
     // pass 0 is invalid so if its greater than 0 this is an offscreen pass
     if (offscreen_pass > 0) {
         const pass = pass_cache.get(offscreen_pass);
@@ -383,6 +389,7 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
         gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer_tid);
         gl.viewport(0, 0, img.width, img.height);
         cur_pass_h = img.height;
+        has_mrt = pass.hasMrt();
     } else {
         gl.viewport(0, 0, width, height);
         cur_pass_h = height;
@@ -415,7 +422,18 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
         gl.clearDepth(action.depth);
     }
 
-    gl.clear(clear_mask);
+    if (!has_mrt) {
+        gl.clear(clear_mask);
+    } else {
+        // TODO: support 4 color and color_actions and handle them appropriately
+        gl.clearBufferfv(gl.COLOR, 0, &action.color);
+        gl.clearBufferfv(gl.COLOR, 1, &action.color);
+        gl.clearBufferfv(gl.COLOR, 2, &action.color);
+        gl.clearBufferfv(gl.COLOR, 3, &action.color);
+        gl.clearBufferfi(gl.DEPTH_STENCIL, 0, @floatCast(f32, action.depth), action.stencil);
+        gl.clearBufferfv(gl.DEPTH, 0, &@floatCast(f32, action.depth));
+        gl.clearBufferiv(gl.STENCIL, 0, &@intCast(gl.GLint, action.stencil));
+    }
 }
 
 pub fn endPass() void {
