@@ -118,12 +118,6 @@ pub const BlendOp = enum(c_int) {
     reverse_subtract,
 };
 
-pub const ClearAction = enum(c_int) {
-    clear,
-    dont_care, // if all the render target pixels are rendered to, choose the DontCare action
-    load, // if the previous contents of the render target need to be preserved and only some of its pixels are rendered to, choose the load action
-};
-
 pub const ColorMask = enum(u32) {
     none,
     r = (1 << 0),
@@ -171,11 +165,15 @@ pub const RenderState = extern struct {
 };
 
 pub const ClearCommand = extern struct {
-    color_action: ClearAction = .clear,
-    color: [4]f32 = [_]f32{ 0.8, 0.2, 0.3, 1.0 },
-    stencil_action: ClearAction = .dont_care,
+    pub const ColorAttachmentAction = extern struct {
+        clear: bool = true,
+        color: [4]f32 = [_]f32{ 0.8, 0.2, 0.3, 1.0 },
+    };
+
+    colors: [4]ColorAttachmentAction = [_]ColorAttachmentAction{.{}} ** 4,
+    clear_stencil: bool = false,
     stencil: u8 = 0,
-    depth_action: ClearAction = .dont_care,
+    clear_depth: bool = false,
     depth: f64 = 1,
 };
 

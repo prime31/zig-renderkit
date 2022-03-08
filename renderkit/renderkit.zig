@@ -396,19 +396,18 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
     }
 
     var clear_mask: GLbitfield = 0;
-    if (action.color_action == .clear) {
+    if (action.colors[0].clear) {
         clear_mask |= gl.COLOR_BUFFER_BIT;
-        gl.clearColor(action.color[0], action.color[1], action.color[2], action.color[3]);
+        gl.clearColor(action.colors[0].color[0], action.colors[0].color[1], action.colors[0].color[2], action.colors[0].color[3]);
     }
-    if (action.stencil_action == .clear) {
+    if (action.clear_stencil) {
         clear_mask |= gl.STENCIL_BUFFER_BIT;
         if (pip_cache.stencil.write_mask != 0xFF) {
             pip_cache.stencil.write_mask = 0xFF;
             gl.stencilMask(0xFF);
         }
-        gl.clearStencil(@intCast(GLint, action.stencil));
     }
-    if (action.depth_action == .clear) {
+    if (action.clear_depth) {
         clear_mask |= gl.DEPTH_BUFFER_BIT;
         if (!pip_cache.depth.enabled) {
             pip_cache.depth.enabled = true;
@@ -419,20 +418,32 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
             pip_cache.depth.compare_func = .always;
             gl.depthFunc(gl.ALWAYS);
         }
-        gl.clearDepth(action.depth);
     }
 
     if (!has_mrt) {
-        gl.clear(clear_mask);
+        if (action.colors[0].clear)  gl.clearColor(action.colors[0].color[0], action.colors[0].color[1], action.colors[0].color[2], action.colors[0].color[3]);
+        if (action.clear_stencil) gl.clearStencil(@intCast(GLint, action.stencil));
+        if (action.clear_depth) gl.clearDepth(action.depth);
+        if (clear_mask != 0) gl.clear(clear_mask);
     } else {
-        // TODO: support 4 color and color_actions and handle them appropriately
-        gl.clearBufferfv(gl.COLOR, 0, &action.color);
-        gl.clearBufferfv(gl.COLOR, 1, &action.color);
-        gl.clearBufferfv(gl.COLOR, 2, &action.color);
-        gl.clearBufferfv(gl.COLOR, 3, &action.color);
-        gl.clearBufferfi(gl.DEPTH_STENCIL, 0, @floatCast(f32, action.depth), action.stencil);
-        gl.clearBufferfv(gl.DEPTH, 0, &@floatCast(f32, action.depth));
-        gl.clearBufferiv(gl.STENCIL, 0, &@intCast(gl.GLint, action.stencil));
+        for (action.colors) |color_action, i| {
+            const index: c_int = @intCast(c_int, i);
+
+            if (color_action.clear) {
+                gl.clearBufferfv(gl.COLOR, 0, &color_action.color);
+                gl.clearBufferfv(gl.COLOR, 1, &color_action.color);
+                gl.clearBufferfv(gl.COLOR, 2, &color_action.color);
+                gl.clearBufferfv(gl.COLOR, 3, &color_action.color);
+            }
+
+            if (action.clear_depth and action.clear_stencil) {
+                gl.clearBufferfi(gl.DEPTH_STENCIL, index, @floatCast(f32, action.depth), action.stencil);
+            } else if (action.clear_depth) {
+                gl.clearBufferfv(gl.DEPTH, index, &@floatCast(f32, action.depth));
+            } else if (action.clear_stencil) {
+                gl.clearBufferiv(gl.STENCIL, index, &@intCast(gl.GLint, action.stencil));
+            }
+        }
     }
 }
 
