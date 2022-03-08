@@ -342,12 +342,16 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
 
     // Set color_img as our color attachement #0
     const color_img = image_cache.get(desc.color_img);
-    gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, color_img.tid, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color_img.tid, 0);
 
     // set additional attachments if present
-    if (desc.color_img2) |img2| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, image_cache.get(img2).tid, 0);
-    if (desc.color_img3) |img3| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, image_cache.get(img3).tid, 0);
-    if (desc.color_img4) |img4| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, image_cache.get(img4).tid, 0);
+    if (desc.color_img2) |img2| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, image_cache.get(img2).tid, 0);
+    if (desc.color_img3) |img3| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, image_cache.get(img3).tid, 0);
+    if (desc.color_img4) |img4| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, image_cache.get(img4).tid, 0);
+
+    pass.color_img2 = desc.color_img2;
+    pass.color_img3 = desc.color_img3;
+    pass.color_img4 = desc.color_img4;
 
     // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3 };
@@ -429,12 +433,7 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
         for (action.colors) |color_action, i| {
             const index: c_int = @intCast(c_int, i);
 
-            if (color_action.clear) {
-                gl.clearBufferfv(gl.COLOR, 0, &color_action.color);
-                gl.clearBufferfv(gl.COLOR, 1, &color_action.color);
-                gl.clearBufferfv(gl.COLOR, 2, &color_action.color);
-                gl.clearBufferfv(gl.COLOR, 3, &color_action.color);
-            }
+            if (color_action.clear) gl.clearBufferfv(gl.COLOR, index, &color_action.color);
 
             if (action.clear_depth and action.clear_stencil) {
                 gl.clearBufferfi(gl.DEPTH_STENCIL, index, @floatCast(f32, action.depth), action.stencil);
