@@ -305,27 +305,21 @@ pub fn getNativeTid(image: types.Image) c_uint {
 
 // offscreen pass
 const GLPass = struct {
-    framebuffer_tid: GLuint,
-    color_img: types.Image,
-    color_img2: ?types.Image,
-    color_img3: ?types.Image,
-    color_img4: ?types.Image,
-    depth_stencil_img: ?types.Image,
-
-    pub fn hasMrt(self: GLPass) bool {
-        return self.color_img2 != null;
-    }
+    framebuffer_tid: GLuint = 0,
+    color_atts: [4]types.Image = [_]types.Image{0} ** 4,
+    num_color_atts: usize = 1,
+    depth_stencil_img: ?types.Image = null,
 };
 
 pub fn createPass(desc: descriptions.PassDesc) types.Pass {
-    var pass = std.mem.zeroes(GLPass);
+    var pass = GLPass{};
     pass.depth_stencil_img = null;
 
     var orig_fb: GLint = undefined;
     gl.getIntegerv(gl.FRAMEBUFFER_BINDING, &orig_fb);
     defer gl.bindFramebuffer(gl.FRAMEBUFFER, @intCast(GLuint, orig_fb));
 
-    pass.color_img = desc.color_img;
+    pass.color_atts[0] = desc.color_img;
 
     // create a framebuffer object
     gl.genFramebuffers(1, &pass.framebuffer_tid);
@@ -345,17 +339,25 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, color_img.tid, 0);
 
     // set additional attachments if present
-    if (desc.color_img2) |img2| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, image_cache.get(img2).tid, 0);
-    if (desc.color_img3) |img3| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, image_cache.get(img3).tid, 0);
-    if (desc.color_img4) |img4| gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, image_cache.get(img4).tid, 0);
-
-    pass.color_img2 = desc.color_img2;
-    pass.color_img3 = desc.color_img3;
-    pass.color_img4 = desc.color_img4;
+    if (desc.color_img2) |img| {
+        pass.num_color_atts += 1;
+        pass.color_atts[1] = img;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, image_cache.get(img).tid, 0);
+    }
+    if (desc.color_img3) |img| {
+        pass.num_color_atts += 1;
+        pass.color_atts[2] = img;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, image_cache.get(img).tid, 0);
+    }
+    if (desc.color_img4) |img| {
+        pass.num_color_atts += 1;
+        pass.color_atts[2] = img;
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, image_cache.get(img).tid, 0);
+    }
 
     // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3 };
-    gl.drawBuffers(1, &draw_buffers);
+    gl.drawBuffers(@intCast(gl.GLsizei, pass.num_color_atts), &draw_buffers);
 
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) std.debug.print("framebuffer failed\n", .{});
 
@@ -384,16 +386,16 @@ pub fn beginPass(pass: types.Pass, action: types.ClearCommand) void {
 }
 
 fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCommand, width: c_int, height: c_int) void {
-    var has_mrt = false;
+    var num_color_atts: usize = 1;
 
     // pass 0 is invalid so if its greater than 0 this is an offscreen pass
     if (offscreen_pass > 0) {
         const pass = pass_cache.get(offscreen_pass);
-        const img = image_cache.get(pass.color_img);
+        const img = image_cache.get(pass.color_atts[0]);
         gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer_tid);
         gl.viewport(0, 0, img.width, img.height);
         cur_pass_h = img.height;
-        has_mrt = pass.hasMrt();
+        num_color_atts = pass.num_color_atts;
     } else {
         gl.viewport(0, 0, width, height);
         cur_pass_h = height;
@@ -424,8 +426,8 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
         }
     }
 
-    if (!has_mrt) {
-        if (action.colors[0].clear)  gl.clearColor(action.colors[0].color[0], action.colors[0].color[1], action.colors[0].color[2], action.colors[0].color[3]);
+    if (num_color_atts == 1) {
+        if (action.colors[0].clear) gl.clearColor(action.colors[0].color[0], action.colors[0].color[1], action.colors[0].color[2], action.colors[0].color[3]);
         if (action.clear_stencil) gl.clearStencil(@intCast(GLint, action.stencil));
         if (action.clear_depth) gl.clearDepth(action.depth);
         if (clear_mask != 0) gl.clear(clear_mask);
