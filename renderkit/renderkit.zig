@@ -307,6 +307,9 @@ pub fn getNativeTid(image: types.Image) c_uint {
 const GLPass = struct {
     framebuffer_tid: GLuint,
     color_img: types.Image,
+    color_img2: ?types.Image,
+    color_img3: ?types.Image,
+    color_img4: ?types.Image,
     depth_stencil_img: ?types.Image,
 };
 
@@ -336,6 +339,11 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
     // Set color_img as our color attachement #0
     const color_img = image_cache.get(desc.color_img);
     gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, color_img.tid, 0);
+
+    // set additional attachments if present
+    if (desc.color_img2) |img2| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, image_cache.get(img2).tid, 0);
+    if (desc.color_img3) |img3| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, image_cache.get(img3).tid, 0);
+    if (desc.color_img4) |img4| gl.framebufferTexture(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT3, image_cache.get(img4).tid, 0);
 
     // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3 };

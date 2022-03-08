@@ -29,6 +29,9 @@ pub const ImageDesc = extern struct {
 
 pub const PassDesc = struct {
     color_img: renderkit.Image,
+    color_img2: ?renderkit.Image = null,
+    color_img3: ?renderkit.Image = null,
+    color_img4: ?renderkit.Image = null,
     depth_stencil_img: ?renderkit.Image = null,
 };
 
