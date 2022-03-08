@@ -141,14 +141,14 @@ pub const RenderState = extern struct {
         compare_func: CompareFunc = .always,
     };
     const Stencil = extern struct {
-        enabled: bool = false,
-        fail_op: StencilOp = .keep,
-        depth_fail_op: StencilOp = .keep,
-        pass_op: StencilOp = .keep,
-        compare_func: CompareFunc = .always,
-        read_mask: u8 = 0,
-        write_mask: u8 = 0,
-        ref: u8 = 0,
+        enabled: bool = true,
+        write_mask: u8 = 0xFF, // glStencilMask
+        fail_op: StencilOp = .keep, // glStencilOp
+        depth_fail_op: StencilOp = .keep, // glStencilOp
+        pass_op: StencilOp = .replace, // glStencilOp
+        compare_func: CompareFunc = .always, // glStencilFunc
+        ref: u8 = 0, // glStencilFunc
+        read_mask: u8 = 0xFF, // glStencilFunc
     };
     const Blend = extern struct {
         enabled: bool = true,

@@ -42,6 +42,7 @@ pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void
 
     gl.load(desc.gl_loader) catch unreachable;
 
+    pip_cache = std.mem.zeroes(types.RenderState);
     setRenderState(.{});
 
     gl.genVertexArrays(1, &vao);
@@ -132,7 +133,6 @@ pub fn setRenderState(state: types.RenderState) void {
 
     if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
         gl.stencilMask(@intCast(GLuint, state.stencil.write_mask));
-        pip_cache.stencil = state.stencil;
         pip_cache.stencil.write_mask = state.stencil.write_mask;
     }
 
@@ -140,17 +140,17 @@ pub fn setRenderState(state: types.RenderState) void {
         state.stencil.read_mask != pip_cache.stencil.read_mask or
         state.stencil.ref != pip_cache.stencil.ref)
     {
-        gl.stencilFuncSeparate(gl.FRONT, translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
+        gl.stencilFunc(translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
         pip_cache.stencil.compare_func = state.stencil.compare_func;
-        pip_cache.stencil.read_mask = state.stencil.read_mask;
         pip_cache.stencil.ref = state.stencil.ref;
+        pip_cache.stencil.read_mask = state.stencil.read_mask;
     }
 
     if (state.stencil.fail_op != pip_cache.stencil.fail_op or
         state.stencil.depth_fail_op != pip_cache.stencil.depth_fail_op or
         state.stencil.pass_op != pip_cache.stencil.pass_op)
     {
-        gl.stencilOpSeparate(gl.FRONT, translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
+        gl.stencilOp(translations.stencilOpToGl(state.stencil.fail_op), translations.stencilOpToGl(state.stencil.depth_fail_op), translations.stencilOpToGl(state.stencil.pass_op));
         pip_cache.stencil.fail_op = state.stencil.fail_op;
         pip_cache.stencil.depth_fail_op = state.stencil.depth_fail_op;
         pip_cache.stencil.pass_op = state.stencil.pass_op;
@@ -387,10 +387,23 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
     }
     if (action.stencil_action == .clear) {
         clear_mask |= gl.STENCIL_BUFFER_BIT;
+        if (pip_cache.stencil.write_mask != 0xFF) {
+            pip_cache.stencil.write_mask = 0xFF;
+            gl.stencilMask(0xFF);
+        }
         gl.clearStencil(@intCast(GLint, action.stencil));
     }
     if (action.depth_action == .clear) {
         clear_mask |= gl.DEPTH_BUFFER_BIT;
+        if (!pip_cache.depth.enabled) {
+            pip_cache.depth.enabled = true;
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthMask(gl.TRUE);
+        }
+        if (pip_cache.depth.compare_func != .always) {
+            pip_cache.depth.compare_func = .always;
+            gl.depthFunc(gl.ALWAYS);
+        }
         gl.clearDepth(action.depth);
     }
 
