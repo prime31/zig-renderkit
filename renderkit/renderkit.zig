@@ -420,10 +420,6 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
             gl.enable(gl.DEPTH_TEST);
             gl.depthMask(gl.TRUE);
         }
-        if (pip_cache.depth.compare_func != .always) {
-            pip_cache.depth.compare_func = .always;
-            gl.depthFunc(gl.ALWAYS);
-        }
     }
 
     if (num_color_atts == 1) {
