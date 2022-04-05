@@ -700,7 +700,7 @@ pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: t
             var image_slot: GLint = 0;
             inline for (@field(UniformT.metadata, "images")) |img| {
                 const loc = gl.getUniformLocation(id, img);
-                if (loc != 1) {
+                if (loc != -1) {
                     gl.uniform1i(loc, image_slot);
                     image_slot += 1;
                 } else {
