@@ -377,8 +377,7 @@ pub const ShaderCompileStep = struct {
         max_output_bytes: usize = 50 * 1024,
         expand_arg0: std.ChildProcess.Arg0Expand = .no_expand,
     }) !std.ChildProcess.ExecResult {
-        const child = try std.ChildProcess.init(args.argv, args.allocator);
-        defer child.deinit();
+        var child = std.ChildProcess.init(args.argv, args.allocator);
 
         child.stdin_behavior = .Ignore;
         // child.stdout_behavior = .Pipe;
