@@ -279,7 +279,7 @@ pub const ShaderCompileStep = struct {
             return;
         };
 
-        var dir_obj = try std.fs.cwd().openDir(self.shader_out_path[0 .. self.shader_out_path.len - 1], .{ .iterate = true });
+        var dir_obj = try std.fs.cwd().openIterableDir(self.shader_out_path[0 .. self.shader_out_path.len - 1], .{});
         defer dir_obj.close();
         var walker = try dir_obj.walk(self.builder.allocator);
         defer walker.deinit();
@@ -305,7 +305,7 @@ pub const ShaderCompileStep = struct {
 
                 if (uses_default_vs) {
                     // we may have a relative path if the Options were given a relative output path for the shader or package
-                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try dir_obj.deleteFile(entry.path);
+                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try dir_obj.dir.deleteFile(entry.path);
                 }
             }
         }
