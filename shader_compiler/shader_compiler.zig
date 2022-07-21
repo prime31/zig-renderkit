@@ -2,7 +2,7 @@ const std = @import("std");
 const path = std.fs.path;
 const Builder = std.build.Builder;
 const Step = std.build.Step;
-const BufMap = std.BufMap;
+const EnvMap = std.process.EnvMap;
 
 const ShdcParser = @import("shdc_parser.zig").ShdcParser;
 const ShaderProgram = @import("shdc_parser.zig").ShaderProgram;
@@ -373,7 +373,7 @@ pub const ShaderCompileStep = struct {
         argv: []const []const u8,
         cwd: ?[]const u8 = null,
         cwd_dir: ?std.fs.Dir = null,
-        env_map: ?*const BufMap = null,
+        env_map: ?*EnvMap = null,
         max_output_bytes: usize = 50 * 1024,
         expand_arg0: std.ChildProcess.Arg0Expand = .no_expand,
     }) !std.ChildProcess.ExecResult {
