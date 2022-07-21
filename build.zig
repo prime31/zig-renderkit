@@ -6,7 +6,7 @@ pub const ShaderCompileStep = @import("shader_compiler/shader_compiler.zig").Sha
 pub fn getRenderKitPackage(comptime prefix_path: []const u8) Pkg {
     return .{
         .name = "renderkit",
-        .path = .{ .path = prefix_path ++ "renderkit/renderkit.zig" },
+        .source = .{ .path = prefix_path ++ "renderkit/renderkit.zig" },
     };
 }
 
