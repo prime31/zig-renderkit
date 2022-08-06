@@ -124,7 +124,7 @@ const UniformType = enum {
         // helper closure just to make the below code more readable
         const print = struct {
             fn print(comptime fmt: []const u8, params: anytype) []const u8 {
-                return std.fmt.allocPrint(std.testing.allocator, fmt, params) catch unreachable;
+                return std.fmt.allocPrint(std.heap.c_allocator, fmt, params) catch unreachable;
             }
         }.print;
 
@@ -213,7 +213,7 @@ pub const UniformBlock = struct {
         const offset = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
 
         try self.uniforms.append(.{
-            .name = try std.testing.allocator.dupe(u8, name),
+            .name = try std.heap.c_allocator.dupe(u8, name),
             .type = UniformType.fromStr(kind),
             .array_count = array_count,
             .offset = offset,
