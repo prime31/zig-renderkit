@@ -398,8 +398,8 @@ pub const ShdcParser = struct {
                 parse_state = .none;
 
                 if (!self.snippet_reflection_map.contains(snippet_id)) {
-                    const stage_name = if (uni_block) |uni| uni.name else null;
-                    std.log.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name.?, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
+                    const stage_name = if (uni_block) |uni| uni.name else "";
+                    std.log.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
                 }
 
                 reflection.uniform_block = uni_block;
