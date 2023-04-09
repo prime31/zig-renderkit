@@ -98,9 +98,9 @@ pub const RenderCache = struct {
     }
 
     pub fn invalidateTexture(self: *@This(), tid: c_uint) void {
-        for (self.textures) |*tex, i| {
-            if (tex.* == tid) {
-                tex.* = 0;
+        for (self.textures, 0..) |_, i| {
+            if (self.textures[i] == tid) {
+                self.textures[i] = 0;
                 gl.activeTexture(gl.TEXTURE0 + @intCast(c_uint, i));
                 gl.bindTexture(gl.TEXTURE_2D, tid);
             }

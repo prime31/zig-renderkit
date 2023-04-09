@@ -1,6 +1,5 @@
 const std = @import("std");
 const path = std.fs.path;
-const Builder = std.build.Builder;
 const Step = std.build.Step;
 const BufMap = std.BufMap;
 
@@ -16,13 +15,13 @@ fn warn(comptime format: []const u8, args: anytype) void {
 /// Utility functionality to help with compiling shaders from build.zig. Invokes sokol-shdc for each shader added via `addShader`.
 pub const ShaderCompileStep = struct {
     step: Step,
-    builder: *Builder,
+    builder: *std.Build,
 
     /// The command and optional arguments used to invoke the shader compiler.
     /// sokol-shdc -i shd.glsl -o ./out/ -l glsl330:metal_macos -f bare -d
     shdc_cmd: []const []const u8,
     shader: []const u8,
-    package: ?std.build.Pkg = null,
+    package: ?std.build.Module = null,
     package_filename: []const u8,
     shader_out_path: []const u8,
     package_out_path: []const u8,
@@ -59,12 +58,12 @@ pub const ShaderCompileStep = struct {
         package_name: ?[]const u8 = null,
 
         /// dependencies to add to the package. For GameKit the `gamekit` package would be needed for the math imports.
-        package_deps: ?[]std.build.Pkg = null,
+        package_deps: ?[]std.build.Module = null,
     };
 
     /// Create a ShaderCompilerStep for `builder`. When this step is invoked by the build
     /// system, `sokol-shdc` is invoked to compile the shader.
-    pub fn init(builder: *Builder, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
+    pub fn init(builder: *std.Build, comptime prefix_path: []const u8, comptime options: Options) *ShaderCompileStep {
         if (prefix_path.len > 0 and !std.mem.endsWith(u8, prefix_path, "/")) @panic("prefix-path must end with '/' if it is not empty");
         const shader_out_path = if (options.shader_output_path) |out_path| out_path ++ path.sep_str else path.join(builder.allocator, &[_][]const u8{
             builder.build_root,
@@ -81,7 +80,7 @@ pub const ShaderCompileStep = struct {
         }) catch unreachable;
 
         const package_filename = if (options.package_name) |p_name| p_name ++ ".zig" else "shaders.zig";
-        var package: ?std.build.Pkg = null;
+        var package: ?std.build.Module = null;
         if (options.package_name) |package_name| {
             const pkg_path = path.join(builder.allocator, &[_][]const u8{
                 package_out_path,
@@ -103,7 +102,12 @@ pub const ShaderCompileStep = struct {
 
         const self = builder.allocator.create(ShaderCompileStep) catch unreachable;
         self.* = .{
-            .step = Step.init(.custom, "shader-compile", builder.allocator, make),
+            .step = Step.init(.{
+                .id = Step.Id.custom,
+                .name = "shader-compile",
+                .owner = builder,
+                .makeFn = make,
+            }),
             .builder = builder,
             .shdc_cmd = &[_][]const u8{ "." ++ path.sep_str ++ prefix_path ++ "bin" ++ path.sep_str ++ shdc_binary, "-d", "-l", "glsl330", "-f", "bare", "-i" },
             .shader = options.shader,
@@ -118,14 +122,14 @@ pub const ShaderCompileStep = struct {
     }
 
     /// Internal build function
-    fn make(step: *Step) !void {
+    fn make(step: *Step, _: *std.Progress.Node) !void {
         const self = @fieldParentPtr(ShaderCompileStep, "step", step);
         const cwd = std.fs.cwd();
         cwd.makePath(self.shader_out_path) catch unreachable;
         cwd.makePath(self.package_out_path) catch unreachable;
 
         const cmd = try self.builder.allocator.alloc([]const u8, self.shdc_cmd.len + 3);
-        for (self.shdc_cmd) |part, i| cmd[i] = part;
+        for (self.shdc_cmd, 0..) |part, i| cmd[i] = part;
 
         cmd[cmd.len - 2] = "-o";
         cmd[cmd.len - 3] = self.shader;
@@ -235,7 +239,7 @@ pub const ShaderCompileStep = struct {
                         var img_writer = img_array_list.writer();
 
                         try img_writer.writeAll("struct { pub const metadata = .{ .images = .{ ");
-                        for (fs_reflection.images.items) |img, i| {
+                        for (fs_reflection.images.items, 0..) |img, i| {
                             try img_writer.print("\"{s}\"", .{img.name});
                             if (fs_reflection.images.items.len - 1 > i) try img_writer.writeAll(", ");
                         }
@@ -279,7 +283,7 @@ pub const ShaderCompileStep = struct {
             return;
         };
 
-        var dir_obj = try std.fs.cwd().openDir(self.shader_out_path[0 .. self.shader_out_path.len - 1], .{ .iterate = true });
+        var dir_obj = try std.fs.cwd().openIterableDir(self.shader_out_path[0 .. self.shader_out_path.len - 1], .{ .access_sub_paths = true });
         defer dir_obj.close();
         var walker = try dir_obj.walk(self.builder.allocator);
         defer walker.deinit();
@@ -305,7 +309,7 @@ pub const ShaderCompileStep = struct {
 
                 if (uses_default_vs) {
                     // we may have a relative path if the Options were given a relative output path for the shader or package
-                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try dir_obj.deleteFile(entry.path);
+                    if (std.fs.path.isAbsolute(entry.path)) try std.fs.deleteFileAbsolute(entry.path) else try dir_obj.dir.deleteFile(entry.path);
                 }
             }
         }
@@ -320,7 +324,6 @@ pub const ShaderCompileStep = struct {
     /// generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
     /// specs and also pad them out correctly. Only floats are suported for struct members because of this.
     fn generateUniformBlockStruct(self: *ShaderCompileStep, reflection: ReflectionData, block: UniformBlock, parsed: *ShdcParser, writer: std.ArrayList(u8).Writer) !void {
-        _ = self;
         const next_align16 = nextHighestAlign16(block.size);
         // warn("{}, size: {}, aligned size: {}", .{ block.name, block.size, next_align16 });
 
@@ -332,7 +335,7 @@ pub const ShaderCompileStep = struct {
         // images (currently only for frag shader)
         if (reflection.stage == .fs) {
             try writer.writeAll("        .images = .{ ");
-            for (reflection.images.items) |img, i| {
+            for (reflection.images.items, 0..) |img, i| {
                 if (i > 0) try writer.writeAll(", ");
                 try writer.print("\"{s}\"", .{img.name});
             }
@@ -347,7 +350,7 @@ pub const ShaderCompileStep = struct {
 
         var pad_cnt: u8 = 0;
         var running_size: usize = 0;
-        for (block.uniforms.items) |uni, i| {
+        for (block.uniforms.items, 0..) |uni, i| {
             const potential_pad = uni.offset - running_size;
 
             running_size += uni.type.size(uni.array_count);
@@ -355,7 +358,7 @@ pub const ShaderCompileStep = struct {
                 try writer.print("    _pad{}_{}_: [{}]u8 = [_]u8{{0}} ** {},\n", .{ @mod(potential_pad, next_align16), pad_cnt, potential_pad, potential_pad });
                 pad_cnt += 1;
             }
-            try writer.print("    {s}: {s},\n", .{ uni.name, uni.type.zigType(uni.array_count, parsed) });
+            try writer.print("    {s}: {s},\n", .{ uni.name, uni.type.zigType(self.builder.allocator, uni.array_count, parsed) });
 
             // generates the uniform block struct. Care is taken here to align all the struct fields to match the graphics
             // specs and also pad them out correctly. Only floats are suported for struct members because of this.
@@ -368,17 +371,18 @@ pub const ShaderCompileStep = struct {
     }
 
     /// custom exec because the normal one deadlocks due to the output being huge
-    fn exec(args: struct {
-        allocator: std.mem.Allocator,
-        argv: []const []const u8,
-        cwd: ?[]const u8 = null,
-        cwd_dir: ?std.fs.Dir = null,
-        env_map: ?*const BufMap = null,
-        max_output_bytes: usize = 50 * 1024,
-        expand_arg0: std.ChildProcess.Arg0Expand = .no_expand,
-    }) !std.ChildProcess.ExecResult {
-        const child = try std.ChildProcess.init(args.argv, args.allocator);
-        defer child.deinit();
+    fn exec(
+        args: struct {
+            allocator: std.mem.Allocator,
+            argv: []const []const u8,
+            cwd: ?[]const u8 = null,
+            cwd_dir: ?std.fs.Dir = null,
+            env_map: ?*const std.process.EnvMap = null,
+            max_output_bytes: usize = 50 * 1024,
+            expand_arg0: std.ChildProcess.Arg0Expand = .no_expand,
+        },
+    ) !std.ChildProcess.ExecResult {
+        var child = std.ChildProcess.init(args.argv, args.allocator);
 
         child.stdin_behavior = .Ignore;
         // child.stdout_behavior = .Pipe;

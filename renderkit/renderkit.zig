@@ -7,7 +7,8 @@ const descriptions = @import("descriptions.zig");
 pub usingnamespace descriptions;
 pub usingnamespace types;
 
-pub const gl = @import("gl_4v1.zig");
+pub const gl = zgl.gl; //@import("gl_4v1.zig");
+const zgl = @import("zopengl.zig");
 const translations = @import("gl_translations.zig");
 
 var in_pass: bool = false;
@@ -40,7 +41,8 @@ pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void
     buffer_cache = HandledCache(GLBuffer).init(allocator, desc.pool_sizes.buffers);
     shader_cache = HandledCache(GLShaderProgram).init(allocator, desc.pool_sizes.shaders);
 
-    gl.load(desc.gl_loader) catch unreachable;
+    gl.load(desc.gl_loader.?) catch unreachable;
+    zgl.loadCoreProfile(desc.gl_loader.?, 3, 3) catch {};
 
     pip_cache = std.mem.zeroes(types.RenderState);
     setRenderState(.{});
@@ -77,11 +79,16 @@ fn checkError(src: std.builtin.SourceLocation) void {
 }
 
 fn checkShaderError(shader: GLuint) bool {
-    var status: GLint = undefined;
+    var status: GLint = gl.FALSE;
     gl.getShaderiv(shader, gl.COMPILE_STATUS, &status);
     if (status != gl.TRUE) {
         var buf: [2048]u8 = undefined;
         var total_len: GLsizei = -1;
+
+        var wtf: GLsizei = -100;
+        gl.getShaderiv(shader, gl.INFO_LOG_LENGTH, &wtf);
+        std.debug.print("----- {}\n", .{wtf});
+
         gl.getShaderInfoLog(shader, 2048, &total_len, buf[0..]);
         if (total_len == -1) {
             // the length of the infolog seems to not be set when a GL context isn't set (so when the window isn't created)
@@ -428,7 +435,7 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
         if (action.clear_depth) gl.clearDepth(action.depth);
         if (clear_mask != 0) gl.clear(clear_mask);
     } else {
-        for (action.colors) |color_action, i| {
+        for (action.colors, 0..) |color_action, i| {
             const index: c_int = @intCast(c_int, i);
 
             if (color_action.clear) gl.clearBufferfv(gl.COLOR, index, &color_action.color);
@@ -465,7 +472,7 @@ const GLBuffer = struct {
     append_overflow: bool,
     index_buffer_type: GLenum,
     vert_buffer_step_func: GLuint,
-    setVertexAttributes: ?fn (attr_index: *GLuint, step_func: GLuint, vertex_buffer_offset: u32) void,
+    setVertexAttributes: ?*const fn (attr_index: *GLuint, step_func: GLuint, vertex_buffer_offset: u32) void,
 };
 
 pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Buffer {
@@ -477,10 +484,10 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
     if (@typeInfo(T) == .Struct) {
         buffer.setVertexAttributes = struct {
             fn cb(attr_index: *GLuint, step_func: GLuint, vertex_buffer_offset: u32) void {
-                inline for (@typeInfo(T).Struct.fields) |field, i| {
+                inline for (@typeInfo(T).Struct.fields, 0..) |field, i| {
                     const offset: ?usize = if (i + vertex_buffer_offset == 0) null else vertex_buffer_offset + @offsetOf(T, field.name);
 
-                    switch (@typeInfo(field.field_type)) {
+                    switch (@typeInfo(field.type)) {
                         .Int => |type_info| {
                             if (type_info.signedness == .signed) {
                                 unreachable;
@@ -503,7 +510,7 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
                             gl.enableVertexAttribArray(i);
                         },
                         .Struct => |type_info| {
-                            const field_type = type_info.fields[0].field_type;
+                            const field_type = type_info.fields[0].type;
                             std.debug.assert(@sizeOf(field_type) == 4);
 
                             switch (@typeInfo(field_type)) {
@@ -605,7 +612,7 @@ pub fn applyBindings(bindings: types.BufferBindings) void {
     }
 
     var vert_attr_index: GLuint = 0;
-    for (bindings.vert_buffers) |buff, i| {
+    for (bindings.vert_buffers, 0..) |buff, i| {
         if (buff == 0) break;
 
         var vbuffer = buffer_cache.get(buff);
@@ -616,7 +623,7 @@ pub fn applyBindings(bindings: types.BufferBindings) void {
     }
 
     // bind images
-    for (bindings.images) |image, slot| {
+    for (bindings.images, 0..) |image, slot| {
         const tid = if (image == 0) 0 else image_cache.get(image).tid;
         cache.bindImage(tid, @intCast(c_uint, slot));
     }
@@ -653,10 +660,11 @@ const GLShaderProgram = struct {
 };
 
 fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
-    const shader = gl.createShader(stage);
+    const shader = zgl.gl.createShader(stage);
     var shader_src = src;
     gl.shaderSource(shader, 1, &shader_src, null);
     gl.compileShader(shader);
+    std.debug.print("---- stage: {}, shader: {any}\n", .{ stage, shader });
     if (!checkShaderError(shader)) {
         gl.deleteShader(shader);
         return 0;
@@ -711,17 +719,17 @@ pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: t
     }
 
     // fetch and cache all uniforms from our metadata.uniforms fields for both the vert and frag types
-    inline for (.{ VertUniformT, FragUniformT }) |UniformT, j| {
+    inline for (.{ VertUniformT, FragUniformT }, 0..) |UniformT, j| {
         var uniform_cache = if (j == 0) &shader.vs_uniform_cache else &shader.fs_uniform_cache;
         if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "uniforms")) {
             const uniforms = @field(UniformT.metadata, "uniforms");
-            inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+            inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields, 0..) |field, i| {
                 uniform_cache[i] = gl.getUniformLocation(id, field.name ++ "\x00");
                 if (@import("builtin").mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{s}] not found!\n", .{field.name});
             }
         } else {
             // cache a uniform for each struct fields. It is prefered to use the `metadata` approach above but this path is supported as well.
-            inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
+            inline for (@typeInfo(UniformT).Struct.fields, 0..) |field, i| {
                 uniform_cache[i] = gl.getUniformLocation(id, field.name ++ "\x00");
                 if (@import("builtin").mode == .Debug and uniform_cache[i] == -1) std.debug.print("Uniform [{s}] not found!\n", .{field.name});
             }
@@ -761,7 +769,7 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: types.Shade
 
     if (@hasDecl(UniformT, "metadata") and @hasField(@TypeOf(UniformT.metadata), "uniforms")) {
         const uniforms = @field(UniformT.metadata, "uniforms");
-        inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields) |field, i| {
+        inline for (@typeInfo(@TypeOf(uniforms)).Struct.fields, 0..) |field, i| {
             const location = uniform_cache[i];
             const uni = @field(UniformT.metadata.uniforms, field.name);
 
@@ -777,7 +785,7 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: types.Shade
         }
     } else {
         // set all the fields of the struct as uniforms. It is prefered to use the `metadata` approach above.
-        inline for (@typeInfo(UniformT).Struct.fields) |field, i| {
+        inline for (@typeInfo(UniformT).Struct.fields, 0..) |field, i| {
             const location = uniform_cache[i];
             if (location > -1) {
                 switch (@typeInfo(field.field_type)) {

@@ -1,7 +1,7 @@
 const std = @import("std");
 const renderkit = @import("types.zig");
 
-pub const RendererDesc = extern struct {
+pub const RendererDesc = struct {
     const PoolSizes = extern struct {
         texture: u8 = 64,
         offscreen_pass: u8 = 8,
@@ -9,7 +9,7 @@ pub const RendererDesc = extern struct {
         shaders: u8 = 16,
     };
 
-    gl_loader: fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
+    gl_loader: ?*const fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
     disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},
 };

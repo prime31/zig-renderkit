@@ -186,7 +186,7 @@ pub const BufferBindings = struct {
 
     pub fn init(index_buffer: Buffer, vert_buffers: []Buffer) BufferBindings {
         var vbuffers: [4]Buffer = [_]Buffer{0} ** 4;
-        for (vert_buffers) |vb, i| vbuffers[i] = vb;
+        for (vert_buffers, 0..) |vb, i| vbuffers[i] = vb;
 
         return .{
             .index_buffer = index_buffer,
