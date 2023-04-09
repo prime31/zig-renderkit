@@ -15,11 +15,11 @@ var in_pass: bool = false;
 
 const HandledCache = @import("handles.zig").HandledCache;
 const RenderCache = @import("render_cache.zig").RenderCache;
-const GLuint = gl.GLuint;
-const GLint = gl.GLint;
-const GLenum = gl.GLenum;
-const GLsizei = gl.GLsizei;
-const GLbitfield = gl.GLbitfield;
+const GLuint = gl.Uint;
+const GLint = gl.Int;
+const GLenum = gl.Enum;
+const GLsizei = gl.Sizei;
+const GLbitfield = gl.Bitfield;
 
 var cache = RenderCache.init();
 var pip_cache: types.RenderState = undefined;
@@ -41,7 +41,7 @@ pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void
     buffer_cache = HandledCache(GLBuffer).init(allocator, desc.pool_sizes.buffers);
     shader_cache = HandledCache(GLShaderProgram).init(allocator, desc.pool_sizes.shaders);
 
-    gl.load(desc.gl_loader.?) catch unreachable;
+    // gl.load(desc.gl_loader.?) catch unreachable;
     zgl.loadCoreProfile(desc.gl_loader.?, 3, 3) catch {};
 
     pip_cache = std.mem.zeroes(types.RenderState);
@@ -84,11 +84,6 @@ fn checkShaderError(shader: GLuint) bool {
     if (status != gl.TRUE) {
         var buf: [2048]u8 = undefined;
         var total_len: GLsizei = -1;
-
-        var wtf: GLsizei = -100;
-        gl.getShaderiv(shader, gl.INFO_LOG_LENGTH, &wtf);
-        std.debug.print("----- {}\n", .{wtf});
-
         gl.getShaderInfoLog(shader, 2048, &total_len, buf[0..]);
         if (total_len == -1) {
             // the length of the infolog seems to not be set when a GL context isn't set (so when the window isn't created)
@@ -102,7 +97,7 @@ fn checkShaderError(shader: GLuint) bool {
 }
 
 fn checkProgramError(shader: GLuint) bool {
-    var status: GLint = undefined;
+    var status: GLint = gl.FALSE;
     gl.getProgramiv(shader, gl.LINK_STATUS, &status);
     if (status != gl.TRUE) {
         var buf: [2048]u8 = undefined;
@@ -364,7 +359,7 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
 
     // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3 };
-    gl.drawBuffers(@intCast(gl.GLsizei, pass.num_color_atts), &draw_buffers);
+    gl.drawBuffers(@intCast(gl.Sizei, pass.num_color_atts), &draw_buffers);
 
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) std.debug.print("framebuffer failed\n", .{});
 
@@ -445,7 +440,7 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
             } else if (action.clear_depth) {
                 gl.clearBufferfv(gl.DEPTH, index, &@floatCast(f32, action.depth));
             } else if (action.clear_stencil) {
-                gl.clearBufferiv(gl.STENCIL, index, &@intCast(gl.GLint, action.stencil));
+                gl.clearBufferiv(gl.STENCIL, index, &@intCast(gl.Int, action.stencil));
             }
         }
     }
@@ -664,7 +659,7 @@ fn compileShader(stage: GLenum, src: [:0]const u8) GLuint {
     var shader_src = src;
     gl.shaderSource(shader, 1, &shader_src, null);
     gl.compileShader(shader);
-    std.debug.print("---- stage: {}, shader: {any}\n", .{ stage, shader });
+
     if (!checkShaderError(shader)) {
         gl.deleteShader(shader);
         return 0;

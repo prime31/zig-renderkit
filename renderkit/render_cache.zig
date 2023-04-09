@@ -1,8 +1,8 @@
 const std = @import("std");
-const gl = @import("gl_4v1.zig");
+const gl = @import("zopengl.zig").gl; //@import("gl_4v1.zig");
 
-const GLuint = gl.GLuint;
-const GLenum = gl.GLenum;
+const GLuint = gl.Uint;
+const GLenum = gl.Enum;
 
 const Rect = struct {
     x: c_int = 0,
