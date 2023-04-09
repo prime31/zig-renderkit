@@ -106,7 +106,7 @@ const UniformType = enum {
         if (std.mem.eql(u8, kind, "FLOAT3")) return .float3;
         if (std.mem.eql(u8, kind, "FLOAT4")) return .float4;
         if (std.mem.eql(u8, kind, "MAT4")) return .mat4;
-        std.debug.print("Invalid type: {s}\n", .{ kind });
+        std.debug.print("Invalid type: {s}\n", .{kind});
         @panic("unidentified uniform type");
     }
 
@@ -120,34 +120,34 @@ const UniformType = enum {
         };
     }
 
-    pub fn zigType(self: @This(), array_count: u32, shdr_compiler: *ShdcParser) []const u8 {
+    pub fn zigType(self: @This(), a: std.mem.Allocator, array_count: u32, shdr_compiler: *ShdcParser) []const u8 {
         // helper closure just to make the below code more readable
         const print = struct {
-            fn print(comptime fmt: []const u8, params: anytype) []const u8 {
-                return std.fmt.allocPrint(std.heap.c_allocator, fmt, params) catch unreachable;
+            fn print(alloc: std.mem.Allocator, comptime fmt: []const u8, params: anytype) []const u8 {
+                return std.fmt.allocPrint(alloc, fmt, params) catch unreachable;
             }
         }.print;
 
         return switch (self) {
             .float => {
-                if (array_count == 1) return print("f32 = 0", .{});
-                return print("[{0}]f32 = [_]f32{{0}} ** {0}", .{array_count});
+                if (array_count == 1) return print(a, "f32 = 0", .{});
+                return print(a, "[{0}]f32 = [_]f32{{0}} ** {0}", .{array_count});
             },
             .float2 => {
-                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.float2_type});
-                return print("[{d}]{s}", .{ array_count, shdr_compiler.float2_type });
+                if (array_count == 1) return print(a, "{s} = .{{}}", .{shdr_compiler.float2_type});
+                return print(a, "[{d}]{s}", .{ array_count, shdr_compiler.float2_type });
             },
             .float3 => {
-                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.float3_type});
-                return print("[{d}]{s}", .{ array_count, shdr_compiler.float3_type });
+                if (array_count == 1) return print(a, "{s} = .{{}}", .{shdr_compiler.float3_type});
+                return print(a, "[{d}]{s}", .{ array_count, shdr_compiler.float3_type });
             },
             .float4 => {
-                if (array_count == 1) return print("[4]f32 = [_]f32{{0}} ** 4", .{});
-                return print("[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
+                if (array_count == 1) return print(a, "[4]f32 = [_]f32{{0}} ** 4", .{});
+                return print(a, "[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
             },
             .mat4 => {
-                if (array_count == 1) return print("{s} = .{{}}", .{shdr_compiler.mat4_type});
-                return print("[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
+                if (array_count == 1) return print(a, "{s} = .{{}}", .{shdr_compiler.mat4_type});
+                return print(a, "[{d}]f32 = [_]f32{{0}} ** {d}", .{ array_count * 4, array_count * 4 });
             },
         };
     }
@@ -193,7 +193,7 @@ pub const UniformBlock = struct {
         };
     }
 
-    pub fn addUniform(self: *@This(), line: []const u8) !void {
+    pub fn addUniform(self: *@This(), alloc: std.mem.Allocator, line: []const u8) !void {
         var colon_index = std.mem.indexOfScalar(u8, line, ':').? + 2;
         var comma_index = std.mem.indexOfScalarPos(u8, line, colon_index, ',').?;
         const name = line[colon_index..comma_index];
@@ -213,7 +213,7 @@ pub const UniformBlock = struct {
         const offset = try std.fmt.parseUnsigned(u32, str[colon_index..], 10);
 
         try self.uniforms.append(.{
-            .name = try std.heap.c_allocator.dupe(u8, name),
+            .name = try alloc.dupe(u8, name),
             .type = UniformType.fromStr(kind),
             .array_count = array_count,
             .offset = offset,
@@ -301,7 +301,7 @@ pub const ShdcParser = struct {
                 } else if (std.mem.indexOf(u8, line_trimmed, "member:") == null) {
                     parse_state = .stage_complete;
                 } else {
-                    try uni_block.?.addUniform(line_trimmed);
+                    try uni_block.?.addUniform(self.allocator, line_trimmed);
                 }
             } else if (parse_state == .inputs) {
                 // if we find outputs or image bounce out of the input state
@@ -398,8 +398,8 @@ pub const ShdcParser = struct {
                 parse_state = .none;
 
                 if (!self.snippet_reflection_map.contains(snippet_id)) {
-                    const stage_name = if (uni_block) |uni| uni.name else "";
-                    std.log.warn("snippet id: {}, stage: {}, uniform name: {s}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
+                    const stage_name = if (uni_block) |uni| uni.name else null;
+                    std.log.warn("snippet id: {}, stage: {}, uniform name: {any}, inputs: {}, outputs: {}, images: {}\n", .{ snippet_id, reflection.stage, stage_name, reflection.inputs.items.len, reflection.outputs.items.len, reflection.images.items.len });
                 }
 
                 reflection.uniform_block = uni_block;

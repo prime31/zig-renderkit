@@ -104,15 +104,6 @@ pub const DissolveParams = extern struct {
 };
 ```
 
+<br/><br/>
+Uses [`zgl`](https://github.com/michal-z/zig-gamedev) for loading OpenGL functions
 
-<br/><br/><br/><br/><br/>
-
-#### Some interesting GL code used for inspiration
-
-[ZGL](https://github.com/ziglibs/zgl/blob/master/zgl.zig)<br/>
-[Oxid](https://github.com/dbandstra/oxid/blob/master/lib/gl.zig)<br/>
-[didot](https://github.com/zenith391/didot)<br/>
-[learnopengl](https://github.com/cshenton/learnopengl)<br/>
-[minifb (Rust)](https://github.com/emoon/rust_minifb)<br/>
-[Mach GLFW](https://github.com/hexops/mach-glfw)<br/>
-[Zig OpenGL](https://github.com/MasterQ32/zig-opengl)<br/>
