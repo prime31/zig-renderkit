@@ -4,11 +4,8 @@ const assert = std.debug.assert;
 const options = @import("zopengl_options");
 
 pub const gl = @import("bindings.zig");
+pub usingnamespace gl;
 
-pub usingnamespace switch (.raw) {
-    .raw => gl,
-    else => {},
-};
 //--------------------------------------------------------------------------------------------------
 //
 // Functions for loading OpenGL function pointers

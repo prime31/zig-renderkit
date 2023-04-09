@@ -1,9 +1,9 @@
 const renderkit = @import("types.zig");
-const gl = @import("gl_4v1.zig");
+const gl = @import("zopengl.zig").gl;
 
-const GLenum = gl.GLenum;
-const GLint = gl.GLint;
-const GLuint = gl.GLuint;
+const GLenum = gl.Enum;
+const GLint = gl.Int;
+const GLuint = gl.Uint;
 
 // translations from our enums to OpenGL
 pub fn blendFactorToGl(state: renderkit.BlendFactor) GLenum {
