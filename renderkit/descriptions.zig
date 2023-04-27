@@ -10,7 +10,6 @@ pub const RendererDesc = struct {
     };
 
     gl_loader: ?*const fn ([*c]const u8) callconv(.C) ?*anyopaque = null,
-    disable_vsync: bool = false,
     pool_sizes: PoolSizes = .{},
 };
 
