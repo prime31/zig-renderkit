@@ -52,7 +52,7 @@ pub fn BufferDesc(comptime T: type) type {
             std.debug.assert(self.usage != .immutable or self.content != null);
             std.debug.assert(self.size > 0 or self.content != null);
 
-            if (self.content) |con| return @intCast(c_long, con.len * @sizeOf(T));
+            if (self.content) |con| return @as(c_long, @intCast(con.len * @sizeOf(T)));
             return self.size;
         }
     };

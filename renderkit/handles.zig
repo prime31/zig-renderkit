@@ -34,12 +34,12 @@ pub fn Handles(comptime HandleType: type, comptime IndexType: type, comptime Ver
 
         pub fn extractIndex(self: Self, handle: HandleType) IndexType {
             _ = self;
-            return @truncate(IndexType, handle);
+            return @as(IndexType, @truncate(handle));
         }
 
         pub fn extractVersion(self: Self, handle: HandleType) VersionType {
             _ = self;
-            return @truncate(VersionType, handle >> @bitSizeOf(IndexType));
+            return @as(VersionType, @truncate(handle >> @bitSizeOf(IndexType)));
         }
 
         fn forge(id: IndexType, version: VersionType) HandleType {

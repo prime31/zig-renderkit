@@ -289,7 +289,7 @@ pub const ShaderCompileStep = struct {
         defer walker.deinit();
 
         while (try walker.next()) |entry| {
-            if (entry.kind != .File) continue;
+            if (entry.kind != .file) continue;
             if (std.mem.indexOf(u8, entry.basename, "_vs")) |vs_index| {
                 _ = vs_index;
                 // if this shader isnt a unique vert program delete it
