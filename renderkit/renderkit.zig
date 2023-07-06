@@ -90,7 +90,7 @@ fn checkShaderError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("shader compilation error:\n{s}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("shader compilation error:\n{s}", .{buf[0..@as(usize, @intCast(total_len))]});
         return false;
     }
     return true;
@@ -108,7 +108,7 @@ fn checkProgramError(shader: GLuint) bool {
             unreachable;
         }
 
-        std.debug.print("program link error:\n{s}", .{buf[0..@intCast(usize, total_len)]});
+        std.debug.print("program link error:\n{s}", .{buf[0..@as(usize, @intCast(total_len))]});
         return false;
     }
     return true;
@@ -134,7 +134,7 @@ pub fn setRenderState(state: types.RenderState) void {
     }
 
     if (state.stencil.write_mask != pip_cache.stencil.write_mask) {
-        gl.stencilMask(@intCast(GLuint, state.stencil.write_mask));
+        gl.stencilMask(@as(GLuint, @intCast(state.stencil.write_mask)));
         pip_cache.stencil.write_mask = state.stencil.write_mask;
     }
 
@@ -142,7 +142,7 @@ pub fn setRenderState(state: types.RenderState) void {
         state.stencil.read_mask != pip_cache.stencil.read_mask or
         state.stencil.ref != pip_cache.stencil.ref)
     {
-        gl.stencilFunc(translations.compareFuncToGl(state.stencil.compare_func), @intCast(GLint, state.stencil.ref), @intCast(GLuint, state.stencil.read_mask));
+        gl.stencilFunc(translations.compareFuncToGl(state.stencil.compare_func), @as(GLint, @intCast(state.stencil.ref)), @as(GLuint, @intCast(state.stencil.read_mask)));
         pip_cache.stencil.compare_func = state.stencil.compare_func;
         pip_cache.stencil.ref = state.stencil.ref;
         pip_cache.stencil.read_mask = state.stencil.read_mask;
@@ -183,10 +183,10 @@ pub fn setRenderState(state: types.RenderState) void {
     }
 
     if (state.blend.color_write_mask != pip_cache.blend.color_write_mask) {
-        const r = (@enumToInt(state.blend.color_write_mask) & @enumToInt(types.ColorMask.r)) != 0;
-        const g = (@enumToInt(state.blend.color_write_mask) & @enumToInt(types.ColorMask.g)) != 0;
-        const b = (@enumToInt(state.blend.color_write_mask) & @enumToInt(types.ColorMask.b)) != 0;
-        const a = (@enumToInt(state.blend.color_write_mask) & @enumToInt(types.ColorMask.a)) != 0;
+        const r = (@intFromEnum(state.blend.color_write_mask) & @intFromEnum(types.ColorMask.r)) != 0;
+        const g = (@intFromEnum(state.blend.color_write_mask) & @intFromEnum(types.ColorMask.g)) != 0;
+        const b = (@intFromEnum(state.blend.color_write_mask) & @intFromEnum(types.ColorMask.b)) != 0;
+        const a = (@intFromEnum(state.blend.color_write_mask) & @intFromEnum(types.ColorMask.a)) != 0;
         gl.colorMask(if (r) 1 else 0, if (g) 1 else 0, if (b) 1 else 0, if (a) 1 else 0);
         pip_cache.blend.color_write_mask = state.blend.color_write_mask;
     }
@@ -319,7 +319,7 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
 
     var orig_fb: GLint = undefined;
     gl.getIntegerv(gl.FRAMEBUFFER_BINDING, &orig_fb);
-    defer gl.bindFramebuffer(gl.FRAMEBUFFER, @intCast(GLuint, orig_fb));
+    defer gl.bindFramebuffer(gl.FRAMEBUFFER, @as(GLuint, @intCast(orig_fb)));
 
     pass.color_atts[0] = desc.color_img;
 
@@ -359,7 +359,7 @@ pub fn createPass(desc: descriptions.PassDesc) types.Pass {
 
     // Set the list of draw buffers
     var draw_buffers: [4]GLenum = [_]GLenum{ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3 };
-    gl.drawBuffers(@intCast(gl.Sizei, pass.num_color_atts), &draw_buffers);
+    gl.drawBuffers(@as(gl.Sizei, @intCast(pass.num_color_atts)), &draw_buffers);
 
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) std.debug.print("framebuffer failed\n", .{});
 
@@ -426,21 +426,21 @@ fn beginDefaultOrOffscreenPass(offscreen_pass: types.Pass, action: types.ClearCo
 
     if (num_color_atts == 1) {
         if (action.colors[0].clear) gl.clearColor(action.colors[0].color[0], action.colors[0].color[1], action.colors[0].color[2], action.colors[0].color[3]);
-        if (action.clear_stencil) gl.clearStencil(@intCast(GLint, action.stencil));
+        if (action.clear_stencil) gl.clearStencil(@as(GLint, @intCast(action.stencil)));
         if (action.clear_depth) gl.clearDepth(action.depth);
         if (clear_mask != 0) gl.clear(clear_mask);
     } else {
         for (action.colors, 0..) |color_action, i| {
-            const index: c_int = @intCast(c_int, i);
+            const index: c_int = @as(c_int, @intCast(i));
 
             if (color_action.clear) gl.clearBufferfv(gl.COLOR, index, &color_action.color);
 
             if (action.clear_depth and action.clear_stencil) {
-                gl.clearBufferfi(gl.DEPTH_STENCIL, index, @floatCast(f32, action.depth), action.stencil);
+                gl.clearBufferfi(gl.DEPTH_STENCIL, index, @as(f32, @floatCast(action.depth)), action.stencil);
             } else if (action.clear_depth) {
-                gl.clearBufferfv(gl.DEPTH, index, &@floatCast(f32, action.depth));
+                gl.clearBufferfv(gl.DEPTH, index, &@as(f32, @floatCast(action.depth)));
             } else if (action.clear_stencil) {
-                gl.clearBufferiv(gl.STENCIL, index, &@intCast(gl.Int, action.stencil));
+                gl.clearBufferiv(gl.STENCIL, index, &@as(gl.Int, @intCast(action.stencil)));
             }
         }
     }
@@ -474,7 +474,7 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
     var buffer = std.mem.zeroes(GLBuffer);
     buffer.stream = desc.usage == .stream;
     buffer.vert_buffer_step_func = if (desc.step_func == .per_vertex) 0 else 1;
-    buffer.size = @intCast(u32, desc.getSize());
+    buffer.size = @as(u32, @intCast(desc.getSize()));
 
     if (@typeInfo(T) == .Struct) {
         buffer.setVertexAttributes = struct {
@@ -490,7 +490,7 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
                                 switch (type_info.bits) {
                                     32 => {
                                         // u32 is color
-                                        const off = if (offset) |o| @intToPtr(*anyopaque, o) else null;
+                                        const off = if (offset) |o| @as(*anyopaque, @ptrFromInt(o)) else null;
                                         gl.vertexAttribPointer(attr_index.*, 4, gl.UNSIGNED_BYTE, gl.TRUE, @sizeOf(T), off);
                                         gl.enableVertexAttribArray(attr_index.*);
                                         gl.vertexAttribDivisor(attr_index.*, step_func);
@@ -512,7 +512,7 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
                                 .Float => {
                                     switch (type_info.fields.len) {
                                         2, 3, 4 => {
-                                            const off = if (offset) |o| @intToPtr(*anyopaque, o) else null;
+                                            const off = if (offset) |o| @as(*anyopaque, @ptrFromInt(o)) else null;
                                             gl.vertexAttribPointer(attr_index.*, type_info.fields.len, gl.FLOAT, gl.FALSE, @sizeOf(T), off);
                                             gl.enableVertexAttribArray(attr_index.*);
                                             gl.vertexAttribDivisor(attr_index.*, step_func);
@@ -543,7 +543,7 @@ pub fn createBuffer(comptime T: type, desc: descriptions.BufferDesc(T)) types.Bu
         .dynamic => gl.DYNAMIC_DRAW,
     };
 
-    gl.bufferData(buffer_kind, @intCast(c_long, buffer.size), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
+    gl.bufferData(buffer_kind, @as(c_long, @intCast(buffer.size)), if (desc.usage == .immutable) desc.content.?.ptr else null, usage);
     return buffer_cache.append(buffer);
 }
 
@@ -559,18 +559,18 @@ pub fn updateBuffer(comptime T: type, buffer: types.Buffer, data: []const T) voi
 
     // orphan the buffer for streamed so we can reset our append_pos and overflow state
     if (buff.stream) {
-        gl.bufferData(gl.ARRAY_BUFFER, @intCast(c_long, data.len * @sizeOf(T)), null, gl.STREAM_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, @as(c_long, @intCast(data.len * @sizeOf(T))), null, gl.STREAM_DRAW);
         buff.append_pos = 0;
         buff.append_overflow = false;
     }
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, @intCast(c_long, data.len * @sizeOf(T)), data.ptr);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, @as(c_long, @intCast(data.len * @sizeOf(T))), data.ptr);
 }
 
 pub fn appendBuffer(comptime T: type, buffer: types.Buffer, data: []const T) u32 {
     const buff = buffer_cache.get(buffer);
     cache.bindBuffer(gl.ARRAY_BUFFER, buff.vbo);
 
-    const num_bytes = @intCast(isize, data.len * @sizeOf(T));
+    const num_bytes = @as(isize, @intCast(data.len * @sizeOf(T)));
 
     // rewind append cursor in a new frame
     if (buff.append_frame_index != frame_index) {
@@ -579,13 +579,13 @@ pub fn appendBuffer(comptime T: type, buffer: types.Buffer, data: []const T) u32
     }
 
     // check for overflow
-    if ((buff.append_pos + @intCast(u32, num_bytes)) > buff.size)
+    if ((buff.append_pos + @as(u32, @intCast(num_bytes))) > buff.size)
         buff.append_overflow = true;
 
     const start_pos = buff.append_pos;
     if (!buff.append_overflow and num_bytes > 0) {
         gl.bufferSubData(gl.ARRAY_BUFFER, buff.append_pos, num_bytes, data.ptr);
-        buff.append_pos += @intCast(u32, num_bytes);
+        buff.append_pos += @as(u32, @intCast(num_bytes));
         buff.append_frame_index = frame_index;
     }
 
@@ -603,7 +603,7 @@ pub fn applyBindings(bindings: types.BufferBindings) void {
     if (bindings.index_buffer != 0) {
         var ibuffer = buffer_cache.get(bindings.index_buffer);
         cache.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibuffer.vbo);
-        cur_ib_offset = @intCast(c_int, bindings.index_buffer_offset);
+        cur_ib_offset = @as(c_int, @intCast(bindings.index_buffer_offset));
     }
 
     var vert_attr_index: GLuint = 0;
@@ -620,7 +620,7 @@ pub fn applyBindings(bindings: types.BufferBindings) void {
     // bind images
     for (bindings.images, 0..) |image, slot| {
         const tid = if (image == 0) 0 else image_cache.get(image).tid;
-        cache.bindImage(tid, @intCast(c_uint, slot));
+        cache.bindImage(tid, @as(c_uint, @intCast(slot)));
     }
 }
 
@@ -637,12 +637,12 @@ pub fn draw(base_element: c_int, element_count: c_int, instance_count: c_int) vo
         const ibuffer = buffer_cache.get(cur_bindings.index_buffer);
 
         const i_size: c_int = if (ibuffer.index_buffer_type == gl.UNSIGNED_SHORT) 2 else 4;
-        var ib_offset = @intCast(usize, base_element * i_size + cur_ib_offset);
+        var ib_offset = @as(usize, @intCast(base_element * i_size + cur_ib_offset));
 
         if (instance_count <= 1) {
-            gl.drawElements(gl.TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*anyopaque, ib_offset));
+            gl.drawElements(gl.TRIANGLES, element_count, ibuffer.index_buffer_type, @as(?*anyopaque, @ptrFromInt(ib_offset)));
         } else {
-            gl.drawElementsInstanced(gl.TRIANGLES, element_count, ibuffer.index_buffer_type, @intToPtr(?*anyopaque, ib_offset), instance_count);
+            gl.drawElementsInstanced(gl.TRIANGLES, element_count, ibuffer.index_buffer_type, @as(?*anyopaque, @ptrFromInt(ib_offset)), instance_count);
         }
     }
 }
@@ -731,7 +731,7 @@ pub fn createShaderProgram(comptime VertUniformT: type, comptime FragUniformT: t
         }
     }
 
-    gl.useProgram(@intCast(GLuint, cur_prog));
+    gl.useProgram(@as(GLuint, @intCast(cur_prog)));
 
     return shader_cache.append(shader);
 }
@@ -816,11 +816,11 @@ pub fn setShaderProgramUniformBlock(comptime UniformT: type, shader: types.Shade
                         switch (@typeInfo(array_type_info.child)) {
                             .Int => |type_info| {
                                 std.debug.assert(type_info.bits == 32);
-                                gl.uniform1iv(location, @intCast(c_int, array_type_info.len), &array_value);
+                                gl.uniform1iv(location, @as(c_int, @intCast(array_type_info.len)), &array_value);
                             },
                             .Float => |type_info| {
                                 std.debug.assert(type_info.bits == 32);
-                                gl.uniform1fv(location, @intCast(c_int, array_type_info.len), &array_value);
+                                gl.uniform1fv(location, @as(c_int, @intCast(array_type_info.len)), &array_value);
                             },
                             .Struct => @panic("array of structs not supported"),
                             else => unreachable,

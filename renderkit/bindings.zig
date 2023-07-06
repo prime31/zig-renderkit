@@ -919,8 +919,8 @@ pub var linkProgram: *const fn (program: Uint) callconv(.C) void = undefined;
 pub var shaderSource: *const fn (
     shader: Uint,
     count: Sizei,
-//    string: [*c]const [*c]const Char,
-	string: *[:0]const Char,
+    //    string: [*c]const [*c]const Char,
+    string: *[:0]const Char,
     length: [*c]const Int,
 ) callconv(.C) void = undefined;
 pub var useProgram: *const fn (program: Uint) callconv(.C) void = undefined;

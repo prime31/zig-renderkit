@@ -101,7 +101,7 @@ pub const RenderCache = struct {
         for (self.textures, 0..) |_, i| {
             if (self.textures[i] == tid) {
                 self.textures[i] = 0;
-                gl.activeTexture(gl.TEXTURE0 + @intCast(c_uint, i));
+                gl.activeTexture(gl.TEXTURE0 + @as(c_uint, @intCast(i)));
                 gl.bindTexture(gl.TEXTURE_2D, tid);
             }
         }
