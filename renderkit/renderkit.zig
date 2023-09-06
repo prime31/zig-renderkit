@@ -41,7 +41,6 @@ pub fn setup(desc: descriptions.RendererDesc, allocator: std.mem.Allocator) void
     buffer_cache = HandledCache(GLBuffer).init(allocator, desc.pool_sizes.buffers);
     shader_cache = HandledCache(GLShaderProgram).init(allocator, desc.pool_sizes.shaders);
 
-    // gl.load(desc.gl_loader.?) catch unreachable;
     zgl.loadCoreProfile(desc.gl_loader.?, 3, 3) catch {};
 
     pip_cache = std.mem.zeroes(types.RenderState);
@@ -66,14 +65,12 @@ fn checkError(src: std.builtin.SourceLocation) void {
             gl.INVALID_ENUM => "GL_INVALID_ENUM",
             gl.INVALID_VALUE => "GL_INVALID_VALUE",
             gl.INVALID_OPERATION => "GL_INVALID_OPERATION",
-            gl.STACK_OVERFLOW_KHR => "GL_STACK_OVERFLOW_KHR",
-            gl.STACK_UNDERFLOW_KHR => "GL_STACK_UNDERFLOW_KHR",
             gl.OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
             gl.INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION",
             else => "Unknown Error Enum",
         };
 
-        std.debug.print("error: {}, file: {}, func: {}, line: {}\n", .{ error_name, src.file, src.fn_name, src.line });
+        std.debug.print("error: {s}, file: {s}, func: {s}, line: {}\n", .{ error_name, src.file, src.fn_name, src.line });
         err_code = gl.getError();
     }
 }
